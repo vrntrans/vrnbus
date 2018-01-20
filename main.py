@@ -22,23 +22,6 @@ def make_app():
         (r"/", MainHandler),
     ])
 
-
-
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""Simple Bot to reply to Telegram messages.
-This program is dedicated to the public domain under the CC0 license.
-This Bot uses the Updater class to handle the bot.
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
-
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
 from datetime import datetime
@@ -82,9 +65,8 @@ def get_all_buses():
     return 'Ничего не нашлось'
 
 
-@cachetools.func.ttl_cache(ttl=10)
+@cachetools.func.ttl_cache(ttl=60)
 def bus_request(bus_route):
-    # payload = {'routes': r'[{"route":"113\u041a\u0422","proj_ID":4}]'}
     url = f'{cds_url_base}GetRouteBuses'
     print('bus_route', bus_route)
     if not bus_route:
