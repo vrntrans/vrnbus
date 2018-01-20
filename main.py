@@ -92,7 +92,7 @@ def bus_request(bus_route):
     return 'Ничего не нашлось'
 
 
-def start(bot, update, args):
+def last_buses(bot, update, args):
     """Send a message when the command /start is issued."""
     response = bus_request(tuple(args))
     update.message.reply_text(response)
@@ -106,7 +106,7 @@ def get_all(bot, update, args):
 def help(bot, update, args):
     """Send a message when the command /help is issued."""
     text_caps = ' '.join(args).upper()
-    update.message.reply_text('Help!' + text_caps)
+    update.message.reply_text('/last номера маршрута через пробел - последние остановки\n/stats статистика')
 
 
 def echo(bot, update):
@@ -128,9 +128,11 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
-    dp.add_handler(CommandHandler("start", start, pass_args=True))
+    # dp.add_handler(CommandHandler("start", start, pass_args=True))
     dp.add_handler(CommandHandler("help", help, pass_args=True))
-    dp.add_handler(CommandHandler("all",get_all , pass_args=True))
+    dp.add_handler(CommandHandler("last", last_buses, pass_args=True))
+
+    dp.add_handler(CommandHandler("stats", get_all, pass_args=True))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
