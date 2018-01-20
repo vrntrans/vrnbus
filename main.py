@@ -1,32 +1,14 @@
 # #!/usr/bin/env python3.6
+
 import json
-from datetime import datetime
-from pathlib import Path
-
-import tornado.ioloop
-import tornado.web
-import requests
-import json
-import telegram
-import cachetools
-import cachetools.func
-import tornado.ioloop
-import tornado.web
-
-class MainHandler(tornado.web.RequestHandler):
-    def get(self):
-        self.write("Hello, world")
-
-def make_app():
-    return tornado.web.Application([
-        (r"/", MainHandler),
-    ])
-
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import logging
 from datetime import datetime
 from datetime import timedelta
 from itertools import groupby
+
+import cachetools.func
+import requests
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 datetime_object = datetime.strptime('Jun 1 2005  1:33PM', '%b %d %Y %I:%M%p')
 
@@ -146,7 +128,7 @@ def main():
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
-    # updater.idle()
+    updater.idle()
 
 def init_dictionary():
     global routes_base
@@ -159,9 +141,7 @@ def init_dictionary():
                 if route not in routes_base:
                     routes_base[v['route_name_']] = v['proj_id_']
 
+
 if __name__ == "__main__":
     init_dictionary()
-    app = make_app()
-    app.listen(8080)
     main()
-    tornado.ioloop.IOLoop.current().start()
