@@ -1,4 +1,4 @@
 tornado
 requests
 python-telegram-bot
-cachetools-2.0.1
+cachetools
