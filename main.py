@@ -97,6 +97,10 @@ def next_bus(bus_stop):
     matches = [x for x in bus_stops if bus_stop.upper() in x['NAME_'].upper()]
     if not matches:
         return f'Остановки c именем "{bus_stop}" не найдены'
+    if len(matches) > 5:
+        stops_matches = '\n'.join([x['NAME_'] for x in matches[:20]])
+        print(stops_matches)
+        return f'Уточните остановку. Найденные варианты:\n{stops_matches}'
     result = []
     for item in matches:
         arrivals = next_bus_for_lat_lon(item['LAT_'], item['LON_'])
