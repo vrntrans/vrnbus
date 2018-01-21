@@ -11,8 +11,10 @@ import cachetools.func
 import requests
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
+
 def get_time(s):
-    return  datetime.strptime(s, '%b %d, %Y %I:%M:%S %p')
+    return datetime.strptime(s, '%b %d, %Y %I:%M:%S %p')
+
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -22,10 +24,13 @@ logger = logging.getLogger(__name__)
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
 cookies = {'JSESSIONID': 'C8ED75C7EC5371CBE836BDC748BB298F', 'session_id': 'vrntrans'}
-fake_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
+fake_header = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/63.0.3239.132 Safari/537.36'}
 
 routes_base = {}
 bus_stops = []
+
 
 @cachetools.func.ttl_cache()
 def get_all_buses():
@@ -35,9 +40,9 @@ def get_all_buses():
         now = datetime.now()
         hour = timedelta(hours=1)
         print(result)
-        key_check = lambda x: 'name_' in x and 'last_time_' in x and (now-get_time(x['last_time_']))<hour
+        key_check = lambda x: 'name_' in x and 'last_time_' in x and (now - get_time(x['last_time_'])) < hour
         short_result = [(d['name_'], d['last_time_'], d['route_name_'], d['proj_id_']) for d in result if key_check(d)]
-        short_result = sorted(short_result, key=lambda x: x[2] + ' ' +str(x[3]))
+        short_result = sorted(short_result, key=lambda x: x[2] + ' ' + str(x[3]))
         groupped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: '{}({})'.format(x[2], str(x[3])))]
         print(short_result)
         if short_result:
@@ -64,15 +69,17 @@ def bus_request(bus_route):
         now = datetime.now()
         hour = timedelta(hours=1)
         print(result)
-        key_check = lambda x: 'name_' in x and 'last_time_' in x and (now-get_time(x['last_time_']))<hour
+        key_check = lambda x: 'name_' in x and 'last_time_' in x and (now - get_time(x['last_time_'])) < hour
         short_result = [d for d in result if key_check(d)]
         print(short_result)
         if short_result:
-            stations = ' \n'.join(f"{d['route_name_']}, {get_time(d['last_time_']):%H:%M}, {d['bus_station_']}" for d in short_result)
+            stations = ' \n'.join(
+                f"{d['route_name_']}, {get_time(d['last_time_']):%H:%M}, {d['bus_station_']}" for d in short_result)
             print(stations)
             return stations
 
     return 'Ничего не нашлось'
+
 
 @cachetools.func.ttl_cache(ttl=60)
 def next_bus_for_lat_lon(lat, lon):
@@ -88,7 +95,6 @@ def next_bus_for_lat_lon(lat, lon):
 def next_bus(bus_stop):
     bus_stop = ' '.join(bus_stop)
     matches = [x for x in bus_stops if bus_stop.upper() in x['NAME_'].upper()]
-    url = f'{cds_url_base}GetRouteBuses'
     if not matches:
         return f'Остановки c именем "{bus_stop}" не найдены'
     result = []
@@ -106,15 +112,18 @@ def next_bus(bus_stop):
     print('\n'.join(result))
     return '\n'.join(result)
 
+
 def last_buses(bot, update, args):
     """Send a message when the command /start is issued."""
     response = bus_request(tuple(args))
     update.message.reply_text(response)
 
+
 def next_bus_handler(bot, update, args):
     """Send a message when the command /start is issued."""
     response = next_bus(tuple(args))
     update.message.reply_text(response)
+
 
 def get_all(bot, update, args):
     """Send a message when the command /start is issued."""
@@ -124,10 +133,9 @@ def get_all(bot, update, args):
 
 def help(bot, update, args):
     """Send a message when the command /help is issued."""
-    text_caps = ' '.join(args).upper()
     update.message.reply_text("""/last номера маршрута через пробел - последние остановки
-    /stats статистика
-    /nextbus имя остановки - ожидаемое время прибытия""")
+/stats статистика
+/nextbus имя остановки - ожидаемое время прибытия""")
 
 
 def echo(bot, update):
@@ -173,7 +181,7 @@ def main():
 
 def load_bus_routes():
     global routes_base
-    r = requests.get( f'{cds_url_base}GetBuses', cookies=cookies, headers=fake_header)
+    r = requests.get(f'{cds_url_base}GetBuses', cookies=cookies, headers=fake_header)
     if r.text:
         result = json.loads(r.text)
         for v in result:
@@ -183,6 +191,7 @@ def load_bus_routes():
                     routes_base[v['route_name_']] = v['proj_id_']
     with open('bus_routes.json', 'wb') as f:
         json.dump(routes_base, codecs.getwriter('utf-8')(f), ensure_ascii=False, indent=4)
+
 
 def init_routes():
     global routes_base
@@ -195,11 +204,13 @@ def init_routes():
 
     print('finished init_routes')
 
+
 def init_bus_stops():
     global bus_stops
     with open('bus_stops.json', 'rb') as f:
         bus_stops = json.load(f)
     print('finished init_bus_stops')
+
 
 if __name__ == "__main__":
     init_routes()
