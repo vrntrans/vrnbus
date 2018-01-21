@@ -81,8 +81,9 @@ def bus_request(bus_route):
         return 'Не заданы маршруты'
     short_result = bus_request_as_list(bus_route)
     if short_result:
+        print(short_result)
         stations = ' \n'.join(
-            f"{d['route_name_']}, {get_time(d['last_time_']):%H:%M}, {d['bus_station_']}" for d in short_result)
+            f"{d['route_name_']}, {get_time(d['last_time_']):%H:%M}, {d.get('bus_station_')}" for d in short_result)
         print(stations)
         return stations
 
@@ -99,7 +100,7 @@ def bus_request_pro(bus_route):
     if short_result:
         print(short_result)
         stations = ' \n'.join(
-            f"{d['route_name_']} {get_time(d['last_time_']):%H:%M} {d['bus_station_']} {d['name_']} " for d in short_result)
+            f"{d['route_name_']} {get_time(d['last_time_']):%H:%M} {d.get('bus_station_')} {d['name_']} " for d in short_result)
         print(stations)
         return stations
 
