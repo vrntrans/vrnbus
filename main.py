@@ -54,7 +54,7 @@ def get_all_buses():
 
 
 @cachetools.func.ttl_cache(ttl=60)
-def bus_request(bus_route):
+def bus_request_as_list(bus_route):
     url = f'{cds_url_base}GetRouteBuses'
     print('bus_route', bus_route)
     if not bus_route:
@@ -71,15 +71,39 @@ def bus_request(bus_route):
         print(result)
         key_check = lambda x: 'name_' in x and 'last_time_' in x and (now - get_time(x['last_time_'])) < hour
         short_result = [d for d in result if key_check(d)]
-        print(short_result)
-        if short_result:
-            stations = ' \n'.join(
-                f"{d['route_name_']}, {get_time(d['last_time_']):%H:%M}, {d['bus_station_']}" for d in short_result)
-            print(stations)
-            return stations
+        return short_result
+    return []
+
+@cachetools.func.ttl_cache(ttl=60)
+def bus_request(bus_route):
+    print('bus_route', bus_route)
+    if not bus_route:
+        return 'Не заданы маршруты'
+    short_result = bus_request_as_list(bus_route)
+    if short_result:
+        stations = ' \n'.join(
+            f"{d['route_name_']}, {get_time(d['last_time_']):%H:%M}, {d['bus_station_']}" for d in short_result)
+        print(stations)
+        return stations
 
     return 'Ничего не нашлось'
 
+
+@cachetools.func.ttl_cache(ttl=60)
+def bus_request_pro(bus_route):
+    print('bus_route', bus_route)
+    if not bus_route:
+        return 'Не заданы маршруты'
+    short_result = bus_request_as_list(bus_route)
+
+    if short_result:
+        print(short_result)
+        stations = ' \n'.join(
+            f"{d['route_name_']} {get_time(d['last_time_']):%H:%M} {d['bus_station_']} {d['name_']} " for d in short_result)
+        print(stations)
+        return stations
+
+    return 'Ничего не нашлось'
 
 @cachetools.func.ttl_cache(ttl=60)
 def next_bus_for_lat_lon(lat, lon):
@@ -123,6 +147,11 @@ def last_buses(bot, update, args):
     update.message.reply_text(response)
 
 
+def last_buses_pro(bot, update, args):
+    """Send a message when the command /start is issued."""
+    response = bus_request_pro(tuple(args))
+    update.message.reply_text(response)
+
 def next_bus_handler(bot, update, args):
     """Send a message when the command /start is issued."""
     response = next_bus(tuple(args))
@@ -138,7 +167,6 @@ def get_all(bot, update, args):
 def help(bot, update, args):
     """Send a message when the command /help is issued."""
     update.message.reply_text("""/last номера маршрута через пробел - последние остановки
-/stats статистика
 /nextbus имя остановки - ожидаемое время прибытия""")
 
 
@@ -164,6 +192,7 @@ def main():
     # dp.add_handler(CommandHandler("start", start, pass_args=True))
     dp.add_handler(CommandHandler("help", help, pass_args=True))
     dp.add_handler(CommandHandler("last", last_buses, pass_args=True))
+    dp.add_handler(CommandHandler("lastpro", last_buses_pro, pass_args=True))
     dp.add_handler(CommandHandler("nextbus", next_bus_handler, pass_args=True))
 
     dp.add_handler(CommandHandler("stats", get_all, pass_args=True))
