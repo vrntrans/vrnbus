@@ -210,7 +210,7 @@ def help(bot, update):
 def start(bot, update):
     """Send a message when the command /help is issued."""
     user = update.message.from_user
-    logger.info(f"start. User: {user}; {args}")
+    logger.info(f"start. User: {user};")
 
     location_keyboard = telegram.KeyboardButton(text="Местоположение", request_location=True)
     cancel_button = telegram.KeyboardButton(text="Отмена")
