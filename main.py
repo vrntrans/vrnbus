@@ -10,8 +10,8 @@ from pathlib import Path
 import cachetools.func
 import requests
 import telegram
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputLocationMessageContent, ReplyKeyboardRemove
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
+from telegram import ReplyKeyboardRemove
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 
 def get_time(s):
@@ -19,7 +19,7 @@ def get_time(s):
 
 
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
                     level=logging.INFO)
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,7 @@ bus_stops = []
 @cachetools.func.ttl_cache()
 def get_all_buses():
     r = requests.get(f'{cds_url_base}GetBuses', cookies=cookies, headers=fake_header)
+    logger.info(f"{r.url} {r.elapsed}")
     if r.text:
         result = json.loads(r.text)
         now = datetime.now()
@@ -44,11 +45,9 @@ def get_all_buses():
         key_check = lambda x: 'name_' in x and 'last_time_' in x and (now - get_time(x['last_time_'])) < hour
         short_result = [(d['name_'], d['last_time_'], d['route_name_'], d['proj_id_']) for d in result if key_check(d)]
         short_result = sorted(short_result, key=lambda x: x[2] + ' ' + str(x[3]))
-        groupped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: '{}({})'.format(x[2], str(x[3])))]
-        print(short_result)
+        groupped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: '{} ({})'.format(x[2], str(x[3])))]
         if short_result:
             buses = ' \n'.join((('{} => {}'.format(i[0], i[1])) for i in groupped))
-            print(buses)
             return buses
 
     return 'Ничего не нашлось'
@@ -59,13 +58,18 @@ def bus_request_as_list(bus_route):
     url = f'{cds_url_base}GetRouteBuses'
     print('bus_route', bus_route)
     if not bus_route:
-        return 'Не заданы маршруты'
-    routes = [{'proj_ID': routes_base.get(r.upper()), 'route': r.upper()} for r in bus_route]
-
+        return []
+    keys = [x for x in routes_base.keys() for r in bus_route if x.upper() == r.upper()]
+    routes = [{'proj_ID': routes_base.get(k), 'route': k} for k in keys]
+    if not routes:
+        return []
     payload = {'routes': json.dumps(routes)}
+    logger.info(f"bus_request_as_list {routes}")
     r = requests.post(url, cookies=cookies, data=payload, headers=fake_header)
+    logger.info(f"{r.url} {payload} {r.elapsed}")
 
     if r.text:
+        logger.info(r.text)
         result = json.loads(r.text)
         now = datetime.now()
         hour = timedelta(hours=1)
@@ -85,7 +89,6 @@ def bus_request(bus_route):
         print(short_result)
         stations = ' \n'.join(
             f"{d['route_name_']}, {get_time(d['last_time_']):%H:%M}, {d.get('bus_station_')}" for d in short_result)
-        print(stations)
         return stations
 
     return 'Ничего не нашлось'
@@ -107,17 +110,18 @@ def bus_request_pro(bus_route):
 
     return 'Ничего не нашлось'
 
-@cachetools.func.ttl_cache(ttl=60)
+@cachetools.func.ttl_cache(ttl=90)
 def next_bus_for_lat_lon(lat, lon):
     url = f'{codd_base_usl}GetNextBus'
     payload = {'lat': lat, 'lon': lon}
     r = requests.post(url, data=payload, headers=fake_header)
+    logger.info(f"{r.url} {payload} {r.elapsed}")
     if r.text:
         result = json.loads(r.text)
         return result
 
 
-@cachetools.func.ttl_cache(ttl=60)
+@cachetools.func.ttl_cache(ttl=90)
 def next_bus(bus_stop):
     bus_stop = ' '.join(bus_stop)
     matches = [x for x in bus_stops if bus_stop.upper() in x['NAME_'].upper()]
@@ -156,24 +160,29 @@ def next_bus_for_matches(bus_matches):
             next_bus_info = f"Остановка {header['rname_']}:\n"
             next_bus_info += '\n'.join((f"{x['rname_']} - {x['time_']} мин" for x in items))
             result.append(next_bus_info)
-    print('\n'.join(result))
     return '\n'.join(result)
 
 def last_buses(bot, update, args):
-    """Send a message when the command /start is issued."""
+    """Send a message when the command /last is issued."""
+    user = update.message.from_user
+    logger.info(f"last_buses. User: {user}; {args}")
     response = bus_request(tuple(args))
+    logger.info(f"last_buses. User: {user}; Response {response}")
     update.message.reply_text(response)
 
 
 def last_buses_pro(bot, update, args):
     """Send a message when the command /start is issued."""
+    user = update.message.from_user
+    logger.info(f"last_buses_pro. User: {user}; {args}")
     response = bus_request_pro(tuple(args))
     update.message.reply_text(response)
 
 def next_bus_handler(bot, update, args):
     """Send a message when the command /start is issued."""
+    user = update.message.from_user
+    logger.info(f"next_bus_handler. User: {user}; {args}")
     if not args:
-        update.message.reply_text("empty")
         location_btn = telegram.KeyboardButton(text="Местоположение", request_location=True)
         cancel_btn = telegram.KeyboardButton(text="Отмена")
         custom_keyboard = [[location_btn, cancel_btn]]
@@ -185,8 +194,10 @@ def next_bus_handler(bot, update, args):
     update.message.reply_text(response)
 
 
-def stats(bot, update, args):
+def stats(bot, update):
     """Send a message when the command /stats is issued."""
+    user = update.message.from_user
+    logger.info(f"Stats. User: {user}")
     response = get_all_buses()
     update.message.reply_text(response)
 
@@ -198,6 +209,9 @@ def help(bot, update):
 
 def start(bot, update):
     """Send a message when the command /help is issued."""
+    user = update.message.from_user
+    logger.info(f"start. User: {user}; {args}")
+
     location_keyboard = telegram.KeyboardButton(text="Местоположение", request_location=True)
     cancel_button = telegram.KeyboardButton(text="Отмена")
     custom_keyboard = [[location_keyboard, cancel_button ]]
@@ -207,8 +221,7 @@ def start(bot, update):
 
 def echo(bot, update):
     """Echo the user message."""
-    if update.message.text == 'Отмена':
-        update.message.reply_text(update.message.text, reply_markup=ReplyKeyboardRemove())
+    update.message.reply_text(update.message.text, reply_markup=ReplyKeyboardRemove())
 
 
 def error(bot, update, error):
@@ -223,11 +236,10 @@ def location(bot, update):
     (lat, lon) =  user_location.latitude, user_location.longitude
     distance = lambda item: pow(pow(item['LON_'] - lat, 2) + pow(item['LAT_'] - lon, 2), 0.5)
 
-    matches = sorted(bus_stops, key=distance)[:3]
+    matches = sorted(bus_stops, key=distance)[:5]
 
-    logger.info(matches)
     result = next_bus_for_matches(matches)
-
+    logger.info(f"next_bus_for_matches {user} {result}")
     update.message.reply_text(result, reply_markup=ReplyKeyboardRemove())
 
 def init_tg_bot():
@@ -246,7 +258,7 @@ def init_tg_bot():
     dp.add_handler(CommandHandler("lastpro", last_buses_pro, pass_args=True))
     dp.add_handler(CommandHandler("nextbus", next_bus_handler, pass_args=True))
 
-    dp.add_handler(CommandHandler("stats", stats, pass_args=True))
+    dp.add_handler(CommandHandler("stats", stats))
 
     # on noncommand i.e message - echo the message on Telegram
     dp.add_handler(MessageHandler(Filters.text, echo))
