@@ -31,6 +31,7 @@ fake_header = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/63.0.3239.132 Safari/537.36'}
 
+logger.info(os.environ)
 if 'DYNO' in os.environ:
     debug = False
 else:
@@ -273,15 +274,18 @@ def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
+@cachetools.func.ttl_cache()
+def matches_bus_stops(lat, lon, size=3):
+    distance = lambda item: pow(pow(item['LON_'] - lat, 2) + pow(item['LAT_'] - lon, 2), 0.5)
+    return sorted(bus_stops, key=distance)[:size]
+
+
 def location(bot, update):
     user = update.message.from_user
     user_location = update.message.location
     logger.info("Location of %s: %f / %f", user.first_name, user_location.latitude,
                 user_location.longitude)
-    (lat, lon) = user_location.latitude, user_location.longitude
-    distance = lambda item: pow(pow(item['LON_'] - lat, 2) + pow(item['LAT_'] - lon, 2), 0.5)
-
-    matches = sorted(bus_stops, key=distance)[:3]
+    matches = matches_bus_stops(user_location.latitude, user_location.longitude)
 
     settings = user_settings.get(user.id, [])
     result = next_bus_for_matches(matches, settings)
@@ -342,8 +346,6 @@ def button(bot, update):
     settings = user_settings.get(user_id, [])
     key = query.data
 
-
-
     if key == 'all':
         settings = list(routes_base.keys())
     elif key == 'none':
@@ -362,7 +364,7 @@ def button(bot, update):
     user_settings[user_id] = settings
     keyboard = get_buttons_routes(settings)
     reply_markup = InlineKeyboardMarkup(keyboard)
-    bot.edit_message_text(text="Selected option: {}".format(query.data),
+    bot.edit_message_text(text=f"Текущие маршруты для вывода: {' '.join(settings) if settings else 'все доступные'}",
                           chat_id=query.message.chat_id,
                           message_id=query.message.message_id,
                           reply_markup=reply_markup)
@@ -404,7 +406,7 @@ def init_tg_bot():
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.
-    updater.idle()
+    # updater.idle()
 
 
 def load_bus_routes():
@@ -430,9 +432,47 @@ class TestSomeCases(unittest.TestCase):
         input = ['104', 'Тр.', '17', '18']
         expected = ['104', 'Тр. 17', '18']
         self.assertEqual(parse_routes(input), expected)
+import tornado.ioloop
+import tornado.web
+
+root = Path("./fe")
+port = 8080
+
+class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
+    def set_extra_headers(self, path):
+        self.set_header("Cache-control", "no-cache")
+
+static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
 
 
+class UserLocation(tornado.web.RequestHandler):
+    def _caching(self):
+        self.set_header("Cache-Control", "max-age=30")
+
+    def get(self):
+        (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon') )
+        matches = matches_bus_stops(lat, lon)
+        result = next_bus_for_matches(matches, [])
+        response = {'lat': lat, 'lon': lon, 'text': result}
+        self.write(json.dumps(response))
+        self._caching()
+
+    def post(self):
+        data = tornado.escape.json_decode(self.request.body)
+        (lat, lon) = data['lat'], data['lon']
+        matches = matches_bus_stops(lat, lon)
+        result = next_bus_for_matches(matches, [])
+        response = {'lat': lat, 'lon': lon, 'text': result}
+        self.write(json.dumps(response))
+        self._caching()
+
+application = tornado.web.Application([
+    (r"/user", UserLocation),
+    (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
+])
 
 if __name__ == "__main__":
     init_tg_bot()
+    application.listen(os.environ.get('PORT', port))
+    tornado.ioloop.IOLoop.instance().start()
     # unittest.main()

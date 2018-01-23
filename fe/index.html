@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>vrnbus (beta)</title>
+</head>
+<body>
+
+<button id="nextbusgeo">Обновить данные</button>
+<div id="info" style="white-space:pre-wrap;"/>
+<script>
+    const nextbusgeo = document.getElementById('nextbusgeo')
+    const info = document.getElementById('info')
+    if ("geolocation" in navigator) {
+        nextbusgeo.onclick = function (event) {
+            get_current_pos(info)
+        }
+        get_current_pos(info)
+    }
+
+    function get_current_pos(info) {
+        navigator.geolocation.getCurrentPosition(get_bus_stops)
+    }
+
+    function get_bus_stops(position) {
+        const coords = position.coords
+        const url = new URL("/user", window.location)
+        const params = {lat: coords.latitude, lon: coords.longitude}
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
+        fetch(url,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
+                const {lat, lon, text} = data
+                info.innerHTML = `${lat}; ${lon}\n${text}`
+            })
+    }
+</script>
+</body>
+</html>
