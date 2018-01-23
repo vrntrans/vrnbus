@@ -31,6 +31,13 @@ fake_header = {
                   'Chrome/63.0.3239.132 Safari/537.36'}
 
 
+import re
+
+def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split(_nsre, s)]
+
+
 def init_routes():
     my_file = Path("bus_routes.json")
     if my_file.is_file():
@@ -74,7 +81,7 @@ def get_all_buses():
         now = datetime.now()
         hour = timedelta(hours=1)
         short_result = [(d['name_'], d['last_time_'], d['route_name_'], d['proj_id_']) for d in result if key_check(d)]
-        short_result = sorted(short_result, key=lambda x: x[2] + ' ' + str(x[3]))
+        short_result = sorted(short_result, key=lambda x: natural_sort_key(x[2]))
         grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: '{} ({})'.format(x[2], str(x[3])))]
         if short_result:
             buses = ' \n'.join((('{} => {}'.format(i[0], i[1])) for i in grouped))
@@ -164,11 +171,6 @@ def next_bus(bus_stop):
         return f'Уточните остановку. Найденные варианты:\n{first_matches}'
     return next_bus_for_matches(bus_stop_matches)
 
-import re
-
-def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
-    return [int(text) if text.isdigit() else text.lower()
-            for text in re.split(_nsre, s)]
 
 # @cachetools.func.ttl_cache(ttl=60)
 def next_bus_for_matches(bus_stop_matches):
