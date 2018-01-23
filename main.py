@@ -122,28 +122,14 @@ def next_bus_for_lat_lon(lat, lon):
 @cachetools.func.ttl_cache(ttl=90)
 def next_bus(bus_stop):
     bus_stop = ' '.join(bus_stop)
-    matches = [x for x in bus_stops if bus_stop.upper() in x['NAME_'].upper()]
-    print(bus_stop, matches)
-    if not matches:
+    bus_matches = [x for x in bus_stops if bus_stop.upper() in x['NAME_'].upper()]
+    print(bus_stop, bus_matches)
+    if not bus_matches:
         return f'Остановки c именем "{bus_stop}" не найдены'
-    if len(matches) > 5:
-        stops_matches = '\n'.join([x['NAME_'] for x in matches[:20]])
+    if len(bus_matches) > 5:
+        stops_bus_matches = '\n'.join([x['NAME_'] for x in bus_matches[:20]])
         return f'Уточните остановку. Найденные варианты:\n{stops_matches}'
-    result = []
-    for item in matches:
-        arrivals = next_bus_for_lat_lon(item['LAT_'], item['LON_'])
-        if arrivals:
-            header = arrivals[0]
-            items = [x for x in arrivals[1:] if x['time_'] > 0]
-            items.sort(key=lambda s: s['rname_'])
-            if not items:
-                result.append(f'Остановка {header["rname_"]}: нет данных')
-                continue
-            next_bus_info = f"Остановка {header['rname_']}:\n"
-            next_bus_info += '\n'.join((f"{x['rname_']} - {x['time_']} мин" for x in items))
-            result.append(next_bus_info)
-    print('\n'.join(result))
-    return '\n'.join(result)
+    return next_bus_for_matches(bus_matches)
 
 # @cachetools.func.ttl_cache(ttl=60)
 def next_bus_for_matches(bus_matches):
@@ -236,7 +222,7 @@ def location(bot, update):
     (lat, lon) =  user_location.latitude, user_location.longitude
     distance = lambda item: pow(pow(item['LON_'] - lat, 2) + pow(item['LAT_'] - lon, 2), 0.5)
 
-    matches = sorted(bus_stops, key=distance)[:5]
+    matches = sorted(bus_stops, key=distance)[:3]
 
     result = next_bus_for_matches(matches)
     logger.info(f"next_bus_for_matches {user} {result}")
