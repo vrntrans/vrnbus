@@ -56,7 +56,6 @@ def get_all_buses():
 @cachetools.func.ttl_cache(ttl=60)
 def bus_request_as_list(bus_route):
     url = f'{cds_url_base}GetRouteBuses'
-    print('bus_route', bus_route)
     if not bus_route:
         return []
     keys = [x for x in routes_base.keys() for r in bus_route if x.upper() == r.upper()]
@@ -73,7 +72,6 @@ def bus_request_as_list(bus_route):
         result = json.loads(r.text)
         now = datetime.now()
         hour = timedelta(hours=1)
-        print(result)
         key_check = lambda x: 'name_' in x and 'last_time_' in x and (now - get_time(x['last_time_'])) < hour
         short_result = [d for d in result if key_check(d)]
         return short_result
@@ -137,6 +135,7 @@ def next_bus(bus_stop):
         if arrivals:
             header = arrivals[0]
             items = [x for x in arrivals[1:] if x['time_'] > 0]
+            items.sort(key=lambda s: s['rname_'])
             if not items:
                 result.append(f'Остановка {header["rname_"]}: нет данных')
                 continue
@@ -154,6 +153,7 @@ def next_bus_for_matches(bus_matches):
         if arrivals:
             header = arrivals[0]
             items = [x for x in arrivals[1:] if x['time_'] > 0]
+            items.sort(key=lambda s: s['rname_'])
             if not items:
                 result.append(f'Остановка {header["rname_"]}: нет данных')
                 continue
