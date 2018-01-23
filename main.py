@@ -2,16 +2,17 @@
 import codecs
 import json
 import logging
+import os
 from datetime import datetime
 from datetime import timedelta
-from itertools import groupby
+from itertools import groupby, zip_longest
 from pathlib import Path
 
 import cachetools.func
 import requests
 import telegram
-from telegram import ReplyKeyboardRemove
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
 
 
 def get_time(s):
@@ -30,8 +31,13 @@ fake_header = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                   'Chrome/63.0.3239.132 Safari/537.36'}
 
+if 'DYNO' in os.environ:
+    debug = False
+else:
+    debug = True
 
 import re
+
 
 def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
@@ -68,6 +74,7 @@ def parse_routes(args):
 
 routes_base = init_routes()
 bus_stops = init_bus_stops()
+user_settings = {}
 
 
 @cachetools.func.ttl_cache()
@@ -82,7 +89,7 @@ def get_all_buses():
         hour = timedelta(hours=1)
         short_result = [(d['name_'], d['last_time_'], d['route_name_'], d['proj_id_']) for d in result if key_check(d)]
         short_result = sorted(short_result, key=lambda x: natural_sort_key(x[2]))
-        grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: '{} ({})'.format(x[2], str(x[3])))]
+        grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: f'{x[2]} ({x[3]})')]
         if short_result:
             buses = ' \n'.join((('{} => {}'.format(i[0], i[1])) for i in grouped))
             return buses
@@ -160,7 +167,7 @@ def next_bus_for_lat_lon(lat, lon):
 
 
 @cachetools.func.ttl_cache(ttl=90)
-def next_bus(bus_stop):
+def next_bus(bus_stop, user_bus_list):
     bus_stop = ' '.join(bus_stop)
     bus_stop_matches = [x for x in bus_stops if bus_stop.upper() in x['NAME_'].upper()]
     print(bus_stop, bus_stop_matches)
@@ -169,17 +176,19 @@ def next_bus(bus_stop):
     if len(bus_stop_matches) > 5:
         first_matches = '\n'.join([x['NAME_'] for x in bus_stop_matches[:20]])
         return f'Уточните остановку. Найденные варианты:\n{first_matches}'
-    return next_bus_for_matches(bus_stop_matches)
+    return next_bus_for_matches(bus_stop_matches, user_bus_list)
 
 
 # @cachetools.func.ttl_cache(ttl=60)
-def next_bus_for_matches(bus_stop_matches):
+def next_bus_for_matches(bus_stop_matches, user_bus_list):
     result = []
+    if user_bus_list:
+        result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}. Настройка: /settings")
     for item in bus_stop_matches:
         arrivals = next_bus_for_lat_lon(item['LAT_'], item['LON_'])
         if arrivals:
             header = arrivals[0]
-            items = [x for x in arrivals[1:] if x['time_'] > 0]
+            items = [x for x in arrivals[1:] if x['time_'] > 0 and (not user_bus_list or x["rname_"].strip() in user_bus_list)]
             items.sort(key=lambda s: natural_sort_key(s['rname_']))
             if not items:
                 result.append(f'Остановка {header["rname_"]}: нет данных')
@@ -222,7 +231,8 @@ def next_bus_handler(bot, update, args):
                                   reply_markup=reply_markup)
         return
 
-    response = next_bus(tuple(args))
+    settings = user_settings.get(user.id, [])
+    response = next_bus(tuple(args), tuple(settings))
     update.message.reply_text(response)
 
 
@@ -273,20 +283,105 @@ def location(bot, update):
 
     matches = sorted(bus_stops, key=distance)[:3]
 
-    result = next_bus_for_matches(matches)
+    settings = user_settings.get(user.id, [])
+    result = next_bus_for_matches(matches, settings)
     logger.info(f"next_bus_for_matches {user} {result}")
     update.message.reply_text(result, reply_markup=ReplyKeyboardRemove())
+
+
+
+def grouper(n, iterable, fillvalue=None):
+  "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+  args = [iter(iterable)] * n
+  return zip_longest(fillvalue=fillvalue, *args)
+
+def get_buttons_routes(user_routes):
+    #TODO: too many buttons
+    routes_list = sorted(list(routes_base.keys()), key=natural_sort_key)
+    routes_groups = list(grouper(8, routes_list))
+    route_btns = [[InlineKeyboardButton('Hide', callback_data='hide')],
+                  [InlineKeyboardButton('All', callback_data='all'),
+                   InlineKeyboardButton('None', callback_data='none')]
+                  ] + [
+        [InlineKeyboardButton(f"{x}{'+' if x in user_routes else ''}", callback_data=x)
+         for x in group if x]
+        for group in routes_groups]
+    keyboard = route_btns + [
+                ]
+    return keyboard
+
+def itest(bot, update, args):
+    user_id = user = update.message.from_user.id
+    settings = user_settings.get(user_id, [])
+    settings_routes = parse_routes(args)
+    if settings_routes:
+        cmd = settings_routes[0]
+        items = settings_routes[1:]
+        if len(settings_routes) == 1 and cmd in ('all', 'none'):
+                settings = []
+        elif cmd == 'del':
+            settings = [x for x in settings if x not in items]
+        elif cmd == 'add':
+            settings += [x for x in items if x in routes_base.keys() and x not in settings]
+        else:
+            settings = [x for x in settings_routes if x in routes_base.keys()]
+        user_settings[user_id] = settings
+        update.message.reply_text(f"Текущие маршруты для вывода: {' '.join(settings)}")
+        return
+
+    keyboard = get_buttons_routes(settings)
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    update.message.reply_text('Укажите маршруты для вывода:', reply_markup=reply_markup)
+
+
+def button(bot, update):
+    query = update.callback_query
+    logger.info(query)
+    user_id = query.message.chat_id
+    settings = user_settings.get(user_id, [])
+    key = query.data
+
+
+
+    if key == 'all':
+        settings = list(routes_base.keys())
+    elif key == 'none':
+        settings = []
+    elif key == 'hide':
+        bot.edit_message_text(text=f"Текущие маршруты для вывода: {' '.join(settings) if settings else 'все доступные'}",
+                              chat_id=query.message.chat_id,
+                              message_id=query.message.message_id)
+        return
+    else:
+        if key in settings:
+            settings.remove(key)
+        else:
+            settings.append(key)
+
+    user_settings[user_id] = settings
+    keyboard = get_buttons_routes(settings)
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    bot.edit_message_text(text="Selected option: {}".format(query.data),
+                          chat_id=query.message.chat_id,
+                          message_id=query.message.message_id,
+                          reply_markup=reply_markup)
 
 
 def init_tg_bot():
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
-    updater = Updater("548203169:AAE68R3o9ghnoe2LMnOkiqoU5R-OdGY4YCQ")
+    DEBUG_TOKEN = "524433920:AAFA-Qz4-ioogQ2WRviG_mD1lRzvrz7IPUc"
+    VRNBUSBOT_TOKEN = "548203169:AAE68R3o9ghnoe2LMnOkiqoU5R-OdGY4YCQ"
+    updater = Updater(DEBUG_TOKEN if debug else VRNBUSBOT_TOKEN)
 
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
+    updater.dispatcher.add_handler(CommandHandler('itest', itest, pass_args=True))
+    updater.dispatcher.add_handler(CommandHandler('settings', itest, pass_args=True))
+    updater.dispatcher.add_handler(CallbackQueryHandler(button))
     dp.add_handler(CommandHandler("start", start))
 
     dp.add_handler(CommandHandler("help", help))
