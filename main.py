@@ -164,6 +164,11 @@ def next_bus(bus_stop):
         return f'Уточните остановку. Найденные варианты:\n{first_matches}'
     return next_bus_for_matches(bus_stop_matches)
 
+import re
+
+def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split(_nsre, s)]
 
 # @cachetools.func.ttl_cache(ttl=60)
 def next_bus_for_matches(bus_stop_matches):
@@ -173,7 +178,7 @@ def next_bus_for_matches(bus_stop_matches):
         if arrivals:
             header = arrivals[0]
             items = [x for x in arrivals[1:] if x['time_'] > 0]
-            items.sort(key=lambda s: s['rname_'])
+            items.sort(key=lambda s: natural_sort_key(s['rname_']))
             if not items:
                 result.append(f'Остановка {header["rname_"]}: нет данных')
                 continue
@@ -322,7 +327,6 @@ def load_bus_routes():
 
 import unittest
 
-
 class TestSomeCases(unittest.TestCase):
 
     def test_split(self):
@@ -331,5 +335,7 @@ class TestSomeCases(unittest.TestCase):
         self.assertEqual(parse_routes(input), expected)
 
 
+
 if __name__ == "__main__":
     init_tg_bot()
+    # unittest.main()
