@@ -7,11 +7,38 @@
 </head>
 <body>
 
-<button id="nextbusgeo">Обновить данные</button>
-<div id="info" style="white-space:pre-wrap;"/>
+<div>
+    <button id="nextbusgeo">Прибытие на остановку</button>
+    <div id="info" style="white-space:pre-wrap;"/>
+</div>
+
+<div>
+    <input type="text" id="lastbusquery"/>
+    <button id="lastbus">Автобусы на маршруте</button>
+    <div id="businfo" style="white-space:pre-wrap;"/>
+</div>
+
 <script>
     const nextbusgeo = document.getElementById('nextbusgeo')
+    const lastbusquery = document.getElementById('lastbusquery')
+
+    const lastbus = document.getElementById('lastbus')
     const info = document.getElementById('info')
+    const businfo = document.getElementById('businfo')
+
+    lastbus.onclick = function (event) {
+        const bus_query = lastbusquery.value
+        get_bus_positions(bus_query)
+    }
+
+    lastbusquery.onkeyup = function (event) {
+        event.preventDefault()
+        if (event.keyCode === 13) {
+            const bus_query = lastbusquery.value
+            get_bus_positions(bus_query)
+        }
+    }
+
     if ("geolocation" in navigator) {
         nextbusgeo.onclick = function (event) {
             get_current_pos(info)
@@ -19,13 +46,14 @@
         get_current_pos(info)
     }
 
+
     function get_current_pos(info) {
-        navigator.geolocation.getCurrentPosition(get_bus_stops)
+        navigator.geolocation.getCurrentPosition(get_bus_arrival)
     }
 
-    function get_bus_stops(position) {
+    function get_bus_arrival(position) {
         const coords = position.coords
-        const url = new URL("/user", window.location)
+        const url = new URL("/arrival", window.location)
         const params = {lat: coords.latitude, lon: coords.longitude}
         Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
         fetch(url,
@@ -39,10 +67,31 @@
                 return res.json()
             })
             .then(function (data) {
-                const {lat, lon, text} = data
-                info.innerHTML = `${lat}; ${lon}\n${text}`
+                const {text} = data
+                info.innerHTML = `${text}`
             })
     }
+
+    function get_bus_positions(query) {
+        const url = new URL("/businfo", window.location)
+        const params = {q: query}
+        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
+        fetch(url,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
+                const {q, text} = data
+                businfo.innerHTML = `Маршруты: ${q}\n${text}`
+            })
+    }
+
 </script>
 </body>
 </html>

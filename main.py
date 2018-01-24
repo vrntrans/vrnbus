@@ -118,7 +118,7 @@ def bus_request_as_list(bus_route):
         now = datetime.now()
         hour = timedelta(hours=1)
         key_check = lambda x: 'name_' in x and 'last_time_' in x and (now - get_time(x['last_time_'])) < hour
-        short_result = [d for d in result if key_check(d)]
+        short_result = sorted([d for d in result if key_check(d)], key=lambda s:natural_sort_key(s['route_name_']))
         return short_result
     return []
 
@@ -445,29 +445,47 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
 static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
 
 
-class UserLocation(tornado.web.RequestHandler):
+class BusInfoHandler(tornado.web.RequestHandler):
     def _caching(self):
         self.set_header("Cache-Control", "max-age=30")
 
+    def bus_info_response(self, query):
+        routes = sorted(parse_routes(query.split()), key=natural_sort_key)
+        response = bus_request(tuple(routes))
+        response = {'q': query, 'text': response}
+        self.write(json.dumps(response))
+        self._caching()
+
     def get(self):
-        (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon') )
+        self.bus_info_response(self.get_argument('q'))
+
+    def post(self):
+        data = tornado.escape.json_decode(self.request.body)
+        self.bus_info_response(data.get('q'))
+
+class ArrivalHandler(tornado.web.RequestHandler):
+    def _caching(self):
+        self.set_header("Cache-Control", "max-age=30")
+
+    def arrival_response(self, lat, lon):
         matches = matches_bus_stops(lat, lon)
         result = next_bus_for_matches(matches, [])
         response = {'lat': lat, 'lon': lon, 'text': result}
         self.write(json.dumps(response))
         self._caching()
+
+    def get(self):
+        (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon') )
+        self.arrival_response(lat, lon)
 
     def post(self):
         data = tornado.escape.json_decode(self.request.body)
         (lat, lon) = data['lat'], data['lon']
-        matches = matches_bus_stops(lat, lon)
-        result = next_bus_for_matches(matches, [])
-        response = {'lat': lat, 'lon': lon, 'text': result}
-        self.write(json.dumps(response))
-        self._caching()
+        self.arrival_response(lat, lon)
 
 application = tornado.web.Application([
-    (r"/user", UserLocation),
+    (r"/arrival", ArrivalHandler),
+    (r"/businfo", BusInfoHandler),
     (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
 ])
 
