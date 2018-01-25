@@ -31,7 +31,7 @@ class BusBot:
         self.dp.add_handler(CommandHandler("stats", self.stats))
         #
         # # on noncommand i.e message - echo the message on Telegram
-        self.dp.add_handler(MessageHandler(Filters.text, self.echo))
+        self.dp.add_handler(MessageHandler(Filters.text, self.user_input))
         self.dp.add_handler(MessageHandler(Filters.location, self.location))
         #
         # # log all errors
@@ -72,8 +72,7 @@ class BusBot:
         """Send a message when the command /last is issued."""
         user = update.message.from_user
         self.logger.info(f"last_buses. User: {user}; {args}")
-        (full_info, routes, filter) = parse_routes(args)
-        response = self.cds.bus_request(full_info, routes, filter)
+        response = self.cds.bus_request(*parse_routes(args))
         self.logger.info(f"last_buses. User: {user}; Response {response}")
         update.message.reply_text(response)
 
@@ -95,7 +94,7 @@ class BusBot:
     def settings(self, bot, update, args):
         user_id = user = update.message.from_user.id
         settings = self.user_settings.get(user_id, [])
-        settings_routes = parse_routes(args)
+        settings_routes = parse_routes(args)[1]
         if settings_routes:
             cmd = settings_routes[0]
             items = settings_routes[1:]
@@ -128,7 +127,8 @@ class BusBot:
         elif key == 'none':
             settings = []
         elif key == 'hide':
-            bot.edit_message_text(text=f"Текущие маршруты для вывода: {' '.join(settings) if settings else 'все доступные'}",
+            routes = ' '.join(settings) if settings else 'все доступные'
+            bot.edit_message_text(text=f"Текущие маршруты для вывода: {routes}",
                                   chat_id=query.message.chat_id,
                                   message_id=query.message.message_id)
             return
@@ -141,7 +141,8 @@ class BusBot:
         self.user_settings[user_id] = settings
         keyboard = self.get_buttons_routes(settings)
         reply_markup = InlineKeyboardMarkup(keyboard)
-        bot.edit_message_text(text=f"Текущие маршруты для вывода: {' '.join(settings) if settings else 'все доступные'}",
+        routes = ' '.join(settings) if settings else 'все доступные'
+        bot.edit_message_text(text=f"Текущие маршруты для вывода: {routes}",
                               chat_id=query.message.chat_id,
                               message_id=query.message.message_id,
                               reply_markup=reply_markup)
@@ -170,18 +171,23 @@ class BusBot:
         response = self.cds.get_all_buses()
         update.message.reply_text(response)
 
+    def user_input(self, bot, update):
+        message = update.message
+        user = message.from_user
+        text = message.text
 
-    def echo(self, bot, update):
-        """Echo the user message."""
-        update.message.reply_text(update.message.text, reply_markup=ReplyKeyboardRemove())
+        self.logger.info(f'user_input. User: {user}; "{text}"')
+        response = self.cds.bus_request(*parse_routes(text.split()))
+        self.logger.info(f'user_input. User: {user}; Response: {response}')
+        message.reply_text(response, reply_markup=ReplyKeyboardRemove())
 
 
     def location(self, bot, update):
         user = update.message.from_user
-        user_location = update.message.location
-        self.logger.info("Location of %s: %f / %f", user.first_name, user_location.latitude,
-                    user_location.longitude)
-        matches = self.cds.matches_bus_stops(user_location.latitude, user_location.longitude)
+        loc = update.message.location
+        (lat, lon) = loc.latitude, loc.longitude
+        self.logger.info("Location of %s: %f / %f", user.first_name, lat, lon)
+        matches = self.cds.matches_bus_stops(lat, lon)
 
         settings = self.user_settings.get(user.id, [])
         result = self.cds.next_bus_for_matches(matches, settings)

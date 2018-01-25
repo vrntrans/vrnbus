@@ -10,16 +10,16 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
 
 def parse_routes(args):
     if not args:
-        return (False, tuple(), '')
+        return False, tuple(), ''
     result = []
-    filter_start = False
-    filter = ''
+    bus_filter_start = False
+    bus_filter = ''
     for i in args:
         if i in '\/|':
-            filter_start = True
+            bus_filter_start = True
             continue
-        if filter_start:
-            filter += i
+        if bus_filter_start:
+            bus_filter += i
             continue
         if result and result[-1] == 'Тр.':
             result[-1] += ' ' + i
@@ -29,14 +29,14 @@ def parse_routes(args):
     if full_info:
         result = result[1:]
 
-    return (full_info, tuple(result), filter)
+    return full_info, tuple(result), bus_filter
 
 
 def get_time(s):
     return datetime.strptime(s, '%b %d, %Y %I:%M:%S %p')
 
 
-def grouper(n, iterable, fillvalue=None):
-    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+def grouper(n, iterable, fill_value=None):
+    """grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"""
     args = [iter(iterable)] * n
-    return zip_longest(fillvalue=fillvalue, *args)
+    return zip_longest(fillvalue=fill_value, *args)
