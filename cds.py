@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 import cachetools.func
+import pytz
 import requests
 
 from helpers import get_time, natural_sort_key, distance
@@ -13,6 +14,8 @@ from helpers import get_time, natural_sort_key, distance
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
 ttl_sec = 60
+
+tz = pytz.timezone('Europe/Moscow')
 
 
 class BusStop(NamedTuple):
@@ -100,8 +103,8 @@ class CdsRequest():
         routes = self.load_all_routes(tuple(keys))
         self.logger.debug(routes)
         if routes:
-            now = datetime.now()
-            delta = timedelta(days=1)
+            now = datetime.now(tz=tz)
+            delta = timedelta(days=1, tz=tz)
             key_check = lambda x: x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < delta
             short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_))
             return short_result
@@ -147,8 +150,8 @@ class CdsRequest():
             return 'Не заданы маршруты'
         short_result = self.bus_request_as_list(bus_route)
         if short_result:
-            now = datetime.now()
-            delta = timedelta(minutes=30)
+            now = datetime.now(tz=tz)
+            delta = timedelta(minutes=30, tz=tz)
             stations = [station(d) for d in short_result if filtered(d) and (full_info or time_check(d))]
             if stations:
                 return ' \n'.join(stations)
@@ -224,8 +227,8 @@ class CdsRequest():
         self.logger.info(f"{r.url} {r.elapsed}")
         if r.text:
             result = json.loads(r.text)
-            now = datetime.now()
-            hour = timedelta(hours=1)
+            now = datetime.now(tz=tz)
+            hour = timedelta(hours=1, tz=tz)
             short_result = [(d['name_'], d['last_time_'], d['route_name_'], d['proj_id_']) for d in result if
                             key_check(d)]
             short_result = sorted(short_result, key=lambda x: natural_sort_key(x[2]))
