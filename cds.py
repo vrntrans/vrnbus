@@ -2,6 +2,7 @@ import codecs
 import json
 from datetime import datetime, timedelta
 from itertools import groupby
+from logging import Logger
 from pathlib import Path
 from typing import NamedTuple
 
@@ -53,7 +54,7 @@ class CdsRouteBus(NamedTuple):
 
 
 class CdsRequest():
-    def __init__(self, logger):
+    def __init__(self, logger: Logger):
         self.cookies = {'JSESSIONID': 'C8ED75C7EC5371CBE836BDC748BB298F', 'session_id': 'vrntrans'}
         self.bus_stops = [BusStop(**i) for i in self.init_bus_stops()]
         self.routes_base = self.init_routes()
@@ -179,7 +180,8 @@ class CdsRequest():
         url = f'{cds_url_base}GetRouteBuses'
         r = requests.post(url, cookies=self.cookies, data=payload, headers=self.fake_header)
         self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2} kB")
-        self.logger.debug(f"{r.text}")
+        if len(r.text) == 0:
+            self.logger.warning(r)
 
         if r.text:
             return [CdsRouteBus(**i) for i in json.loads(r.text)]
