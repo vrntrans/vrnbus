@@ -101,8 +101,8 @@ class CdsRequest():
         self.logger.debug(routes)
         if routes:
             now = datetime.now()
-            hour = timedelta(hours=1)
-            key_check = lambda x: x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < hour
+            delta = timedelta(days=1)
+            key_check = lambda x: x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < delta
             short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_))
             return short_result
         return []
@@ -130,20 +130,25 @@ class CdsRequest():
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request(self, full_info=False, bus_route=tuple(), bus_filter=''):
+        def time_check(d: CdsRouteBus):
+            return d.last_time_ and (now - get_time(d.last_time_)) < delta
+
         def filtered(d: CdsRouteBus):
-            return bus_filter == '' or bus_filter in d.name_
+            return (bus_filter == '' or bus_filter in d.name_) and (full_info or time_check(d))
 
         def station(d: CdsRouteBus):
             bus_station = self.bus_station(d)
             result = f"{d.route_name_} {get_time(d.last_time_):%H:%M} {bus_station}"
             if full_info:
-                return f"{result} {d.name_} {' | ' + d.bus_station_ if not bus_station == d.bus_station_ else ''}"
+                return f"{result} {d.name_} {(' | ' + str(d.bus_station_)) if not bus_station == d.bus_station_ else ''}"
             return result
 
         if not bus_route:
             return 'Не заданы маршруты'
         short_result = self.bus_request_as_list(bus_route)
         if short_result:
+            now = datetime.now()
+            delta = timedelta(minutes=30)
             stations = [station(d) for d in short_result if filtered(d)]
             if stations:
                 return ' \n'.join(stations)
@@ -170,7 +175,7 @@ class CdsRequest():
         self.logger.info(f"bus_request_as_list {routes}")
         url = f'{cds_url_base}GetRouteBuses'
         r = requests.post(url, cookies=self.cookies, data=payload, headers=self.fake_header)
-        self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024}kB")
+        self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2} kB")
         self.logger.debug(f"{r.text}")
 
         if r.text:
