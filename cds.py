@@ -200,6 +200,7 @@ class CdsRequest():
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches(self, bus_stop_matches, user_bus_list):
         result = []
+        routes_set = set()
         if user_bus_list:
             result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}. Настройка: /settings")
         for item in bus_stop_matches:
@@ -208,6 +209,7 @@ class CdsRequest():
                 header = arrivals[0]
                 items = [x for x in arrivals[1:] if
                          x.time_ > 0 and (not user_bus_list or x.rname_.strip() in user_bus_list)]
+                routes_set.update([x.rname_.strip() for x in items])
                 self.logger.info(items)
                 items.sort(key=lambda s: natural_sort_key(s.rname_))
                 if not items:
@@ -216,6 +218,7 @@ class CdsRequest():
                 next_bus_info = f"Остановка {header.rname_}:\n"
                 next_bus_info += '\n'.join((f"{x.rname_} - {x.time_} мин" for x in items))
                 result.append(next_bus_info)
+        result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_set)}')
         return '\n'.join(result)
 
     @cachetools.func.ttl_cache()
