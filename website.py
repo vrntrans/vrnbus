@@ -1,7 +1,9 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import tornado.web
+from tornado.concurrent import run_on_executor
 
 from helpers import parse_routes
 
@@ -42,6 +44,8 @@ class BusSite(tornado.web.Application):
 
 
 class BusInfoHandler(BaseHandler):
+    executor = ThreadPoolExecutor()
+
     def bus_info_response(self, query):
         self.logger.info(f'Bus info query: "{query}"')
         response = self.cds.bus_request(*parse_routes(query.split()))
@@ -49,8 +53,10 @@ class BusInfoHandler(BaseHandler):
         self.write(json.dumps(response))
         self.caching()
 
+    @run_on_executor
     def get(self):
-        self.bus_info_response(self.get_argument('q'))
+        q = self.get_argument('q')
+        self.bus_info_response(q)
 
 
 class ArrivalHandler(BaseHandler):

@@ -11,7 +11,7 @@ from helpers import get_time, natural_sort_key
 
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
-
+ttl_sec = 60
 
 
 class CdsRequest():
@@ -103,27 +103,36 @@ class CdsRequest():
             result = json.loads(r.text)
             return result
 
-    @cachetools.func.ttl_cache(ttl=60)
-    def bus_request_as_list(self, bus_route):
-        url = f'{cds_url_base}GetRouteBuses'
-        if not bus_route:
-            return []
-        keys = [x for x in self.routes_base.keys() for r in bus_route if x.upper() == r.upper()]
+
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    def load_all_routes(self, keys):
         routes = [{'proj_ID': self.routes_base.get(k), 'route': k} for k in keys]
         if not routes:
             return []
         payload = {'routes': json.dumps(routes)}
         self.logger.info(f"bus_request_as_list {routes}")
+        url = f'{cds_url_base}GetRouteBuses'
         r = requests.post(url, cookies=self.cookies, data=payload, headers=self.fake_header)
         self.logger.info(f"{r.url} {payload} {r.elapsed}")
+        self.logger.debug(f"{r.text}")
 
         if r.text:
-            self.logger.debug(r.text)
-            result = json.loads(r.text)
+            return json.loads(r.text)
+        return []
+
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    def bus_request_as_list(self, bus_route):
+        url = f'{cds_url_base}GetRouteBuses'
+        if not bus_route:
+            return []
+        keys = set([x for x in self.routes_base.keys() for r in bus_route if x.upper() == r.upper()])
+
+        routes = self.load_all_routes(tuple(keys))
+        if routes:
             now = datetime.now()
             hour = timedelta(hours=1)
             key_check = lambda x: 'name_' in x and 'last_time_' in x and (now - get_time(x['last_time_'])) < hour
-            short_result = sorted([d for d in result if key_check(d)], key=lambda s: natural_sort_key(s['route_name_']))
+            short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s['route_name_']))
             return short_result
         return []
 

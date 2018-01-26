@@ -9,22 +9,24 @@
 
 <div>
     <button id="nextbusgeo">Прибытие на остановку</button>
-    <div id="info" style="white-space:pre-wrap;"/>
+    <div id="info" style="white-space:pre-wrap;"></div>
 </div>
 
 <div>
-    <input type="text" id="lastbusquery"/>
+    <input type="text" id="lastbusquery" title="Введите номер автобуса"/>
     <button id="lastbus">Автобусы на маршруте</button>
-    <div id="businfo" style="white-space:pre-wrap;"/>
+    <div id="businfo" style="white-space:pre-wrap;"></div>
 </div>
 
 <script>
-    const nextbusgeo = document.getElementById('nextbusgeo')
-    const lastbusquery = document.getElementById('lastbusquery')
+    var XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
 
-    const lastbus = document.getElementById('lastbus')
-    const info = document.getElementById('info')
-    const businfo = document.getElementById('businfo')
+    var nextbusgeo = document.getElementById('nextbusgeo')
+    var lastbusquery = document.getElementById('lastbusquery')
+
+    var lastbus = document.getElementById('lastbus')
+    var info = document.getElementById('info')
+    var businfo = document.getElementById('businfo')
 
     lastbus.onclick = function (event) {
         const bus_query = lastbusquery.value
@@ -41,6 +43,7 @@
 
     if ("geolocation" in navigator) {
         nextbusgeo.onclick = function (event) {
+            event.preventDefault()
             get_current_pos(info)
         }
         get_current_pos(info)
@@ -52,44 +55,40 @@
     }
 
     function get_bus_arrival(position) {
-        const coords = position.coords
-        const url = new URL("/arrival", window.location)
-        const params = {lat: coords.latitude, lon: coords.longitude}
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
-        fetch(url,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-            })
-            .then(function (res) {
-                return res.json()
-            })
-            .then(function (data) {
-                const {text} = data
-                info.innerHTML = `${text}`
-            })
+        var xhr = new XHR()
+        var coords = position.coords
+        var params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
+        xhr.open('GET', '/arrival?' + params, true);
+        xhr.send()
+        xhr.onreadystatechange = function () {
+            if (this.readyState != 4) return;
+
+            if (this.status != 200) {
+                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+                return
+            }
+            var data = JSON.parse(this.responseText)
+            info.innerHTML = data.text
+        }
     }
 
     function get_bus_positions(query) {
-        const url = new URL("/businfo", window.location)
-        const params = {q: query}
-        Object.keys(params).forEach(key => url.searchParams.append(key, params[key]))
-        fetch(url,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-            })
-            .then(function (res) {
-                return res.json()
-            })
-            .then(function (data) {
-                const {q, text} = data
-                businfo.innerHTML = `Маршруты: ${q}\n${text}`
-            })
+        var xhr = new XHR()
+        var params = 'q=' + encodeURIComponent(query)
+        xhr.open('GET', '/businfo?' + params, true);
+        xhr.send()
+        xhr.onreadystatechange = function () {
+            if (this.readyState != 4) return;
+
+            if (this.status != 200) {
+                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+                return
+            }
+            var data = JSON.parse(this.responseText)
+            const q = data.q
+            const text = data.text
+            businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
+        }
     }
 
 </script>
