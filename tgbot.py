@@ -1,3 +1,5 @@
+import re
+
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
     ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
@@ -177,15 +179,18 @@ class BusBot:
         text = message.text
 
         self.logger.info(f'user_input. User: {user}; "{text}"')
-        response = self.cds.bus_request(*parse_routes(text.split()))
-        self.logger.info(f'user_input. User: {user}; Response: {response}')
-        message.reply_text(response, reply_markup=ReplyKeyboardRemove())
 
+        match = re.search('https:\/\/maps\.google\.com\/maps\?.*\&ll=(?P<lat>[-?\d\.]*)\,(?P<lon>[-?\d\.]*)', text)
+        if match:
+            (lat, lon) = (match.group('lat'), match.group('lon'))
+            self.show_arrival(update, float(lat), float(lon))
+        else:
+            response = self.cds.bus_request(*parse_routes(text.split()))
+            self.logger.info(f'user_input. User: {user}; Response: {response}')
+            message.reply_text(response, reply_markup=ReplyKeyboardRemove())
 
-    def location(self, bot, update):
+    def show_arrival(self, update, lat, lon):
         user = update.message.from_user
-        loc = update.message.location
-        (lat, lon) = loc.latitude, loc.longitude
         self.logger.info("Location of %s: %f / %f", user.first_name, lat, lon)
         matches = self.cds.matches_bus_stops(lat, lon)
 
@@ -193,3 +198,8 @@ class BusBot:
         result = self.cds.next_bus_for_matches(matches, settings)
         self.logger.info(f"next_bus_for_matches {user} {result}")
         update.message.reply_text(result, reply_markup=ReplyKeyboardRemove())
+
+    def location(self, bot, update):
+        loc = update.message.location
+        (lat, lon) = loc.latitude, loc.longitude
+        self.show_arrival(self, update, lat, lon)
