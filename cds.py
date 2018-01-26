@@ -134,7 +134,7 @@ class CdsRequest():
             return d.last_time_ and (now - get_time(d.last_time_)) < delta
 
         def filtered(d: CdsRouteBus):
-            return (bus_filter == '' or bus_filter in d.name_) and (full_info or time_check(d))
+            return (bus_filter == '' or bus_filter in d.name_)
 
         def station(d: CdsRouteBus):
             bus_station = self.bus_station(d)
@@ -149,7 +149,7 @@ class CdsRequest():
         if short_result:
             now = datetime.now()
             delta = timedelta(minutes=30)
-            stations = [station(d) for d in short_result if filtered(d)]
+            stations = [station(d) for d in short_result if filtered(d) and (full_info or time_check(d))]
             if stations:
                 return ' \n'.join(stations)
 
