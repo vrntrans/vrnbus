@@ -104,7 +104,7 @@ class CdsRequest():
         self.logger.debug(routes)
         if routes:
             now = datetime.now(tz=tz)
-            delta = timedelta(days=1, tz=tz)
+            delta = timedelta(days=1)
             key_check = lambda x: x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < delta
             short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_))
             return short_result
@@ -151,7 +151,7 @@ class CdsRequest():
         short_result = self.bus_request_as_list(bus_route)
         if short_result:
             now = datetime.now(tz=tz)
-            delta = timedelta(minutes=30, tz=tz)
+            delta = timedelta(minutes=30)
             stations = [station(d) for d in short_result if filtered(d) and (full_info or time_check(d))]
             if stations:
                 return ' \n'.join(stations)
@@ -228,7 +228,7 @@ class CdsRequest():
         if r.text:
             result = json.loads(r.text)
             now = datetime.now(tz=tz)
-            hour = timedelta(hours=1, tz=tz)
+            hour = timedelta(hours=1)
             short_result = [(d['name_'], d['last_time_'], d['route_name_'], d['proj_id_']) for d in result if
                             key_check(d)]
             short_result = sorted(short_result, key=lambda x: natural_sort_key(x[2]))

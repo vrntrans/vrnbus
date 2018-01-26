@@ -2,6 +2,8 @@ import re
 from datetime import datetime
 from itertools import zip_longest
 
+import pytz
+
 
 def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
@@ -35,7 +37,7 @@ def distance(lat1, lon1, lat2, lon2):
     return pow(pow(lat1 - lat2, 2) + pow(lon1 - lon2, 2), 0.5)
 
 def get_time(s):
-    return datetime.strptime(s, '%b %d, %Y %I:%M:%S %p')
+    return pytz.utc.localize(datetime.strptime(s, '%b %d, %Y %I:%M:%S %p'))
 
 
 def grouper(n, iterable, fill_value=None):
