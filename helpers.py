@@ -31,6 +31,8 @@ def parse_routes(args):
 
     return full_info, tuple(result), bus_filter
 
+def distance(lat1, lon1, lat2, lon2):
+    return pow(pow(lat1 - lat2, 2) + pow(lon1 - lon2, 2), 0.5)
 
 def get_time(s):
     return datetime.strptime(s, '%b %d, %Y %I:%M:%S %p')
