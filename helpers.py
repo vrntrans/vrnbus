@@ -1,3 +1,4 @@
+import math
 import re
 from datetime import datetime
 from itertools import zip_longest
@@ -36,6 +37,23 @@ def parse_routes(args):
 
 def distance(lat1, lon1, lat2, lon2):
     return pow(pow(lat1 - lat2, 2) + pow(lon1 - lon2, 2), 0.5)
+
+def distance_km(lat1, lon1, lat2, lon2):
+    R = 6373.0
+
+    lat1 = math.radians(lat1)
+    lon1 = math.radians(lon1)
+    lat2 = math.radians(lat2)
+    lon2 = math.radians(lon2)
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    result = R * c
+    return result
 
 def get_time(s):
     return tz.localize(datetime.strptime(s, '%b %d, %Y %I:%M:%S %p'))

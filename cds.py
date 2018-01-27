@@ -10,7 +10,7 @@ import cachetools.func
 import pytz
 import requests
 
-from helpers import get_time, natural_sort_key, distance
+from helpers import get_time, natural_sort_key, distance, distance_km
 
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
@@ -56,6 +56,10 @@ class CdsRouteBus(NamedTuple):
     def distance(self, bus_stop: BusStop=None, user_loc: UserLoc=None):
         (lat, lon) = (bus_stop.LON_, bus_stop.LAT_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance(lat, lon, self.last_lat_, self.last_lon_)
+
+    def distance_km(self, bus_stop: BusStop=None, user_loc: UserLoc=None):
+        (lat, lon) = (bus_stop.LON_, bus_stop.LAT_) if bus_stop else (user_loc.lat, user_loc.lon)
+        return distance_km(lat, lon, self.last_lat_, self.last_lon_)
 
 
 class CdsRequest():
@@ -147,7 +151,7 @@ class CdsRequest():
 
         def station(d: CdsRouteBus):
             bus_station = self.bus_station(d)
-            dist = f'{(d.distance(user_loc=user_loc)*100):.3} км' if user_loc else ''
+            dist = f'{(d.distance_km(user_loc=user_loc)):.3} км' if user_loc else ''
             result = f"{d.route_name_} {get_time(d.last_time_):%H:%M} {bus_station} {dist}"
             if full_info:
                 return f"{result} {d.name_} {(' | ' + str(d.bus_station_)) if not bus_station == d.bus_station_ else ''}"
