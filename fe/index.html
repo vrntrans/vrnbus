@@ -19,77 +19,85 @@
 </div>
 
 <script>
-    var XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
+    (function () {
+        const XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
+        var coords
+        var nextbusgeo = document.getElementById('nextbusgeo')
+        var lastbusquery = document.getElementById('lastbusquery')
 
-    var nextbusgeo = document.getElementById('nextbusgeo')
-    var lastbusquery = document.getElementById('lastbusquery')
+        var lastbus = document.getElementById('lastbus')
+        var info = document.getElementById('info')
+        var businfo = document.getElementById('businfo')
 
-    var lastbus = document.getElementById('lastbus')
-    var info = document.getElementById('info')
-    var businfo = document.getElementById('businfo')
-
-    lastbus.onclick = function (event) {
-        const bus_query = lastbusquery.value
-        get_bus_positions(bus_query)
-    }
-
-    lastbusquery.onkeyup = function (event) {
-        event.preventDefault()
-        if (event.keyCode === 13) {
+        lastbus.onclick = function (event) {
             const bus_query = lastbusquery.value
             get_bus_positions(bus_query)
         }
-    }
 
-    if ("geolocation" in navigator) {
-        nextbusgeo.onclick = function (event) {
+        lastbusquery.onkeyup = function (event) {
             event.preventDefault()
+            if (event.keyCode === 13) {
+                const bus_query = lastbusquery.value
+                get_bus_positions(bus_query)
+            }
+        }
+
+        if ("geolocation" in navigator) {
+            nextbusgeo.onclick = function (event) {
+                event.preventDefault()
+                get_current_pos(info)
+            }
             get_current_pos(info)
         }
-        get_current_pos(info)
-    }
 
 
-    function get_current_pos(info) {
-        navigator.geolocation.getCurrentPosition(get_bus_arrival)
-    }
-
-    function get_bus_arrival(position) {
-        var xhr = new XHR()
-        var coords = position.coords
-        var params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
-        xhr.open('GET', '/arrival?' + params, true);
-        xhr.send()
-        xhr.onreadystatechange = function () {
-            if (this.readyState != 4) return;
-
-            if (this.status != 200) {
-                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
-                return
-            }
-            var data = JSON.parse(this.responseText)
-            info.innerHTML = data.text
+        function get_current_pos(info) {
+            navigator.geolocation.getCurrentPosition(get_bus_arrival)
         }
-    }
 
-    function get_bus_positions(query) {
-        var xhr = new XHR()
-        var params = 'q=' + encodeURIComponent(query)
-        xhr.open('GET', '/businfo?' + params, true);
-        xhr.send()
-        xhr.onreadystatechange = function () {
-            if (this.readyState != 4) return;
+        function get_bus_arrival(position) {
+            var xhr = new XHR()
+            coords = position.coords
+            this.coords = coords
+            var params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
+            xhr.open('GET', '/arrival?' + params, true);
+            xhr.send()
+            xhr.onreadystatechange = function () {
+                if (this.readyState != 4) return;
 
-            if (this.status != 200) {
-                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
-                return
+                if (this.status != 200) {
+                    info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+                    return
+                }
+                var data = JSON.parse(this.responseText)
+                info.innerHTML = data.text
             }
-            var data = JSON.parse(this.responseText)
-            const q = data.q
-            const text = data.text
-            businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
         }
-    }
+
+        function get_bus_positions(query) {
+            var xhr = new XHR()
+
+            var params = 'q=' + encodeURIComponent(query)
+            if (this.coords) {
+                params += '&lat=' + encodeURIComponent(this.coords.latitude)
+                params += '&lon=' + encodeURIComponent(this.coords.longitude)
+            }
+            xhr.open('GET', '/businfo?' + params, true);
+            xhr.send()
+            xhr.onreadystatechange = function () {
+                if (this.readyState != 4) return;
+
+                if (this.status != 200) {
+                    info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+                    return
+                }
+                var data = JSON.parse(this.responseText)
+                const q = data.q
+                const text = data.text
+                businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
+            }
+        }
+    })()
 
 </script>
 </body>

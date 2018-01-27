@@ -19,6 +19,10 @@ ttl_sec = 60
 tz = pytz.timezone('Europe/Moscow')
 
 
+class UserLoc(NamedTuple):
+    lat: float
+    lon: float
+
 class BusStop(NamedTuple):
     NAME_: str
     LAT_: float
@@ -49,8 +53,9 @@ class CdsRouteBus(NamedTuple):
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
 
-    def distance(self, bus_stop: BusStop):
-        return distance(bus_stop.LAT_, bus_stop.LON_, self.last_lon_, self.last_lat_)
+    def distance(self, bus_stop: BusStop=None, user_loc: UserLoc=None):
+        (lat, lon) = (bus_stop.LON_, bus_stop.LAT_) if bus_stop else (user_loc.lat, user_loc.lon)
+        return distance(lat, lon, self.last_lat_, self.last_lon_)
 
 
 class CdsRequest():
@@ -133,7 +138,7 @@ class CdsRequest():
         return result.NAME_
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def bus_request(self, full_info=False, bus_route=tuple(), bus_filter=''):
+    def bus_request(self, full_info=False, bus_route=tuple(), bus_filter='', user_loc: UserLoc = None):
         def time_check(d: CdsRouteBus):
             return d.last_time_ and (now - get_time(d.last_time_)) < delta
 
@@ -142,7 +147,8 @@ class CdsRequest():
 
         def station(d: CdsRouteBus):
             bus_station = self.bus_station(d)
-            result = f"{d.route_name_} {get_time(d.last_time_):%H:%M} {bus_station}"
+            dist = f'{(d.distance(user_loc=user_loc)*100):.3}' if user_loc else ''
+            result = f"{d.route_name_} {get_time(d.last_time_):%H:%M} {bus_station} {dist}"
             if full_info:
                 return f"{result} {d.name_} {(' | ' + str(d.bus_station_)) if not bus_station == d.bus_station_ else ''}"
             return result

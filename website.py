@@ -5,6 +5,7 @@ from pathlib import Path
 import tornado.web
 from tornado.concurrent import run_on_executor
 
+from cds import UserLoc
 from helpers import parse_routes
 
 
@@ -46,9 +47,12 @@ class BusSite(tornado.web.Application):
 class BusInfoHandler(BaseHandler):
     executor = ThreadPoolExecutor()
 
-    def bus_info_response(self, query):
+    def bus_info_response(self, query, lat, lon):
         self.logger.info(f'Bus info query: "{query}"')
-        response = self.cds.bus_request(*parse_routes(query.split()))
+        user_loc = None
+        if lat and lon:
+            user_loc = UserLoc(float(lat), float(lon))
+        response = self.cds.bus_request(*parse_routes(query.split()), user_loc=user_loc)
         response = {'q': query, 'text': response}
         self.write(json.dumps(response))
         self.caching()
@@ -56,7 +60,9 @@ class BusInfoHandler(BaseHandler):
     @run_on_executor
     def get(self):
         q = self.get_argument('q')
-        self.bus_info_response(q)
+        lat = self.get_argument('lat', None)
+        lon = self.get_argument('lon', None)
+        self.bus_info_response(q, lat, lon)
 
 
 class ArrivalHandler(BaseHandler):
