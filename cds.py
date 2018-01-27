@@ -147,7 +147,7 @@ class CdsRequest():
 
         def station(d: CdsRouteBus):
             bus_station = self.bus_station(d)
-            dist = f'{(d.distance(user_loc=user_loc)*100):.3}' if user_loc else ''
+            dist = f'{(d.distance(user_loc=user_loc)*100):.3} км' if user_loc else ''
             result = f"{d.route_name_} {get_time(d.last_time_):%H:%M} {bus_station} {dist}"
             if full_info:
                 return f"{result} {d.name_} {(' | ' + str(d.bus_station_)) if not bus_station == d.bus_station_ else ''}"
