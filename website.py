@@ -70,7 +70,7 @@ class ArrivalHandler(BaseHandler):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
         result = self.cds.next_bus_for_matches(matches, [])
-        response = {'lat': lat, 'lon': lon, 'text': result}
+        response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
         self.write(json.dumps(response))
         self.caching()
 

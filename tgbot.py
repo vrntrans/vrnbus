@@ -190,6 +190,7 @@ class BusBot:
             self.show_arrival(update, float(lat), float(lon))
         else:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
+            self.logger.info(f"{user} '{text}' {user_loc}")
             response = self.cds.bus_request(*parse_routes(text.split()), user_loc=user_loc)
             self.logger.info(f'user_input. User: {user}; Response: {response}')
             message.reply_text(response, reply_markup=ReplyKeyboardRemove())
@@ -204,7 +205,7 @@ class BusBot:
         self.user_settings[user.id] = settings
         result = self.cds.next_bus_for_matches(matches, settings.get('route_settings'))
         self.logger.info(f"next_bus_for_matches {user} {result}")
-        update.message.reply_text(result, reply_markup=ReplyKeyboardRemove())
+        update.message.reply_text(result[0], reply_markup=ReplyKeyboardRemove())
 
     def location(self, bot, update):
         loc = update.message.location
