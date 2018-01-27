@@ -176,7 +176,7 @@ class CdsRequest():
         r = requests.post(url, data=payload, headers=self.fake_header)
         self.logger.info(f"{r.url} {payload} {r.elapsed}")
         if r.text:
-            self.logger.info(f'ewsponse: {r.text}')
+            self.logger.info(f'Response: {r.text}')
             result = [CoddNextBus(**i) for i in json.loads(r.text)]
             return result
 

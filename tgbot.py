@@ -4,6 +4,7 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMa
     ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
 
+from cds import UserLoc
 from helpers import parse_routes, natural_sort_key, grouper
 
 
@@ -74,7 +75,8 @@ class BusBot:
         """Send a message when the command /last is issued."""
         user = update.message.from_user
         self.logger.info(f"last_buses. User: {user}; {args}")
-        response = self.cds.bus_request(*parse_routes(args))
+        user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
+        response = self.cds.bus_request(*parse_routes(args), user_loc=user_loc)
         self.logger.info(f"last_buses. User: {user}; Response {response}")
         update.message.reply_text(response)
 
@@ -95,24 +97,26 @@ class BusBot:
 
     def settings(self, bot, update, args):
         user_id = user = update.message.from_user.id
-        settings = self.user_settings.get(user_id, [])
-        settings_routes = parse_routes(args)[1]
-        if settings_routes:
-            cmd = settings_routes[0]
-            items = settings_routes[1:]
-            if len(settings_routes) == 1 and cmd in ('all', 'none'):
+        settings = self.user_settings.get(user_id, {})
+        route_settings = settings.get('route_settings', [])
+        input_routes = parse_routes(args)[1]
+        if input_routes:
+            cmd = input_routes[0]
+            items = input_routes[1:]
+            if len(input_routes) == 1 and cmd in ('all', 'none'):
                 settings = []
             elif cmd == 'del':
                 settings = [x for x in settings if x not in items]
             elif cmd == 'add':
                 settings += [x for x in items if x in self.cds.routes_base.keys() and x not in settings]
             else:
-                settings = [x for x in settings_routes if x in self.cds.routes_base.keys()]
+                settings = [x for x in input_routes if x in self.cds.routes_base.keys()]
+            settings['route_settings'] = route_settings
             self.user_settings[user_id] = settings
             update.message.reply_text(f"Текущие маршруты для вывода: {' '.join(settings)}")
             return
 
-        keyboard = self.get_buttons_routes(settings)
+        keyboard = self.get_buttons_routes(route_settings)
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         update.message.reply_text('Укажите маршруты для вывода:', reply_markup=reply_markup)
@@ -185,7 +189,8 @@ class BusBot:
             (lat, lon) = (match.group('lat'), match.group('lon'))
             self.show_arrival(update, float(lat), float(lon))
         else:
-            response = self.cds.bus_request(*parse_routes(text.split()))
+            user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
+            response = self.cds.bus_request(*parse_routes(text.split()), user_loc=user_loc)
             self.logger.info(f'user_input. User: {user}; Response: {response}')
             message.reply_text(response, reply_markup=ReplyKeyboardRemove())
 
@@ -193,13 +198,15 @@ class BusBot:
         user = update.message.from_user
         self.logger.info("Location of %s: %f / %f", user.first_name, lat, lon)
         matches = self.cds.matches_bus_stops(lat, lon)
-
-        settings = self.user_settings.get(user.id, [])
-        result = self.cds.next_bus_for_matches(matches, settings)
+        user_loc = UserLoc(lat, lon)
+        settings = self.user_settings.get(user.id, {})
+        settings['user_loc'] = user_loc
+        self.user_settings[user.id] = settings
+        result = self.cds.next_bus_for_matches(matches, settings.get('route_settings'))
         self.logger.info(f"next_bus_for_matches {user} {result}")
         update.message.reply_text(result, reply_markup=ReplyKeyboardRemove())
 
     def location(self, bot, update):
         loc = update.message.location
         (lat, lon) = loc.latitude, loc.longitude
-        self.show_arrival(self, update, lat, lon)
+        self.show_arrival(update, lat, lon)
