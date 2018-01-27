@@ -125,7 +125,7 @@ class BusBot:
         query = update.callback_query
         self.logger.info(query)
         user_id = query.message.chat_id
-        settings = self.user_settings.get(user_id, [])
+        settings = self.user_settings.get(user_id, {})
         key = query.data
 
         if key == 'all':
@@ -144,7 +144,7 @@ class BusBot:
             else:
                 settings.append(key)
 
-        self.user_settings[user_id] = settings
+        self.user_settings[user_id]['route_settings'] = settings
         keyboard = self.get_buttons_routes(settings)
         reply_markup = InlineKeyboardMarkup(keyboard)
         routes = ' '.join(settings) if settings else 'все доступные'
@@ -166,7 +166,7 @@ class BusBot:
                                       reply_markup=reply_markup)
             return
 
-        settings = self.user_settings.get(user.id, [])
+        settings = self.user_settings.get(user.id, {})
         response = self.cds.next_bus(tuple(args), tuple(settings))
         update.message.reply_text(response)
 
