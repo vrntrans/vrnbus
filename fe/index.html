@@ -71,6 +71,7 @@
                 }
                 var data = JSON.parse(this.responseText)
                 info.innerHTML = data.text
+                lastbusquery.value = data.routes
             }
         }
 

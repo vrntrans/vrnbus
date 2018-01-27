@@ -1,11 +1,15 @@
+import logging
 import math
 import re
+import time
 from datetime import datetime
+from functools import wraps
 from itertools import zip_longest
 
 import pytz
 
 tz = pytz.timezone('Europe/Moscow')
+logger = logging.getLogger("vrnbus")
 
 def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
@@ -35,30 +39,59 @@ def parse_routes(args):
 
     return full_info, tuple(result), bus_filter
 
+
 def distance(lat1, lon1, lat2, lon2):
-    return pow(pow(lat1 - lat2, 2) + pow(lon1 - lon2, 2), 0.5)
+    return ((lat1 - lat2) ** 2 + (lon1 - lon2) ** 2) ** 0.5
 
-def distance_km(lat1, lon1, lat2, lon2):
-    R = 6373.0
 
-    lat1 = math.radians(lat1)
-    lon1 = math.radians(lon1)
-    lat2 = math.radians(lat2)
-    lon2 = math.radians(lon2)
+def distance_km(glat1, glon1, glat2, glon2):
+    r = 6373.0
 
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
+    lat1 = math.radians(glat1)
+    lon1 = math.radians(glon1)
+    lat2 = math.radians(glat2)
+    lon2 = math.radians(glon2)
 
-    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    diff_lon = lon2 - lon1
+    diff_lat = lat2 - lat1
+
+    a = math.sin(diff_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(diff_lon / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
-    result = R * c
+    result = r * c
     return result
+
 
 def get_time(s):
     return tz.localize(datetime.strptime(s, '%b %d, %Y %I:%M:%S %p'))
+
 
 def grouper(n, iterable, fill_value=None):
     """grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"""
     args = [iter(iterable)] * n
     return zip_longest(fillvalue=fill_value, *args)
+
+
+def retry_multi(max_retries=5):
+    """ Retry a function `max_retries` times. """
+
+    def retry(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            num_retries = 0
+            ret = None
+            while num_retries <= max_retries:
+                try:
+                    ret = func(*args, **kwargs)
+                    break
+                except Exception as e:
+                    logger.error(e)
+                    if num_retries == max_retries:
+                        raise
+                    num_retries += 1
+                    time.sleep(5)
+            return ret
+
+        return wrapper
+
+    return retry
