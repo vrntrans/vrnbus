@@ -66,6 +66,7 @@ class BusInfoHandler(BaseHandler):
 
 
 class ArrivalHandler(BaseHandler):
+    executor = ThreadPoolExecutor()
     def arrival_response(self, lat, lon):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
@@ -74,6 +75,27 @@ class ArrivalHandler(BaseHandler):
         self.write(json.dumps(response))
         self.caching()
 
+    @run_on_executor
     def get(self):
         (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
         self.arrival_response(lat, lon)
+
+class MapHandler(BaseHandler):
+    executor = ThreadPoolExecutor()
+
+    def bus_info_response(self, query, lat, lon):
+        self.logger.info(f'Bus info query: "{query}"')
+        user_loc = None
+        if lat and lon:
+            user_loc = UserLoc(float(lat), float(lon))
+        response = self.cds.bus_request(*parse_routes(query.split()), user_loc=user_loc)
+        response = {'q': query, 'text': response}
+        self.write(json.dumps(response))
+        self.caching()
+
+    @run_on_executor
+    def get(self):
+        q = self.get_argument('q')
+        lat = self.get_argument('lat', None)
+        lon = self.get_argument('lon', None)
+        self.bus_info_response(q, lat, lon)
