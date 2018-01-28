@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>vrnbus (beta)</title>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=en_US" type="text/javascript"></script>
 </head>
 <body>
 <div>
@@ -19,14 +20,14 @@
     <button id="lastbus">Автобусы на маршруте</button>
     <div id="businfo" style="white-space:pre-wrap;"></div>
 </div>
-
+ <div id="map" style="width: 600px; height: 400px"></div>
 <script>
     (function () {
         const XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
         var coords
         var nextbusgeo = document.getElementById('nextbusgeo')
         var lastbusquery = document.getElementById('lastbusquery')
-
+        var my_map
         var lastbus = document.getElementById('lastbus')
         var info = document.getElementById('info')
         var businfo = document.getElementById('businfo')
@@ -60,6 +61,7 @@
         function get_bus_arrival(position) {
             var xhr = new XHR()
             coords = position.coords
+            console.log(my_map)
             this.coords = coords
             var params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
             xhr.open('GET', '/arrival?' + params, true);
@@ -100,6 +102,55 @@
                 businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
             }
         }
+
+ymaps.ready(function () {
+    my_map = new ymaps.Map('map', {
+            center: [coords.latitude, coords.longitude],
+            zoom: 14
+        }, {
+            searchControlProvider: 'yandex#search'
+        }),
+
+        // Создаём макет содержимого.
+        MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
+            '<div style="color: #FFFFFF; font-weight: bold;">$[properties.iconContent]</div>'
+        ),
+
+        myPlacemark = new ymaps.Placemark(my_map.getCenter(), {
+            hintContent: 'Собственный значок метки',
+            balloonContent: 'Это красивая метка'
+        }, {
+            // Опции.
+            // Необходимо указать данный тип макета.
+            iconLayout: 'default#image',
+            // Своё изображение иконки метки.
+            // iconImageHref: 'images/myIcon.gif',
+            // Размеры метки.
+            iconImageSize: [30, 42],
+        }),
+
+        myPlacemarkWithContent = new ymaps.Placemark([55.661574, 37.573856], {
+            hintContent: 'Собственный значок метки с контентом',
+            balloonContent: 'А эта — новогодняя',
+            iconContent: '12'
+        }, {
+            // Опции.
+            // Необходимо указать данный тип макета.
+            iconLayout: 'default#imageWithContent',
+            // Своё изображение иконки метки.
+            // iconImageHref: 'images/ball.png',
+            // Размеры метки.
+            iconImageSize: [48, 48],
+            // Макет содержимого.
+            iconContentLayout: MyIconContentLayout
+        });
+
+    my_map.geoObjects
+        .add(myPlacemark)
+        .add(myPlacemarkWithContent);
+});
+
+
     })()
 
 </script>
