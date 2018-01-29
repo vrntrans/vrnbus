@@ -26,20 +26,18 @@
     (function () {
         const XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
         var coords
-        var nextbusgeo = document.getElementById('nextbusgeo')
+
         var lastbusquery = document.getElementById('lastbusquery')
         var my_map
-        var lastbus = document.getElementById('lastbus')
-        var lastbus_codd = document.getElementById('lastbus_codd')
         var info = document.getElementById('info')
         var businfo = document.getElementById('businfo')
 
-        lastbus.onclick = function (event) {
+        document.getElementById('lastbus').onclick = function (event) {
             const bus_query = lastbusquery.value
             get_bus_positions(bus_query)
         }
 
-        lastbus_codd.onclick = function (event) {
+        document.getElementById('lastbus_codd').onclick = function (event) {
             const bus_query = lastbusquery.value
             get_bus_codd_positions(bus_query)
         }
@@ -53,6 +51,7 @@
         }
 
         if ("geolocation" in navigator) {
+            var nextbusgeo = document.getElementById('nextbusgeo')
             nextbusgeo.onclick = function (event) {
                 event.preventDefault()
                 get_current_pos(info)
@@ -136,8 +135,8 @@
                 // {"obj_id_":0,"proj_id_":0,"last_speed_":0,"last_lon_":39.285763,"last_lat_":51.631746,"lon2":0.0,"lat2":0.0,
                 // "last_time_":"Jan 29, 2018 12:39:46 PM","route_name_":"104  ","type_proj":0,"azimuth":0,"lowfloor":0,"dist":0}
                 my_map.geoObjects.add(new ymaps.Placemark([bus.last_lat_, bus.last_lon_], {
-                    balloonContent: bus.last_time_ ,
-                    iconContent: bus.route_name_.trim() + get_arrow(bus.azimuth)
+                    balloonContent: bus.last_time_ + ' ' + bus.azimuth,
+                    iconContent: bus.route_name_.trim() + get_arrow(bus.azimuth),
                 }, {
                     preset: 'islands#orangeStretchyIcon',
                     // Отключаем кнопку закрытия балуна.
