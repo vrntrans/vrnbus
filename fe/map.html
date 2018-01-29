@@ -68,7 +68,6 @@
         function get_bus_arrival(position) {
             var xhr = new XHR()
             coords = position.coords
-            console.log(my_map)
             this.coords = coords
             var params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
             xhr.open('GET', '/arrival?' + params, true);
@@ -137,7 +136,7 @@
                 // {"obj_id_":0,"proj_id_":0,"last_speed_":0,"last_lon_":39.285763,"last_lat_":51.631746,"lon2":0.0,"lat2":0.0,
                 // "last_time_":"Jan 29, 2018 12:39:46 PM","route_name_":"104  ","type_proj":0,"azimuth":0,"lowfloor":0,"dist":0}
                 my_map.geoObjects.add(new ymaps.Placemark([bus.last_lat_, bus.last_lon_], {
-                    balloonContent: bus.azimuth ,
+                    balloonContent: bus.last_time_ ,
                     iconContent: bus.route_name_.trim() + get_arrow(bus.azimuth)
                 }, {
                     preset: 'islands#orangeStretchyIcon',
