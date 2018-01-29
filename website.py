@@ -37,6 +37,7 @@ class BusSite(tornado.web.Application):
         handlers = [
             (r"/arrival", ArrivalHandler),
             (r"/businfo", BusInfoHandler),
+            (r"/coddbus", MapHandler),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
         ]
         tornado.web.Application.__init__(self, handlers)
@@ -83,19 +84,15 @@ class ArrivalHandler(BaseHandler):
 class MapHandler(BaseHandler):
     executor = ThreadPoolExecutor()
 
-    def bus_info_response(self, query, lat, lon):
+    def bus_info_response(self, query):
         self.logger.info(f'Bus info query: "{query}"')
-        user_loc = None
-        if lat and lon:
-            user_loc = UserLoc(float(lat), float(lon))
-        response = self.cds.bus_request(*parse_routes(query.split()), user_loc=user_loc)
-        response = {'q': query, 'text': response}
+
+        response = self.cds.load_codd_buses(parse_routes(query.split())[1])
+        response = {'q': query, 'result': [x._asdict() for x in response]}
         self.write(json.dumps(response))
         self.caching()
 
     @run_on_executor
     def get(self):
         q = self.get_argument('q')
-        lat = self.get_argument('lat', None)
-        lon = self.get_argument('lon', None)
-        self.bus_info_response(q, lat, lon)
+        self.bus_info_response(q)

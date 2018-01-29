@@ -1,5 +1,6 @@
 import codecs
 import json
+import os
 from datetime import datetime, timedelta
 from itertools import groupby
 from logging import Logger
@@ -12,9 +13,14 @@ import requests
 
 from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi
 
+if 'DYNO' in os.environ:
+    debug = False
+else:
+    debug = True
+
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
-ttl_sec = 60
+ttl_sec = 60 if not debug else 600
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -223,7 +229,7 @@ class CdsRequest:
 
         return 'Ничего не нашлось'
 
-    @cachetools.func.ttl_cache(ttl=90)
+    @cachetools.func.ttl_cache(ttl=ttl_sec*1.5)
     @retry_multi()
     def next_bus_for_lat_lon(self, lat, lon) -> Iterable[CoddNextBus]:
         url = f'{codd_base_usl}GetNextBus'
@@ -254,10 +260,10 @@ class CdsRequest:
             raise Exception(f"Should be result for {keys}")
 
         if r.text:
-            return [CdsRouteBus(**i) for i in json.loads(r.text)]
+            return [CdsRouteBus(**i) for i in self.json_fix_and_load(r.text)]
         return []
 
-    @cachetools.func.ttl_cache(ttl=90)
+    @cachetools.func.ttl_cache(ttl=ttl_sec*1.5)
     def next_bus(self, bus_stop, user_bus_list):
         bus_stop = ' '.join(bus_stop)
         bus_stop_matches = [x for x in self.bus_stops if bus_stop.upper() in x.NAME_.upper()]
@@ -302,7 +308,7 @@ class CdsRequest:
         self.logger.info(f"{r.url} {r.elapsed} {len(r.text)}")
         if not r.text:
             raise Exception("Should be results")
-        result: Iterable[CdsBus] = [CdsBus(**i) for i in json.loads(r.text) if 'User' not in i]
+        result: Iterable[CdsBus] = [CdsBus(**i) for i in self.json_fix_and_load(r.text) if 'User' not in i]
         return result
 
     @cachetools.func.ttl_cache()
@@ -312,7 +318,7 @@ class CdsRequest:
         self.logger.info(f"{r.url} {r.elapsed} {len(r.text)}")
         if not r.text:
             raise Exception("Should be results")
-        result: Iterable[CoddBus] = [CoddBus(**i) for i in json.loads(r.text)]
+        result: Iterable[CoddBus] = [CoddBus(**i) for i in self.json_fix_and_load(r.text)]
         return result
 
     @cachetools.func.ttl_cache()
@@ -338,7 +344,8 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
-    def load_codd_buses(self, keys) -> Iterable[CoddRouteBus]:
+    def load_codd_buses(self, bus_route) -> Iterable[CoddRouteBus]:
+        keys = set([x for x in self.codd_routes.keys() for r in bus_route if x.upper() == r.upper()])
         routes = [{'proj_ID': self.codd_routes.get(k), 'route': k} for k in keys]
         if not routes:
             return []
@@ -347,10 +354,26 @@ class CdsRequest:
         url = f'{codd_base_usl}GetRouteBuses'
         r = requests.post(url, data=payload, headers=self.fake_header)
         self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2} kB")
-        if len(r.text) == 0:
+        if len(r.text) == 0 or r.text == '[,]':
             self.logger.warning(r)
             raise Exception(f"Should be result for {keys}")
-
         if r.text:
-            return [CoddRouteBus(**i) for i in json.loads(r.text)]
+            return [CoddRouteBus(**i) for i in self.json_fix_and_load(r.text)]
         return []
+
+    def json_fix_and_load(self, text: str):
+        if text == '[,]':
+            self.logger.warning(f'Wrong json {text}')
+            return '[]'
+
+        if '[,' in text:
+            self.logger.warning(f'Wrong begin {text}')
+            text = text.replace('[,', '[')
+
+        try:
+            json_object = json.loads(text)
+        except ValueError as e:
+            self.logger.warning(f'Exception {e}')
+            self.logger.warning(f'Wrong parse {text}')
+            return []
+        return json_object
