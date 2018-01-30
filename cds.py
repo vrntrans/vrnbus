@@ -254,7 +254,7 @@ class CdsRequest:
         self.logger.info(f"bus_request_as_list {routes}")
         url = f'{cds_url_base}GetRouteBuses'
         r = requests.post(url, cookies=self.cookies, data=payload, headers=self.fake_header)
-        self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2} kB")
+        self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2f} kB")
         if len(r.text) == 0:
             self.logger.warning(r)
             raise Exception(f"Should be result for {keys}")
@@ -355,8 +355,9 @@ class CdsRequest:
         r = requests.post(url, data=payload, headers=self.fake_header)
         self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2} kB")
         if len(r.text) == 0 or r.text == '[,]':
-            self.logger.warning(r)
-            raise Exception(f"Should be result for {keys}")
+            self.logger.warning(f'Empty or wrong result: {r}')
+            # raise Exception(f"Should be result for {keys}")
+            return []
         if r.text:
             return [CoddRouteBus(**i) for i in self.json_fix_and_load(r.text)]
         return []
@@ -369,6 +370,9 @@ class CdsRequest:
         if '[,' in text:
             self.logger.warning(f'Wrong begin {text}')
             text = text.replace('[,', '[')
+        if ',]' in text:
+            self.logger.warning(f'Wrong end {text}')
+            text = text.replace(',]', ']')
 
         try:
             json_object = json.loads(text)

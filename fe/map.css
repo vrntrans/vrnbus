@@ -1,0 +1,17 @@
+.bus-icon {
+    position: absolute;
+    background: url("bus.png");
+    width: 27px;
+    height: 27px;
+    margin-left:-5px; margin-top:0px;
+}
+
+.bus-title {
+    display: block;
+    background-color: white;
+    color: black;
+    position: absolute;
+    margin-left:20px;
+    margin-top:20px;
+    padding: 2px;
+}

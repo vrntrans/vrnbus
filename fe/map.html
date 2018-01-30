@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>vrnbus (beta)</title>
     <script src="https://api-maps.yandex.ru/2.1/?lang=en_US" type="text/javascript"></script>
+    <link rel="stylesheet" href="map.css">
 </head>
 <body>
 <div>
@@ -21,11 +22,13 @@
     <button id="lastbus_codd">Автобусы на карте</button>
     <div id="businfo" style="white-space:pre-wrap;"></div>
 </div>
-<div id="map" style="width: 600px; height: 400px"></div>
+<div id="map" style="width: 100%; height: 400px"></div>
 <script>
     (function () {
+
+        "use strict";
         const XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
-        var coords
+        var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
         var lastbusquery = document.getElementById('lastbusquery')
         var my_map
@@ -67,7 +70,6 @@
         function get_bus_arrival(position) {
             var xhr = new XHR()
             coords = position.coords
-            this.coords = coords
             var params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
             xhr.open('GET', '/arrival?' + params, true);
             xhr.send()
@@ -80,7 +82,7 @@
                 }
                 var data = JSON.parse(this.responseText)
                 info.innerHTML = data.text
-                lastbusquery.value = data.routes
+                // lastbusquery.value = data.routes
             }
         }
 
@@ -99,10 +101,8 @@
                 }
                 var data = JSON.parse(this.responseText)
                 const q = data.q
-                const text = data.result
+                const text = data.text
                 businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
-                ymap_show(data.result)
-
             }
         }
 
@@ -110,9 +110,9 @@
             var xhr = new XHR()
 
             var params = 'q=' + encodeURIComponent(query)
-            if (this.coords) {
-                params += '&lat=' + encodeURIComponent(this.coords.latitude)
-                params += '&lon=' + encodeURIComponent(this.coords.longitude)
+            if (coords) {
+                params += '&lat=' + encodeURIComponent(coords.latitude)
+                params += '&lon=' + encodeURIComponent(coords.longitude)
             }
             xhr.open('GET', '/coddbus?' + params, true);
             xhr.send()
@@ -129,71 +129,47 @@
         }
 
         function update_map(buses) {
-            my_map.setCenter([coords.latitude, coords.longitude]);
+            my_map.setCenter([coords.latitude, coords.longitude])
             my_map.geoObjects.removeAll()
             buses.forEach(function (bus) {
-                // {"obj_id_":0,"proj_id_":0,"last_speed_":0,"last_lon_":39.285763,"last_lat_":51.631746,"lon2":0.0,"lat2":0.0,
-                // "last_time_":"Jan 29, 2018 12:39:46 PM","route_name_":"104  ","type_proj":0,"azimuth":0,"lowfloor":0,"dist":0}
-                my_map.geoObjects.add(new ymaps.Placemark([bus.last_lat_, bus.last_lon_], {
-                    balloonContent: bus.last_time_ + ' ' + bus.azimuth,
-                    iconContent: bus.route_name_.trim() + get_arrow(bus.azimuth),
-                }, {
-                    preset: 'islands#orangeStretchyIcon',
-                    // Отключаем кнопку закрытия балуна.
-                    // Балун будем открывать и закрывать кликом по иконке метки.
-                    hideIconOnBalloonOpen: false,
-
-                }));
-
+                const hint = bus.last_time_ + '; ' + bus.azimuth
+                const desc = bus.last_time_ + JSON.stringify(bus)
+                my_map.geoObjects.add(new BusMark(bus.last_lat_, bus.last_lon_, bus.azimuth, bus.route_name_.trim(), hint, desc))
             });
         }
 
-        function get_arrow(azimuth) {
-            const rad_azimuth = (azimuth + 90) * Math.PI / 180
-            const direction = directionsVariants.n_az(rad_azimuth, 8)
-            return directionsVariants.arrows[direction.t]
+
+        var BusMark = function (lat, lon, rotation, caption, hint, description) {
+            this.MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
+                '<img class="bus-icon" style=" z-index: -1;transform: rotate({{properties.iconContent}}deg); "src="arrow.png">' +
+                '<ymaps class="bus-title" style="z-index: -2;color: orange; font-weight: bold;"> $[properties.iconContent] </ymaps>'
+            )
+
+            this.placemark = new ymaps.Placemark([lat, lon], {
+                hintContent: hint,
+                balloonContent: description,
+                iconContent: caption,
+                rotation: rotation,
+            }, {
+                // Опции.
+                // Необходимо указать данный тип макета.
+                iconLayout: 'default#imageWithContent',
+                // Своё изображение иконки метки.
+                iconImageHref: 'bus_round.png',
+                // Размеры метки.
+                iconImageSize: [27, 27],
+                // balloonOffset: [0, 0],
+                // Смещение левого верхнего угла иконки относительно
+                // её "ножки" (точки привязки).
+                iconImageOffset: [0, 0],
+                // Смещение слоя с содержимым относительно слоя с картинкой.
+                iconContentOffset: [0, 0],
+                // Макет содержимого.
+                iconContentLayout: this.MyIconContentLayout
+            });
+
+            return this.placemark
         }
-// делаем заготовку для кол-ва направлений. 4, 8 или 16 (+, x, *)
-    var directionsVariants = {
-        // стрелочки для разных направлений (нет стрелочек для 16)
-        arrows: {
-            w:  '←',
-            sw: '↙',
-            s:  '↓',
-            se: '↘',
-            e:  '→',
-            ne: '↗',
-            n:  '↑',
-            nw: '↖',
-        },
-        // возможные направления для разной степени точности
-        classes: {
-            16: ['w', 'sww', 'sw', 'ssw', 's', 'sse', 'se', 'see', 'e', 'nee', 'ne', 'nne', 'n', 'nnw', 'nw', 'nww'],
-            8: ['w', 'sw', 's', 'se', 'e', 'ne', 'n', 'nw'],
-            4: ['w', 's', 'e', 'n']
-        },
-        n: function (x,y,n) {
-            n = n || 8;
-            var n2 = n>>1; // half of n
-            var number = (Math.floor(Math.atan2(x,y)/Math.PI*n2+1/n)+n2) % n; // seems like there is a little bug here
-            return {n: number, t: directionsVariants.classes[n][ number ]};
-        },
-        n_az: function (azimuth,n) {
-            n = n || 8;
-            var n2 = n>>1; // half of n
-            var number = (Math.floor(azimuth/Math.PI*n2+1/n)+n2) % n; // seems like there is a little bug here
-            return {n: number, t: directionsVariants.classes[n][ number ]};
-        },
-        16: function (x,y) { // -> values in range [0, 16]
-            return directionsVariants.n(x,y,16);
-        },
-        8: function (x,y) { // -> values in range [0, 8]
-            return directionsVariants.n(x,y,8);
-        },
-        4: function (x,y) { // -> values in range [0, 4]
-            return directionsVariants.n(x,y,4);
-        }
-    };
 
 
         ymaps.ready(ymap_show);
@@ -204,50 +180,24 @@
                 zoom: 14
             }, {
                 searchControlProvider: 'yandex#search'
-            }),
+            })
 
-                // Создаём макет содержимого.
-                MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
-                    '<div style="color: #FFFFFF; font-weight: bold;">$[properties.iconContent]</div>'
-                ),
-
-                myPlacemark = new ymaps.Placemark(my_map.getCenter(), {
-                    hintContent: 'Собственный значок метки',
-                    balloonContent: 'Это красивая метка'
-                }, {
-                    // Опции.
-                    // Необходимо указать данный тип макета.
-                    iconLayout: 'default#image',
-                    // Своё изображение иконки метки.
-                    // iconImageHref: 'images/myIcon.gif',
-                    // Размеры метки.
-                    iconImageSize: [30, 42],
-                }),
-
-                myPlacemarkWithContent = new ymaps.Placemark([51.6389522, 39.1942408], {
-                    hintContent: 'Собственный значок метки с контентом',
-                    balloonContent: 'А эта — новогодняя',
-                    iconContent: '12'
-                }, {
-                    // Опции.
-                    // Необходимо указать данный тип макета.
-                    // iconLayout: 'default#imageWithContent',
-                    // Своё изображение иконки метки.
-                    iconImageHref: 'bus.png',
-                    // Размеры метки.
-                    iconImageSize: [48, 48],
-                    // Макет содержимого.
-                    iconContentLayout: ymaps.templateLayoutFactory.createClass('<ymaps style="position: absolute;background: url(&quot;bus.png&quot;);transform: rotate(75deg);"/>'),
-
-                });
-
-            my_map.geoObjects
-                .add(myPlacemark)
-                .add(myPlacemarkWithContent);
+            //   var bus_marker = new BusMark(coords.latitude, coords.longitude, 0, "text")
+            // my_map.geoObjects.add(bus_marker);
+            // var i = 0
+            // // начать повторы с интервалом 2 сек
+            // var timerId = setInterval(function () {
+            //     var rotation = (5 * (i++))
+            //     bus_marker.properties.set('rotation', rotation);
+            //     bus_marker.properties.set('iconContent', rotation);
+            //     // bus_marker.balloon.open();
+            // }, 100);
+            //
+            // setTimeout(function () {
+            //     clearInterval(timerId);
+            // }, 50000);
         }
-
     })()
-
 </script>
 </body>
 </html>
