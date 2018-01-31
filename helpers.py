@@ -16,7 +16,8 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
             for text in re.split(_nsre, s)]
 
 
-def parse_routes(args):
+def parse_routes(text):
+    args = re.split("[ ,;]+", text)
     if not args:
         return False, tuple(), ''
     result = []

@@ -66,7 +66,10 @@ class BusBot:
         custom_keyboard = [[location_keyboard, cancel_button]]
         reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
         update.message.reply_text("/last номера маршрутов через пробел - последние остановки\n"
-                                  "/nextbus имя остановки - ожидаемое время прибытия", reply_markup=reply_markup)
+                                  "/nextbus имя остановки - ожидаемое время прибытия\n"
+                                  "Отправка местоположения - ожидаемое время прибытия для ближайших трёх остановок\n"
+                                  "Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)",
+                                  reply_markup=reply_markup)
 
     def helpcmd(self, bot, update):
         """Send a message when the command /help is issued."""
@@ -74,7 +77,10 @@ class BusBot:
         user = update.message.from_user
         self.logger.info(user)
         update.message.reply_text("""/last номера маршрутов через пробел - последние остановки
-    /nextbus имя остановки - ожидаемое время прибытия""", reply_markup=ReplyKeyboardRemove())
+/nextbus имя остановки - ожидаемое время прибытия
+Отправка местоположения - ожидаемое время прибытия для ближайших трёх остановок
+Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)""",
+                                  reply_markup=ReplyKeyboardRemove())
 
     def last_buses(self, bot, update, args):
         """Send a message when the command /last is issued."""
@@ -199,7 +205,7 @@ class BusBot:
         else:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
             self.logger.info(f"{user} '{text}' {user_loc}")
-            response = self.cds.bus_request(*parse_routes(text.split()), user_loc=user_loc)
+            response = self.cds.bus_request(*parse_routes(text), user_loc=user_loc)
             self.logger.info(f'user_input. User: {user}; Response: {response}')
             message.reply_text(response, reply_markup=ReplyKeyboardRemove())
 

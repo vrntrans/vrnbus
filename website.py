@@ -63,7 +63,7 @@ class BusInfoHandler(BaseHandler):
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
-        response = self.cds.bus_request(*parse_routes(query.split()), user_loc=user_loc)
+        response = self.cds.bus_request(*parse_routes(query), user_loc=user_loc)
         response = {'q': query, 'text': response}
         self.write(json.dumps(response))
         self.caching()
@@ -97,7 +97,7 @@ class MapHandler(BaseHandler):
     def bus_info_response(self, query):
         self.logger.info(f'Bus info query: "{query}"')
 
-        response = self.cds.load_codd_buses(parse_routes(query.split())[1])
+        response = self.cds.load_codd_buses(parse_routes(query)[1])
         response = {'q': query, 'result': [x._asdict() for x in response]}
         self.write(json.dumps(response))
         self.caching()
