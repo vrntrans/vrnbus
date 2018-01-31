@@ -19,6 +19,10 @@ class BaseHandler(tornado.web.RequestHandler):
     def data_received(self, data):
         pass
 
+
+    def dnt(self):
+        self.set_header("Tk", "N")
+
     def caching(self, max_age=30):
         self.set_header("Cache-Control", f"max-age={max_age}")
 
@@ -53,6 +57,7 @@ class PingHandler(BaseHandler):
         self.logger.info('PING')
         self.write("PONG")
         self.caching(max_age=600)
+        self.dnt()
 
 
 class BusInfoHandler(BaseHandler):
@@ -67,6 +72,7 @@ class BusInfoHandler(BaseHandler):
         response = {'q': query, 'text': response}
         self.write(json.dumps(response))
         self.caching()
+        self.dnt()
 
     @run_on_executor
     def get(self):
@@ -85,6 +91,7 @@ class ArrivalHandler(BaseHandler):
         response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
         self.write(json.dumps(response))
         self.caching()
+        self.dnt()
 
     @run_on_executor
     def get(self):
@@ -101,6 +108,7 @@ class MapHandler(BaseHandler):
         response = {'q': query, 'result': [x._asdict() for x in response]}
         self.write(json.dumps(response))
         self.caching()
+        self.dnt()
 
     @run_on_executor
     def get(self):
