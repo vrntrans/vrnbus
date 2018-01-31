@@ -31,8 +31,13 @@ class BusBot:
         self.dp.add_handler(CommandHandler("start", self.start))
 
         self.dp.add_handler(CommandHandler("help", self.helpcmd))
+        self.dp.add_handler(CommandHandler("помощь", self.helpcmd))
         self.dp.add_handler(CommandHandler("last", self.last_buses, pass_args=True))
+        self.dp.add_handler(CommandHandler("последние", self.last_buses, pass_args=True))
+
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
+        self.dp.add_handler(CommandHandler("следующий", self.next_bus_handler, pass_args=True))
+        self.dp.add_handler(CommandHandler("следующибыстро", self.next_bus_handler, pass_args=True))
         #
         self.dp.add_handler(CommandHandler("stats", self.stats))
         #
@@ -65,8 +70,8 @@ class BusBot:
         cancel_button = KeyboardButton(text="Отмена")
         custom_keyboard = [[location_keyboard, cancel_button]]
         reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-        update.message.reply_text("/last номера маршрутов через пробел - последние остановки\n"
-                                  "/nextbus имя остановки - ожидаемое время прибытия\n"
+        update.message.reply_text("/последние номера маршрутов через пробел - последние остановки (или /last)\n"
+                                  "/следующий имя остановки - ожидаемое время прибытия (или /nextbus)\n"
                                   "Отправка местоположения - ожидаемое время прибытия для ближайших трёх остановок\n"
                                   "Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)",
                                   reply_markup=reply_markup)
@@ -76,8 +81,8 @@ class BusBot:
         self.ping_prod()
         user = update.message.from_user
         self.logger.info(user)
-        update.message.reply_text("""/last номера маршрутов через пробел - последние остановки
-/nextbus имя остановки - ожидаемое время прибытия
+        update.message.reply_text("""/последние номера маршрутов через пробел - последние остановки(или /last)
+/следующий имя остановки - ожидаемое время прибытия (или /nextbus)
 Отправка местоположения - ожидаемое время прибытия для ближайших трёх остановок
 Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)""",
                                   reply_markup=ReplyKeyboardRemove())
