@@ -8,9 +8,10 @@
 .bus-title {
     display: block;
     background-color: white;
-    color: black;
     position: absolute;
-    margin-left:20px;
-    margin-top:20px;
+    margin-left:25px;
+    margin-top:25px;
     padding: 2px;
+    color: orange;
+    font-weight: bold;
 }

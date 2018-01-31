@@ -166,7 +166,7 @@
 
         BusIconContentLayout = ymaps.templateLayoutFactory.createClass(
             '<img class="bus-icon" style=" z-index: -1; transform: rotate({{properties.rotation}}deg);" src="arrow.png">' +
-            '<ymaps class="bus-title" style="z-index: -2; color: orange; font-weight: bold;"> $[properties.iconContent] </ymaps>'
+            '<ymaps class="bus-title" style="z-index: -2;"> $[properties.iconContent] </ymaps>'
         )
 
         if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
