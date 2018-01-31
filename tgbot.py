@@ -203,6 +203,11 @@ class BusBot:
 
         self.logger.info(f'user_input. User: {user}; "{text}"')
 
+        if text.lower()  == 'на рефакторинг!':
+            message.reply_text('Тогда срочно сюда @deeprefactoring!')
+            return
+
+
         match = re.search('https:\/\/maps\.google\.com\/maps\?.*\&ll=(?P<lat>[-?\d\.]*)\,(?P<lon>[-?\d\.]*)', text)
         if match:
             (lat, lon) = (match.group('lat'), match.group('lon'))
