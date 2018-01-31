@@ -1,8 +1,10 @@
 import re
 
+import cachetools
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
     ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
+from tornado.httpclient import AsyncHTTPClient
 
 from cds import UserLoc
 from helpers import parse_routes, natural_sort_key, grouper
@@ -14,6 +16,7 @@ class BusBot:
         self.cds = cds
         self.user_settings = user_settings
         self.logger = logger
+        self.debug = debug
         # Create the EventHandler and pass it your bot's token.
         DEBUG_TOKEN = "524433920:AAFA-Qz4-ioogQ2WRviG_mD1lRzvrz7IPUc"
         VRNBUSBOT_TOKEN = "548203169:AAE68R3o9ghnoe2LMnOkiqoU5R-OdGY4YCQ"
@@ -54,6 +57,7 @@ class BusBot:
 
     def start(self, bot, update):
         """Send a message when the command /help is issued."""
+        self.ping_prod()
         user = update.message.from_user
         self.logger.info(f"start. User: {user};")
 
@@ -66,6 +70,7 @@ class BusBot:
 
     def helpcmd(self, bot, update):
         """Send a message when the command /help is issued."""
+        self.ping_prod()
         user = update.message.from_user
         self.logger.info(user)
         update.message.reply_text("""/last номера маршрутов через пробел - последние остановки
@@ -73,6 +78,7 @@ class BusBot:
 
     def last_buses(self, bot, update, args):
         """Send a message when the command /last is issued."""
+        self.ping_prod()
         user = update.message.from_user
         self.logger.info(f"last_buses. User: {user}; {args}")
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
@@ -172,12 +178,14 @@ class BusBot:
 
     def stats(self, bot, update):
         """Send a message when the command /stats is issued."""
+        self.ping_prod()
         user = update.message.from_user
         self.logger.info(f"Stats. User: {user}")
         response = self.cds.get_all_buses()
         update.message.reply_text(response)
 
     def user_input(self, bot, update):
+        self.ping_prod()
         message = update.message
         user = message.from_user
         text = message.text
@@ -208,6 +216,13 @@ class BusBot:
         update.message.reply_text(result[0], reply_markup=ReplyKeyboardRemove())
 
     def location(self, bot, update):
+        self.ping_prod()
         loc = update.message.location
         (lat, lon) = loc.latitude, loc.longitude
         self.show_arrival(update, lat, lon)
+
+    @cachetools.func.ttl_cache(ttl=30)
+    def ping_prod(self):
+        base_url = 'http://localhost:8080' if self.debug else 'https://vrnbus.herokuapp.com'
+        http_client = AsyncHTTPClient()
+        http_client.fetch(f"{base_url}/ping")

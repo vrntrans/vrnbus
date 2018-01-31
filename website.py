@@ -38,11 +38,21 @@ class BusSite(tornado.web.Application):
             (r"/arrival", ArrivalHandler),
             (r"/businfo", BusInfoHandler),
             (r"/coddbus", MapHandler),
+            (r"/ping", PingHandler),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
         ]
         tornado.web.Application.__init__(self, handlers)
         self.cds = cds
         self.logger = logger
+
+class PingHandler(BaseHandler):
+    executor = ThreadPoolExecutor()
+
+    @run_on_executor
+    def get(self):
+        self.logger.info('PING')
+        self.write("PONG")
+        self.caching(max_age=600)
 
 
 class BusInfoHandler(BaseHandler):
