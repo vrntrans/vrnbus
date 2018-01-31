@@ -1,8 +1,7 @@
 .bus-icon {
     position: absolute;
-    background: url("bus.png");
-    width: 27px;
-    height: 27px;
+    width: 32px;
+    height: 32px;
     margin-left:-5px; margin-top:0px;
 }
 

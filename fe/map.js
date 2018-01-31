@@ -1,11 +1,11 @@
 (function () {
-
     "use strict";
     const XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
     var lastbusquery = document.getElementById('lastbusquery')
     var my_map
+    var BusIconContentLayout
     var info = document.getElementById('info')
     var businfo = document.getElementById('businfo')
 
@@ -103,22 +103,16 @@
     }
 
     function update_map(buses) {
-        my_map.setCenter([coords.latitude, coords.longitude])
         my_map.geoObjects.removeAll()
         buses.forEach(function (bus) {
             const hint = bus.last_time_ + '; ' + bus.azimuth
             const desc = bus.last_time_ + JSON.stringify(bus)
             my_map.geoObjects.add(new BusMark(bus.last_lat_, bus.last_lon_, bus.azimuth, bus.route_name_.trim(), hint, desc))
-        });
+        })
     }
 
 
     var BusMark = function (lat, lon, rotation, caption, hint, description) {
-        this.MyIconContentLayout = ymaps.templateLayoutFactory.createClass(
-            '<img class="bus-icon" style=" z-index: -1; transform: rotate({{properties.rotation}}deg); "src="arrow.png">' +
-            '<ymaps class="bus-title" style="z-index: -2; color: orange; font-weight: bold;"> $[properties.iconContent] </ymaps>'
-        )
-
         this.placemark = new ymaps.Placemark([lat, lon], {
             hintContent: hint,
             balloonContent: description,
@@ -131,15 +125,14 @@
             // Своё изображение иконки метки.
             iconImageHref: 'bus_round.png',
             // Размеры метки.
-            iconImageSize: [27, 27],
-            // balloonOffset: [0, 0],
+            iconImageSize: [32, 32],
             // Смещение левого верхнего угла иконки относительно
             // её "ножки" (точки привязки).
-            iconImageOffset: [0, 0],
+            iconImageOffset: [-16, -16],
             // Смещение слоя с содержимым относительно слоя с картинкой.
             iconContentOffset: [0, 0],
             // Макет содержимого.
-            iconContentLayout: this.MyIconContentLayout
+            iconContentLayout: BusIconContentLayout
         });
 
         return this.placemark
@@ -156,19 +149,55 @@
             searchControlProvider: 'yandex#search'
         })
 
-        //   var bus_marker = new BusMark(coords.latitude, coords.longitude, 0, "text")
-        // my_map.geoObjects.add(bus_marker);
-        // var i = 0
-        // // начать повторы с интервалом 2 сек
-        // var timerId = setInterval(function () {
-        //     var rotation = (5 * (i++))
-        //     bus_marker.properties.set('rotation', rotation);
-        //     bus_marker.properties.set('iconContent', rotation);
-        //     // bus_marker.balloon.open();
-        // }, 100);
-        //
-        // setTimeout(function () {
-        //     clearInterval(timerId);
-        // }, 50000);
+        BusIconContentLayout = ymaps.templateLayoutFactory.createClass(
+            '<img class="bus-icon" style=" z-index: -1; transform: rotate({{properties.rotation}}deg); "src="arrow.png">' +
+            '<ymaps class="bus-title" style="z-index: -2; color: orange; font-weight: bold;"> $[properties.iconContent] </ymaps>'
+        )
+
+        if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+            test_mark()
+        }
+    }
+
+    function test_mark() {
+        var bus_obj = {
+            "obj_id_": 0,
+            "proj_id_": 0,
+            "last_speed_": 0,
+            "last_lon_": 39.262801,
+            "last_lat_": 51.683984,
+            "lon2": 0,
+            "lat2": 0,
+            "azimuth": 0,
+            "dist": 0,
+            "last_time_": "Jan 31, 2018 11:42:48 AM",
+            "route_name_": "18 ",
+            "type_proj": 0,
+            "lowfloor": 0
+        }
+
+        my_map.setCenter([bus_obj.last_lat_, bus_obj.last_lon_])
+        my_map.geoObjects.removeAll()
+
+        var bus_marker = new BusMark(bus_obj.last_lat_, bus_obj.last_lon_, 0, "text", "hhhhh", 'bbbbb')
+
+        var marker = new ymaps.Placemark([bus_obj.last_lat_, bus_obj.last_lon_], {
+            rotation: 0
+        }, {});
+        my_map.geoObjects.add(marker);
+        my_map.geoObjects.add(bus_marker);
+        var i = 0
+        // начать повторы с интервалом 2 сек
+        var timerId = setInterval(function () {
+            var rotation = (5 * (i++))
+            bus_marker.properties.set('rotation', rotation);
+            bus_marker.properties.set('iconContent', rotation);
+            // bus_marker.balloon.open();
+        }, 100);
+
+        setTimeout(function () {
+            clearInterval(timerId);
+        }, 50000);
+
     }
 })()
