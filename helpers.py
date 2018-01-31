@@ -19,6 +19,8 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
 def parse_routes(text):
     if not text:
         return False, tuple(), ''
+    if isinstance(text, (list,tuple,)):
+        text = ' '.join(text)
     args = re.split("[ ,;]+", text)
     if not args:
         return False, tuple(), ''
