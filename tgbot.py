@@ -94,8 +94,9 @@ class BusBot:
         self.logger.info(f"last_buses. User: {user}; {args}")
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
         response = self.cds.bus_request(*parse_routes(args), user_loc=user_loc)
-        self.logger.info(f"last_buses. User: {user}; Response {response}")
-        update.message.reply_text(response[0])
+        text = response[0]
+        self.logger.info(f"last_buses. User: {user}; Response {text}")
+        update.message.reply_text(text)
 
     def get_buttons_routes(self, user_routes):
         # TODO: too many buttons

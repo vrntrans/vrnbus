@@ -80,7 +80,22 @@
             const q = data.q
             const text = data.text
             businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
-            update_map(data.buses)
+
+            my_map.geoObjects.removeAll()
+            const bus_with_azimuth = data.buses.map(function (data) {
+                var bus = data[0]
+                var next_bus_stop = data[1]
+                if (!next_bus_stop.LON_ || !next_bus_stop.LAT_){
+                    return bus
+                }
+
+                const x = next_bus_stop.LON_ - bus.last_lat_
+                const y = next_bus_stop.LAT_ - bus.last_lon_
+
+                bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
+                return bus
+            })
+            update_map(bus_with_azimuth, false)
         }
     }
 
@@ -106,34 +121,40 @@
         }
     }
 
-    function update_map(buses) {
-        if (!my_map){
+    function update_map(buses, clear = true) {
+        if (!my_map) {
             return
         }
-        my_map.geoObjects.removeAll()
+
+        if (clear) {
+            my_map.geoObjects.removeAll()
+        }
         buses.forEach(function (bus) {
             add_bus(bus)
         })
     }
 
     function add_bus(bus) {
+        if (!bus)
+        {
+            return
+        }
         const hint = bus.last_time_ + '; ' + bus.azimuth
         const desc = bus.last_time_ + JSON.stringify(bus, null, ' ')
-        const lat = bus.lat2 || bus.last_lat_
-        const lon = bus.lon2 || bus.last_lon_
 
-        const bus_mark = new BusMark(lat, lon, bus.azimuth, bus.route_name_.trim(), hint, desc)
+        const bus_mark = new BusMark(bus, bus.route_name_.trim(), hint, desc)
         my_map.geoObjects.add(bus_mark)
         return bus_mark
     }
 
-
-    var BusMark = function (lat, lon, rotation, caption, hint, description) {
+    var BusMark = function (bus, caption, hint, description) {
+        const lat = bus.lat2 || bus.last_lat_
+        const lon = bus.lon2 || bus.last_lon_
         this.placemark = new ymaps.Placemark([lat, lon], {
             hintContent: hint,
             balloonContent: description,
             iconContent: caption,
-            rotation: rotation,
+            rotation: bus.azimuth,
         }, {
             // Опции.
             // Необходимо указать данный тип макета.

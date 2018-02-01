@@ -38,6 +38,7 @@ class BusStop(NamedTuple):
     def __str__(self):
         return f'(BusStop: {self.NAME_} {self.LAT_} {self.LON_})'
 
+
 class LongBusRouteStop(NamedTuple):
     NUMBER_: int
     NAME_: str
@@ -45,14 +46,17 @@ class LongBusRouteStop(NamedTuple):
     LAT_: float
     ROUT_: int
     CONTROL_: int
+
     def as_bus_stop(self):
         return BusStop(self.NAME_, self.LAT_, self.LON_)
+
 
 class ShortBusRoute(NamedTuple):
     NUMBER_: int
     ROUT_: int
     CONTROL_: int
     STOPID: int
+
 
 class CoddNextBus(NamedTuple):
     rname_: str
@@ -92,6 +96,7 @@ class CoddRouteBus(NamedTuple):
     type_proj: int
     lowfloor: int
 
+
 class CdsRouteBus(NamedTuple):
     address: str
     last_lat_: float
@@ -108,7 +113,7 @@ class CdsRouteBus(NamedTuple):
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
 
-    def distance(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
+    def distance(self, bus_stop=None, user_loc: UserLoc = None):
         (lat, lon) = (bus_stop.LON_, bus_stop.LAT_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance(lat, lon, self.last_lat_, self.last_lon_)
 
@@ -122,6 +127,19 @@ def init_bus_stops():
         return json.load(f)
 
 
+def init_bus_routes():
+    with open(Path("bus_stations.json"), 'rb') as f:
+        bus_stations = json.load(f)
+
+    result = {}
+    for k, v in bus_stations.items():
+        route = [LongBusRouteStop(*i) for i in v]
+        route.sort(key=lambda tup: tup.NUMBER_)
+        result[k] = route
+
+    return result
+
+
 class CdsRequest:
     def __init__(self, logger: Logger):
         self.cookies = {'JSESSIONID': 'C8ED75C7EC5371CBE836BDC748BB298F', 'session_id': 'vrntrans'}
@@ -130,9 +148,9 @@ class CdsRequest:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
                           'Chrome/63.0.3239.132 Safari/537.36'}
         self.bus_stops = [BusStop(**i) for i in init_bus_stops()]
+        self.bus_routes = init_bus_routes()
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
-
 
     def load_cds_bus_routes(self) -> {}:
         routes_base_local = {}
@@ -196,8 +214,12 @@ class CdsRequest:
         return []
 
     @cachetools.func.ttl_cache(maxsize=1024)
-    def get_closest_bus_stop(self, bus_info: CdsRouteBus):
-        result = min(self.bus_stops, key=bus_info.distance)
+    def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
+        if not strict:
+            result = min(self.bus_stops, key=bus_info.distance)
+        else:
+            bus_stops = self.bus_routes.get(bus_info.route_name_, [])
+            result = min(bus_stops, key=bus_info.distance)
         if not bus_info.bus_station_:
             self.logger.info(f"Empty station: {bus_info.short()} {result}")
             return result
@@ -212,11 +234,13 @@ class CdsRequest:
         return result
 
     @cachetools.func.ttl_cache()
-    def bus_station(self, bus_info: CdsRouteBus):
-        result = self.get_closest_bus_stop(bus_info)
+    def bus_station(self, bus_info: CdsRouteBus, strict=False):
+        result = self.get_closest_bus_stop(bus_info, strict)
+        if not result.NAME_:
+            self.logger.error(f"{result} {bus_info}")
         return result.NAME_
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    # @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request(self, full_info=False, bus_route=tuple(), bus_filter='', user_loc: UserLoc = None):
         def time_check(d: CdsRouteBus):
             return d.last_time_ and (now - get_time(d.last_time_)) < delta
@@ -234,19 +258,20 @@ class CdsRequest:
             return result
 
         if not bus_route:
-            return 'Не заданы маршруты'
+            return 'Не заданы маршруты', []
         short_result = self.bus_request_as_list(bus_route)
         if short_result:
             now = datetime.now(tz=tz)
             delta = timedelta(minutes=30)
-            stations_filtered = [d for d in short_result if filtered(d) and (full_info or time_check(d))]
+            stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d))) for d in short_result if
+                                 filtered(d) and (full_info or time_check(d))]
             if stations_filtered:
-                text = ' \n'.join([station(d) for d in stations_filtered])
+                text = ' \n'.join([station(d[0]) for d in stations_filtered])
                 return text, stations_filtered
 
-        return 'Ничего не нашлось'
+        return 'Ничего не нашлось', []
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec*1.5)
+    @cachetools.func.ttl_cache(ttl=ttl_sec * 1.5)
     @retry_multi()
     def next_bus_for_lat_lon(self, lat, lon) -> Iterable[CoddNextBus]:
         url = f'{codd_base_usl}GetNextBus'
@@ -280,7 +305,7 @@ class CdsRequest:
             return [CdsRouteBus(**i) for i in self.json_fix_and_load(r.text)]
         return []
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec*1.5)
+    @cachetools.func.ttl_cache(ttl=ttl_sec * 1.5)
     def next_bus(self, bus_stop, user_bus_list):
         bus_stop = ' '.join(bus_stop)
         bus_stop_matches = [x for x in self.bus_stops if bus_stop.upper() in x.NAME_.upper()]
@@ -398,3 +423,23 @@ class CdsRequest:
             self.logger.warning(f'Wrong parse {text}')
             return []
         return json_object
+
+    def get_next_bus_stop(self, route_name, bus_stop_name):
+        route = self.bus_routes.get(route_name, [])
+        if not route:
+            self.logger.info(self.bus_routes)
+            self.logger.error(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
+            return
+        size = len(route)
+        for (i, v) in enumerate(route):
+            if v.NAME_ == bus_stop_name:
+                if (i + 2) < size:
+                    return route[i + 1]
+                return v
+        self.logger.error(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything in {route[:3]}")
+        bus_stop = list(filter(lambda bs: bs.NAME_ == bus_stop_name, self.bus_stops))
+        if bus_stop:
+            return bus_stop[0]
+        else:
+            self.logger.error(f"Cannot found {bus_stop_name}, will return first bus_stop")
+            return self.bus_stops[0]
