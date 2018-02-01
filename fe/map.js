@@ -34,7 +34,6 @@
             event.preventDefault()
             get_current_pos()
         }
-        get_current_pos()
     }
 
 
@@ -81,6 +80,7 @@
             const q = data.q
             const text = data.text
             businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
+            update_map(data.buses)
         }
     }
 
@@ -107,6 +107,9 @@
     }
 
     function update_map(buses) {
+        if (!my_map){
+            return
+        }
         my_map.geoObjects.removeAll()
         buses.forEach(function (bus) {
             add_bus(bus)

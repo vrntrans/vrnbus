@@ -38,6 +38,22 @@ class BusStop(NamedTuple):
     def __str__(self):
         return f'(BusStop: {self.NAME_} {self.LAT_} {self.LON_})'
 
+class LongBusRouteStop(NamedTuple):
+    NUMBER_: int
+    NAME_: str
+    LON_: float
+    LAT_: float
+    ROUT_: int
+    CONTROL_: int
+    def as_bus_stop(self):
+        return BusStop(self.NAME_, self.LAT_, self.LON_)
+
+class ShortBusRoute(NamedTuple):
+    NUMBER_: int
+    ROUT_: int
+    CONTROL_: int
+    STOPID: int
+
 class CoddNextBus(NamedTuple):
     rname_: str
     time_: int
@@ -169,7 +185,7 @@ class CdsRequest:
             return []
         keys = set([x for x in self.cds_routes.keys() for r in bus_route if x.upper() == r.upper()])
 
-        routes = self.load_all_routes(tuple(keys))
+        routes = self.load_cds_buses(tuple(keys))
         self.logger.debug(routes)
         if routes:
             now = datetime.now(tz=tz)
@@ -223,9 +239,10 @@ class CdsRequest:
         if short_result:
             now = datetime.now(tz=tz)
             delta = timedelta(minutes=30)
-            stations = [station(d) for d in short_result if filtered(d) and (full_info or time_check(d))]
-            if stations:
-                return ' \n'.join(stations)
+            stations_filtered = [d for d in short_result if filtered(d) and (full_info or time_check(d))]
+            if stations_filtered:
+                text = ' \n'.join([station(d) for d in stations_filtered])
+                return text, stations_filtered
 
         return 'Ничего не нашлось'
 
@@ -246,7 +263,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
-    def load_all_routes(self, keys):
+    def load_cds_buses(self, keys):
         routes = [{'proj_ID': self.cds_routes.get(k), 'route': k} for k in keys]
         if not routes:
             return []

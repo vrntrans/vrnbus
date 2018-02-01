@@ -95,7 +95,7 @@ class BusBot:
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
         response = self.cds.bus_request(*parse_routes(args), user_loc=user_loc)
         self.logger.info(f"last_buses. User: {user}; Response {response}")
-        update.message.reply_text(response)
+        update.message.reply_text(response[0])
 
     def get_buttons_routes(self, user_routes):
         # TODO: too many buttons
@@ -217,7 +217,7 @@ class BusBot:
             self.logger.info(f"{user} '{text}' {user_loc}")
             response = self.cds.bus_request(*parse_routes(text), user_loc=user_loc)
             self.logger.info(f'user_input. User: {user}; Response: {response}')
-            message.reply_text(response, reply_markup=ReplyKeyboardRemove())
+            message.reply_text(response[0], reply_markup=ReplyKeyboardRemove())
 
     def show_arrival(self, update, lat, lon):
         user = update.message.from_user
