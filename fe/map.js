@@ -19,10 +19,10 @@
         event.preventDefault()
         if (event.keyCode === 13) {
             const bus_query = lastbusquery.value
-            if (my_map){
+            if (my_map) {
                 get_bus_codd_positions(bus_query)
             }
-            else{
+            else {
                 get_bus_positions(bus_query)
             }
         }
@@ -116,7 +116,10 @@
     function add_bus(bus) {
         const hint = bus.last_time_ + '; ' + bus.azimuth
         const desc = bus.last_time_ + JSON.stringify(bus, null, ' ')
-        const bus_mark = new BusMark(bus.last_lat_, bus.last_lon_, bus.azimuth, bus.route_name_.trim(), hint, desc)
+        const lat = bus.lat2 || bus.last_lat_
+        const lon = bus.lon2 || bus.last_lon_
+
+        const bus_mark = new BusMark(lat, lon, bus.azimuth, bus.route_name_.trim(), hint, desc)
         my_map.geoObjects.add(bus_mark)
         return bus_mark
     }
@@ -173,6 +176,7 @@
             test_mark()
         }
     }
+
 
     function test_mark() {
         const bus_obj = {
