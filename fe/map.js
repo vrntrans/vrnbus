@@ -8,6 +8,8 @@
     var BusIconContentLayout
     const info = document.getElementById('info');
     const businfo = document.getElementById('businfo');
+    const nextbus_loading = document.getElementById('nextbus_loading');
+    const lastbus_loading = document.getElementById('lastbus_loading');
 
     document.getElementById('lastbus').onclick = function () {
         const bus_query = lastbusquery.value
@@ -43,6 +45,7 @@
     }
 
     function get_bus_arrival(position) {
+        nextbus_loading.className = "spinner"
         const xhr = new XHR();
         coords = position.coords
         const params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
@@ -52,11 +55,59 @@
             if (this.readyState !== 4) return;
 
             if (this.status !== 200) {
+                nextbus_loading.className = ""
                 info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
                 return
             }
+            nextbus_loading.className = ""
             const data = JSON.parse(this.responseText);
             info.innerHTML = data.text
+        }
+    }
+
+    function get_bus_positions(query) {
+        lastbus_loading.className = "spinner"
+        const xhr = new XHR();
+        save_to_ls('bus_query', query)
+        var params = 'q=' + encodeURIComponent(query)
+        if (coords) {
+            params += '&lat=' + encodeURIComponent(coords.latitude)
+            params += '&lon=' + encodeURIComponent(coords.longitude)
+        }
+        xhr.open('GET', '/businfo?' + params, true);
+        xhr.send()
+        xhr.onreadystatechange = function () {
+            if (this.readyState !== 4) return;
+
+            if (this.status !== 200) {
+                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+                lastbus_loading.className = ""
+                return
+            }
+            lastbus_loading.className = ""
+            const data = JSON.parse(this.responseText);
+            const q = data.q
+            const text = data.text
+            businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
+
+            if (!my_map)
+                return
+
+            my_map.geoObjects.removeAll()
+            const bus_with_azimuth = data.buses.map(function (data) {
+                var bus = data[0]
+                var next_bus_stop = data[1]
+                if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
+                    return bus
+                }
+
+                const x = next_bus_stop.LON_ - bus.last_lat_
+                const y = next_bus_stop.LAT_ - bus.last_lon_
+
+                bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
+                return bus
+            })
+            update_map(bus_with_azimuth, false)
         }
     }
 
@@ -89,53 +140,9 @@
         }
     }
 
-    function get_bus_positions(query) {
-        const xhr = new XHR();
-
-        save_to_ls('bus_query', query)
-        var params = 'q=' + encodeURIComponent(query)
-        if (coords) {
-            params += '&lat=' + encodeURIComponent(coords.latitude)
-            params += '&lon=' + encodeURIComponent(coords.longitude)
-        }
-        xhr.open('GET', '/businfo?' + params, true);
-        xhr.send()
-        xhr.onreadystatechange = function () {
-            if (this.readyState !== 4) return;
-
-            if (this.status !== 200) {
-                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
-                return
-            }
-            const data = JSON.parse(this.responseText);
-            const q = data.q
-            const text = data.text
-            businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
-
-            if (!my_map)
-                return
-
-            my_map.geoObjects.removeAll()
-            const bus_with_azimuth = data.buses.map(function (data) {
-                var bus = data[0]
-                var next_bus_stop = data[1]
-                if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
-                    return bus
-                }
-
-                const x = next_bus_stop.LON_ - bus.last_lat_
-                const y = next_bus_stop.LAT_ - bus.last_lon_
-
-                bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
-                return bus
-            })
-            update_map(bus_with_azimuth, false)
-        }
-    }
-
     function get_bus_codd_positions(query) {
         const xhr = new XHR();
-
+        lastbus_loading.className = "spinner"
         save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
         if (coords) {
@@ -149,8 +156,10 @@
 
             if (this.status !== 200) {
                 info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+                lastbus_loading.className = ""
                 return
             }
+            lastbus_loading.className = ""
             const data = JSON.parse(this.responseText);
             update_map(data.result, false)
         }
@@ -283,11 +292,11 @@
         localStorage.setItem(key, value)
     }
 
-    function load_from_ls(key, default_value) {
+    function load_from_ls(key) {
         if (!ls_test()) {
-            return default_value
+            return
         }
-        return localStorage.getItem(key) || default_value
+        return localStorage.getItem(key)
     }
 
     function ls_test() {
@@ -306,8 +315,8 @@
 
     function init() {
         get_bus_list()
-        const busquery = load_from_ls('bus_query', '')
-        lastbusquery.value = busquery
+        const busquery = load_from_ls('bus_query')
+        lastbusquery.value = busquery || ''
     }
 
     document.addEventListener("DOMContentLoaded", init);

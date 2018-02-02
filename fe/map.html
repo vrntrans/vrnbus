@@ -12,13 +12,14 @@
     <a href="index.html">Список</a>
 </div>
 <div>
-    <button id="nextbusgeo">Прибытие на остановку</button>
+    <button id="nextbusgeo">Прибытие на ближайшие остановки</button><span id="nextbus_loading"></span>
     <div id="info" style="white-space:pre-wrap;"></div>
 </div>
 
 <div>
     <input type="text" id="lastbusquery" title="Введите номер маршрута" placeholder="Маршруты"/>
     <select id="buslist"></select>
+    <span id="lastbus_loading"></span>
     <button id="lastbus">Автобусы на маршруте</button>
     <button id="lastbus_codd">Автобусы на карте</button>
 </div>
