@@ -78,9 +78,7 @@
             var select = document.getElementById('buslist')
 
             bus_list.forEach(function (bus_name) {
-                var opt = document.createElement('option')
-                opt.value = bus_name
-                opt.innerHTML = bus_name
+                var opt = new Option(bus_name, bus_name)
                 select.appendChild(opt)
             })
 
