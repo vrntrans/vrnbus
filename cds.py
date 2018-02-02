@@ -90,11 +90,11 @@ class CoddRouteBus(NamedTuple):
     lon2: int
     lat2: int
     azimuth: int
-    dist: int
     last_time_: str
     route_name_: str
     type_proj: int
     lowfloor: int
+    dist: int = 0
 
 
 class CdsRouteBus(NamedTuple):
