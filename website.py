@@ -6,7 +6,7 @@ import tornado.web
 from tornado.concurrent import run_on_executor
 
 from cds import UserLoc
-from helpers import parse_routes
+from helpers import parse_routes, natural_sort_key
 
 
 # noinspection PyAbstractClass
@@ -38,6 +38,7 @@ class BusSite(tornado.web.Application):
         handlers = [
             (r"/arrival", ArrivalHandler),
             (r"/businfo", BusInfoHandler),
+            (r"/buslist", BusListHandler),
             (r"/coddbus", MapHandler),
             (r"/ping", PingHandler),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
@@ -107,3 +108,21 @@ class MapHandler(BaseHandler):
     def get(self):
         q = self.get_argument('q')
         self.bus_info_response(q)
+
+
+class BusListHandler(BaseHandler):
+    executor = ThreadPoolExecutor()
+
+    def _response(self):
+        self.logger.info(f'Bus list query')
+
+        response = list(self.cds.codd_routes.keys())
+        response.sort(key=natural_sort_key)
+        response = {'result': response}
+        self.write(json.dumps(response))
+        self.caching()
+
+    @run_on_executor
+    def get(self):
+        self._response()
+

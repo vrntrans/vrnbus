@@ -19,6 +19,7 @@
         event.preventDefault()
         if (event.keyCode === 13) {
             const bus_query = lastbusquery.value
+            save_to_ls('bus_query', bus_query)
             if (my_map) {
                 get_bus_codd_positions(bus_query)
             }
@@ -59,9 +60,41 @@
         }
     }
 
+    function get_bus_list() {
+        const xhr = new XHR();
+
+        xhr.open('GET', '/buslist', true);
+        xhr.send()
+        xhr.onreadystatechange = function () {
+            if (this.readyState !== 4) return;
+
+            if (this.status !== 200) {
+                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+                return
+            }
+            const data = JSON.parse(this.responseText);
+            const bus_list = data.result
+
+            var select = document.getElementById('buslist')
+
+            bus_list.forEach(function (bus_name) {
+                var opt = document.createElement('option')
+                opt.value = bus_name
+                opt.innerHTML = bus_name
+                select.appendChild(opt)
+            })
+
+            select.onchange = function (event) {
+                var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
+                lastbusquery.value += ' ' + text
+            }
+        }
+    }
+
     function get_bus_positions(query) {
         const xhr = new XHR();
 
+        save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
@@ -81,11 +114,14 @@
             const text = data.text
             businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
 
+            if (!my_map)
+                return
+
             my_map.geoObjects.removeAll()
             const bus_with_azimuth = data.buses.map(function (data) {
                 var bus = data[0]
                 var next_bus_stop = data[1]
-                if (!next_bus_stop.LON_ || !next_bus_stop.LAT_){
+                if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
                     return bus
                 }
 
@@ -102,6 +138,7 @@
     function get_bus_codd_positions(query) {
         const xhr = new XHR();
 
+        save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
@@ -135,8 +172,7 @@
     }
 
     function add_bus(bus) {
-        if (!bus)
-        {
+        if (!bus) {
             return
         }
         const hint = bus.last_time_ + '; ' + bus.azimuth
@@ -240,6 +276,41 @@
         setTimeout(function () {
             clearInterval(timerId);
         }, 50000);
-
     }
+
+    function save_to_ls(key, value) {
+        if (!ls_test()) {
+            return
+        }
+        localStorage.setItem(key, value)
+    }
+
+    function load_from_ls(key, default_value = '') {
+        if (!ls_test()) {
+            return default_value
+        }
+        return localStorage.getItem(key) || default_value
+    }
+
+    function ls_test() {
+        var test = 'test'
+        if (!'localStorage' in window) {
+            return false
+        }
+        try {
+            localStorage.setItem(test, test)
+            localStorage.removeItem(test)
+            return true
+        } catch (e) {
+            return false
+        }
+    }
+
+    function init() {
+        get_bus_list()
+        const busquery = load_from_ls('bus_query')
+        lastbusquery.value = busquery
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
 })()
