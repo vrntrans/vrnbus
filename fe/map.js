@@ -152,11 +152,11 @@
                 return
             }
             const data = JSON.parse(this.responseText);
-            update_map(data.result)
+            update_map(data.result, false)
         }
     }
 
-    function update_map(buses, clear = true) {
+    function update_map(buses, clear) {
         if (!my_map) {
             return
         }
@@ -283,7 +283,7 @@
         localStorage.setItem(key, value)
     }
 
-    function load_from_ls(key, default_value = '') {
+    function load_from_ls(key, default_value) {
         if (!ls_test()) {
             return default_value
         }
@@ -306,7 +306,7 @@
 
     function init() {
         get_bus_list()
-        const busquery = load_from_ls('bus_query')
+        const busquery = load_from_ls('bus_query', '')
         lastbusquery.value = busquery
     }
 
