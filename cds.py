@@ -343,7 +343,7 @@ class CdsRequest:
         result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
         return ('\n'.join(result), " ".join(routes_list))
 
-    @cachetools.func.ttl_cache()
+    @cachetools.func.ttl_cache(ttl=30)
     @retry_multi(max_retries=5)
     def get_cds_buses(self) -> Iterable[CdsBus]:
         r = requests.get(f'{cds_url_base}GetBuses', cookies=self.cookies, headers=self.fake_header)
@@ -353,7 +353,7 @@ class CdsRequest:
         result: Iterable[CdsBus] = [CdsBus(**i) for i in self.json_fix_and_load(r.text) if 'User' not in i]
         return result
 
-    @cachetools.func.ttl_cache()
+    @cachetools.func.ttl_cache(ttl=30)
     @retry_multi(max_retries=5)
     def get_codd_buses(self) -> Iterable[CoddBus]:
         r = requests.get(f'{codd_base_usl}GetBusesServlet', headers=self.fake_header)
@@ -405,16 +405,15 @@ class CdsRequest:
         return []
 
     def json_fix_and_load(self, text: str):
-        if text == '[,]':
-            self.logger.warning(f'Wrong json {text}')
-            return '[]'
-
         if '[,' in text:
             self.logger.warning(f'Wrong begin {text}')
             text = text.replace('[,', '[')
         if ',]' in text:
             self.logger.warning(f'Wrong end {text}')
             text = text.replace(',]', ']')
+        if ',,' in text:
+            self.logger.warning(f'Wrong {text} - contains ",,"')
+            text = text.replace(',,', ',')
 
         try:
             json_object = json.loads(text)
@@ -435,6 +434,8 @@ class CdsRequest:
             if v.NAME_ == bus_stop_name:
                 if (i + 2) < size:
                     return route[i + 1]
+                if i + 1 == size:
+                    return v
                 return v
         self.logger.error(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything in {route[:3]}")
         bus_stop = list(filter(lambda bs: bs.NAME_ == bus_stop_name, self.bus_stops))
