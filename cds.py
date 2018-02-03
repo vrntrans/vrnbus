@@ -405,15 +405,12 @@ class CdsRequest:
         return []
 
     def json_fix_and_load(self, text: str):
+        if ',,' in text:
+            text = text.replace(',,', ',')
         if '[,' in text:
-            self.logger.warning(f'Wrong begin {text}')
             text = text.replace('[,', '[')
         if ',]' in text:
-            self.logger.warning(f'Wrong end {text}')
             text = text.replace(',]', ']')
-        if ',,' in text:
-            self.logger.warning(f'Wrong {text} - contains ",,"')
-            text = text.replace(',,', ',')
 
         try:
             json_object = json.loads(text)
@@ -437,7 +434,7 @@ class CdsRequest:
                 if i + 1 == size:
                     return v
                 return v
-        self.logger.error(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything in {route[:3]}")
+        self.logger.error(f"Wrong params {route_name}, {bus_stop_name}")
         bus_stop = list(filter(lambda bs: bs.NAME_ == bus_stop_name, self.bus_stops))
         if bus_stop:
             return bus_stop[0]
