@@ -283,7 +283,7 @@ class CdsRequest:
             raise Exception(f"Should be result for next_bus_for_lat_lon {lat} {lon}")
 
         self.logger.debug(f'Response: {text}')
-        result = [CoddNextBus(**i) for i in json.loads(text)]
+        result = [CoddNextBus(**i) for i in self.json_fix_and_load(text) if i]
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
