@@ -25,10 +25,10 @@
     -moz-animation: rotation .6s infinite linear;
     -o-animation: rotation .6s infinite linear;
     animation: rotation .6s infinite linear;
-    border-left: 6px solid rgba(0, 174, 239, .15);
-    border-right: 6px solid rgba(0, 174, 239, .15);
-    border-bottom: 6px solid rgba(0, 174, 239, .15);
-    border-top: 6px solid rgba(0, 174, 239, .8);
+    border-left: 2px solid rgba(0, 174, 239, .15);
+    border-right: 2px solid rgba(0, 174, 239, .15);
+    border-bottom: 2px solid rgba(0, 174, 239, .15);
+    border-top: 2px solid rgba(0, 174, 239, .8);
     border-radius: 100%;
 }
 

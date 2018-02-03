@@ -6,12 +6,13 @@
     const lastbusquery = document.getElementById('lastbusquery');
     var my_map
     var BusIconContentLayout
-    const info = document.getElementById('info');
-    const businfo = document.getElementById('businfo');
-    const nextbus_loading = document.getElementById('nextbus_loading');
-    const lastbus_loading = document.getElementById('lastbus_loading');
+    const info = document.getElementById('info')
+    const businfo = document.getElementById('businfo')
+    const lastbus = document.getElementById('lastbus')
+    const nextbus_loading = document.getElementById('nextbus_loading')
+    const lastbus_loading = document.getElementById('lastbus_loading')
 
-    document.getElementById('lastbus').onclick = function () {
+    lastbus.onclick = function () {
         const bus_query = lastbusquery.value
         get_bus_positions(bus_query)
     }
@@ -45,7 +46,9 @@
     }
 
     function get_bus_arrival(position) {
+        const nextbusgeo = document.getElementById('nextbusgeo')
         nextbus_loading.className = "spinner"
+        nextbusgeo.disabled = true
         const xhr = new XHR();
         coords = position.coords
         const params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
@@ -56,10 +59,12 @@
 
             if (this.status !== 200) {
                 nextbus_loading.className = ""
+                nextbusgeo.disabled = false
                 info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
                 return
             }
             nextbus_loading.className = ""
+            nextbusgeo.disabled = false
             const data = JSON.parse(this.responseText);
             info.innerHTML = data.text
         }
@@ -67,6 +72,7 @@
 
     function get_bus_positions(query) {
         lastbus_loading.className = "spinner"
+        lastbus.disabled = true
         const xhr = new XHR();
         save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
@@ -82,9 +88,11 @@
             if (this.status !== 200) {
                 info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
                 lastbus_loading.className = ""
+                lastbus.disabled = false
                 return
             }
             lastbus_loading.className = ""
+            lastbus.disabled = false
             const data = JSON.parse(this.responseText);
             const q = data.q
             const text = data.text
@@ -142,7 +150,9 @@
 
     function get_bus_codd_positions(query) {
         const xhr = new XHR();
+        const lastbus_codd = document.getElementById('lastbus_codd')
         lastbus_loading.className = "spinner"
+        lastbus_codd.disabled = true
         save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
         if (coords) {
@@ -157,9 +167,11 @@
             if (this.status !== 200) {
                 info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
                 lastbus_loading.className = ""
+                lastbus_codd.disabled = false
                 return
             }
             lastbus_loading.className = ""
+            lastbus_codd.disabled = false
             const data = JSON.parse(this.responseText);
             update_map(data.result, false)
         }
