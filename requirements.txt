@@ -3,3 +3,4 @@ python-telegram-bot
 cachetools
 tornado
 pytz
+fdb

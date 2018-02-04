@@ -1,8 +1,8 @@
+import datetime
 import logging
 import math
 import re
 import time
-from datetime import datetime
 from functools import wraps
 from itertools import zip_longest
 
@@ -68,7 +68,9 @@ def distance_km(glat1, glon1, glat2, glon2):
 
 
 def get_time(s):
-    return tz.localize(datetime.strptime(s, '%b %d, %Y %I:%M:%S %p'))
+    if isinstance(s, datetime.datetime):
+        return tz.localize(s)
+    return tz.localize(datetime.datetime.strptime(s, '%b %d, %Y %I:%M:%S %p'))
 
 
 def grouper(n, iterable, fill_value=None):

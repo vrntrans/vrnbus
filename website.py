@@ -1,3 +1,4 @@
+import datetime
 import json
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -67,7 +68,7 @@ class BusInfoHandler(BaseHandler):
             user_loc = UserLoc(float(lat), float(lon))
         result = self.cds.bus_request(*parse_routes(query), user_loc=user_loc)
         response = {'q': query, 'text': result[0], 'buses': [(x[0]._asdict(), x[1]._asdict() if x[1] else {})  for x in result[1]]}
-        self.write(json.dumps(response))
+        self.write(json.dumps(response, cls=DateTimeEncoder))
         self.caching()
 
     @run_on_executor
@@ -126,3 +127,10 @@ class BusListHandler(BaseHandler):
     def get(self):
         self._response()
 
+
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return o.isoformat()
+
+        return json.JSONEncoder.default(self, o)
