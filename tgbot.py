@@ -59,7 +59,8 @@ class BusBot:
     def error(self, bot, update, error):
         """Log Errors caused by Updates."""
         self.logger.warning('Update "%s" caused error "%s"', update, error)
-        update.message.reply_text(f"Update caused error {error}")
+        if update:
+            update.message.reply_text(f"Update caused error {error}")
 
     def start(self, bot, update):
         """Send a message when the command /help is issued."""
