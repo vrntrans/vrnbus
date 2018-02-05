@@ -46,7 +46,7 @@ class BusStop(NamedTuple):
     LON_: float
 
     def __str__(self):
-        return f'(BusStop: {self.NAME_} {self.LAT_} {self.LON_})'
+        return f'(BusStop: {self.NAME_} {self.LON_} {self.LAT_} )'
 
 
 class LongBusRouteStop(NamedTuple):
@@ -240,7 +240,7 @@ class CdsRequest:
             d1 = bus_info.distance(bus_stop[0])
             d2 = bus_info.distance(result)
             if d2 > d1 or d1 < 0.015:
-                self.logger.debug(f"{bus_info.short()} {bus_stop[0]}, {result}, {d1} {d2}")
+                self.logger.debug(f"Original: {bus_info.short()}; By name: {bus_stop[0]}, Closests: {result}, {d1} {d2}")
                 return bus_stop[0]
 
         return result
@@ -275,7 +275,7 @@ class CdsRequest:
         if short_result:
             now = datetime.now(tz=tz)
             delta = timedelta(minutes=30)
-            stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d))) for d in short_result if
+            stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d, True))) for d in short_result if
                                  filtered(d) and (full_info or time_check(d))]
             if stations_filtered:
                 text = ' \n'.join([station(d[0]) for d in stations_filtered])

@@ -101,7 +101,6 @@
             if (!my_map)
                 return
 
-            my_map.geoObjects.removeAll()
             const bus_with_azimuth = data.buses.map(function (data) {
                 var bus = data[0]
                 var next_bus_stop = data[1]
@@ -109,13 +108,16 @@
                     return bus
                 }
 
+                bus.hint = next_bus_stop.NAME_
+                bus.desc = 'Следующая остановка:' + next_bus_stop.NAME_ + ' ' + bus.name_ + ' ' + bus.last_time_
+
                 const x = next_bus_stop.LON_ - bus.last_lat_
                 const y = next_bus_stop.LAT_ - bus.last_lon_
 
                 bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
                 return bus
             })
-            update_map(bus_with_azimuth, false)
+            update_map(bus_with_azimuth, true)
         }
     }
 
@@ -135,7 +137,7 @@
             const bus_list = data.result
 
             var select = document.getElementById('buslist')
-
+            select.appendChild(new Option('-', '-'))
             bus_list.forEach(function (bus_name) {
                 var opt = new Option(bus_name, bus_name)
                 select.appendChild(opt)
@@ -143,7 +145,8 @@
 
             select.onchange = function (event) {
                 var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
-                lastbusquery.value += ' ' + text
+                if (text !== '-')
+                    lastbusquery.value += ' ' + text
             }
         }
     }
@@ -173,7 +176,7 @@
             lastbus_loading.className = ""
             lastbus_codd.disabled = false
             const data = JSON.parse(this.responseText);
-            update_map(data.result, false)
+            update_map(data.result, true)
         }
     }
 
@@ -194,8 +197,8 @@
         if (!bus) {
             return
         }
-        const hint = bus.last_time_ + '; ' + bus.azimuth
-        const desc = bus.last_time_ + JSON.stringify(bus, null, ' ')
+        const hint = bus.hint ? bus.hint : bus.last_time_ + '; ' + bus.azimuth
+        const desc = bus.desc ? bus.desc :  bus.last_time_ + JSON.stringify(bus, null, ' ')
 
         const bus_mark = new BusMark(bus, bus.route_name_.trim(), hint, desc)
         my_map.geoObjects.add(bus_mark)
