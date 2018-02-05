@@ -1,11 +1,11 @@
 (function () {
     "use strict";
-    const XHR = ("onload" in new XMLHttpRequest()) ? XMLHttpRequest : XDomainRequest;
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
     const lastbusquery = document.getElementById('lastbusquery');
     var my_map
     var BusIconContentLayout
+
     const info = document.getElementById('info')
     const businfo = document.getElementById('businfo')
     const lastbus = document.getElementById('lastbus')
@@ -16,7 +16,6 @@
         const bus_query = lastbusquery.value
         get_bus_positions(bus_query)
     }
-
 
     lastbusquery.onkeyup = function (event) {
         event.preventDefault()
@@ -35,7 +34,6 @@
         }
     }
 
-
     function get_current_pos() {
         navigator.geolocation.getCurrentPosition(get_bus_arrival)
     }
@@ -44,110 +42,120 @@
         const nextbusgeo = document.getElementById('nextbusgeo')
         nextbus_loading.className = "spinner"
         nextbusgeo.disabled = true
-        const xhr = new XHR();
+
         coords = position.coords
         const params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
-        xhr.open('GET', '/arrival?' + params, true);
-        xhr.send()
-        xhr.onreadystatechange = function () {
-            if (this.readyState !== 4) return;
 
-            if (this.status !== 200) {
+        fetch('/arrival?' + params,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
                 nextbus_loading.className = ""
                 nextbusgeo.disabled = false
-                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
-                return
-            }
-            nextbus_loading.className = ""
-            nextbusgeo.disabled = false
-            const data = JSON.parse(this.responseText);
-            info.innerHTML = data.text
-        }
+                info.innerHTML = data.text
+            })
+            .catch(function (error) {
+                nextbus_loading.className = ""
+                nextbusgeo.disabled = false
+                info.innerHTML = 'Ошибка: ' + error
+            })
+    }
+
+    function waiting(element, button, state){
+        element.className = state || 'spinner'
+        lastbus.disabled = state
     }
 
     function get_bus_positions(query) {
-        lastbus_loading.className = "spinner"
-        lastbus.disabled = true
-        const xhr = new XHR();
+        waiting(lastbus_loading, lastbus, true)
+
         save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
             params += '&lon=' + encodeURIComponent(coords.longitude)
         }
-        xhr.open('GET', '/businfo?' + params, true);
-        xhr.send()
-        xhr.onreadystatechange = function () {
-            if (this.readyState !== 4) return;
 
-            if (this.status !== 200) {
-                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
-                lastbus_loading.className = ""
-                lastbus.disabled = false
-                return
-            }
-            lastbus_loading.className = ""
-            lastbus.disabled = false
-            const data = JSON.parse(this.responseText);
-            const q = data.q
-            const text = data.text
-            businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
-
-            if (!my_map)
-                return
-
-            const bus_with_azimuth = data.buses.map(function (data) {
-                var bus = data[0]
-                var next_bus_stop = data[1]
-                if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
-                    return bus
-                }
-
-                bus.hint = next_bus_stop.NAME_
-                bus.desc = 'Следующая остановка:' + next_bus_stop.NAME_ + ' ' + bus.name_ + ' ' + bus.last_time_
-
-                const x = next_bus_stop.LON_ - bus.last_lat_
-                const y = next_bus_stop.LAT_ - bus.last_lon_
-
-                bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
-                return bus
+        fetch('/businfo?' + params,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
             })
-            update_map(bus_with_azimuth, true)
-        }
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
+                waiting(lastbus_loading, lastbus, false)
+                const q = data.q
+                const text = data.text
+                businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
+
+                if (!my_map)
+                    return
+
+                const bus_with_azimuth = data.buses.map(function (data) {
+                    var bus = data[0]
+                    var next_bus_stop = data[1]
+                    if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
+                        return bus
+                    }
+
+                    bus.hint = next_bus_stop.NAME_
+                    bus.desc = 'Следующая остановка:' + next_bus_stop.NAME_ + ' ' + bus.name_ + ' ' + bus.last_time_
+
+                    const x = next_bus_stop.LON_ - bus.last_lat_
+                    const y = next_bus_stop.LAT_ - bus.last_lon_
+
+                    bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
+                    return bus
+                })
+                update_map(bus_with_azimuth, true)
+            }).catch(function (error) {
+            waiting(lastbus_loading, lastbus, false)
+
+            businfo.innerHTML = 'Ошибка: ' + error
+        })
     }
 
     function get_bus_list() {
-        const xhr = new XHR();
-
-        xhr.open('GET', '/buslist', true);
-        xhr.send()
-        xhr.onreadystatechange = function () {
-            if (this.readyState !== 4) return;
-
-            if (this.status !== 200) {
-                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
-                return
-            }
-            const data = JSON.parse(this.responseText);
-            const bus_list = data.result
-
-            var select = document.getElementById('buslist')
-            select.appendChild(new Option('-', '-'))
-            bus_list.forEach(function (bus_name) {
-                var opt = new Option(bus_name, bus_name)
-                select.appendChild(opt)
+        fetch('/buslist',
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
             })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
+                const bus_list = data.result
 
-            select.onchange = function (event) {
-                var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
-                if (text !== '-')
-                    lastbusquery.value += ' ' + text
-            }
-        }
+                var select = document.getElementById('buslist')
+                select.appendChild(new Option('-', '-'))
+                bus_list.forEach(function (bus_name) {
+                    var opt = new Option(bus_name, bus_name)
+                    select.appendChild(opt)
+                })
+
+                select.onchange = function (event) {
+                    var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
+                    if (text !== '-')
+                        lastbusquery.value += ' ' + text
+                }
+            })
     }
 
     function get_bus_codd_positions(query) {
-        const xhr = new XHR();
         const lastbus_codd = document.getElementById('lastbus_codd')
         lastbus_loading.className = "spinner"
         lastbus_codd.disabled = true
@@ -157,23 +165,30 @@
             params += '&lat=' + encodeURIComponent(coords.latitude)
             params += '&lon=' + encodeURIComponent(coords.longitude)
         }
-        xhr.open('GET', '/coddbus?' + params, true);
-        xhr.send()
-        xhr.onreadystatechange = function () {
-            if (this.readyState !== 4) return;
 
-            if (this.status !== 200) {
-                info.innerHTML = 'Ошибка: ' + (this.status ? this.statusText : 'запрос не удался')
+        fetch('/coddbus?' + params,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
                 lastbus_loading.className = ""
                 lastbus_codd.disabled = false
-                return
-            }
+
+                update_map(data.result, true)
+            }).catch(function (error) {
             lastbus_loading.className = ""
             lastbus_codd.disabled = false
-            const data = JSON.parse(this.responseText);
-            update_map(data.result, true)
-        }
+
+            businfo.innerHTML = 'Ошибка: ' + error
+        })
     }
+
 
     function update_map(buses, clear) {
         if (!my_map) {

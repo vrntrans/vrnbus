@@ -19,12 +19,16 @@
     <input type="text" id="lastbusquery" title="Введите номер маршрута" placeholder="Маршруты"/>
     <select id="buslist"></select>
     <span id="lastbus_loading"></span>
-    <button id="lastbus">Автобусы на маршруте</button>
+    <button id="lastbus">Поиск в ЦДС</button>
 </div>
 <div>
     <div id="businfo" style="white-space:pre-wrap;"></div>
 </div>
 
+<script>
+    (window.fetch && window.Promise && Array.prototype.find && String.prototype.includes) || document.write(
+        '<script src="promises.min.js"><\/sc' + 'ript><script src="fetch.min.js"><\/sc' + 'ript>')
+</script>
 <script src="map.js" type="text/javascript"></script>
 </body>
 </html>
