@@ -221,7 +221,7 @@ class CdsRequest:
             now = datetime.now(tz=tz)
             delta = timedelta(days=1)
             key_check = lambda x: x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < delta
-            short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_) and natural_sort_key(str(s.last_time_)))
+            short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_))
             return short_result
         return []
 
@@ -340,6 +340,7 @@ class CdsRequest:
             self.logger.info("Finish fetch")
 
         result = [CdsRouteBus(**make_names_lower(x)) for x in result]
+        result.sort(key=lambda s: s.last_time_, reverse=True)
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
