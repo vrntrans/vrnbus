@@ -124,6 +124,8 @@ class CdsRouteBus(NamedTuple):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
 
     def distance(self, bus_stop=None, user_loc: UserLoc = None):
+        if not bus_stop and not user_loc:
+            return 10000
         (lat, lon) = (bus_stop.LON_, bus_stop.LAT_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance(lat, lon, self.last_lat_, self.last_lon_)
 
@@ -211,8 +213,6 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_route):
-        if not bus_route:
-            return []
         keys = set([x for x in self.cds_routes.keys() for r in bus_route if x.upper() == r.upper()])
 
         routes = self.load_cds_buses_from_db(tuple(keys))
@@ -227,11 +227,11 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(maxsize=1024)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
-        if not strict:
-            result = min(self.bus_stops, key=bus_info.distance)
-        else:
+        result = min(self.bus_stops, key=bus_info.distance)
+        if strict:
             bus_stops = self.bus_routes.get(bus_info.route_name_, [])
-            result = min(bus_stops, key=bus_info.distance)
+            if bus_stops:
+                result = min(bus_stops, key=bus_info.distance)
         if not bus_info.bus_station_:
             self.logger.debug(f"Empty station: {bus_info.short()} {result}")
             return result
@@ -269,9 +269,11 @@ class CdsRequest:
                 return f"{result} {d.name_} {show_orig_bus_stop}"
             return result
 
-        if not bus_route:
+        keys = set([x for x in self.cds_routes.keys() for r in bus_route if x.upper() == r.upper()])
+
+        if not keys and bus_filter == '':
             return 'Не заданы маршруты', []
-        short_result = self.bus_request_as_list(bus_route)
+        short_result = self.bus_request_as_list(tuple(keys))
         if short_result:
             now = datetime.now(tz=tz)
             delta = timedelta(minutes=30)
@@ -344,6 +346,8 @@ class CdsRequest:
     @retry_multi()
     def load_cds_buses_from_db(self, keys):
         all_buses = self.load_all_cds_buses_from_db()
+        if not keys:
+            return all_buses
         result = list(filter(lambda x: x.route_name_ in keys, all_buses))
         return result
 

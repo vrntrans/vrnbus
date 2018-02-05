@@ -38,6 +38,8 @@ def parse_routes(text):
             result[-1] += ' ' + i
             continue
         result.append(i)
+    if not result:
+        return False , tuple(), bus_filter
     full_info = result[0].upper() in ['PRO', 'ПРО']
     if full_info:
         result = result[1:]

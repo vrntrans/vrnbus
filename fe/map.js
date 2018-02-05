@@ -23,12 +23,7 @@
         if (event.keyCode === 13) {
             const bus_query = lastbusquery.value
             save_to_ls('bus_query', bus_query)
-            if (my_map) {
-                get_bus_codd_positions(bus_query)
-            }
-            else {
-                get_bus_positions(bus_query)
-            }
+            get_bus_positions(bus_query)
         }
     }
 
@@ -198,7 +193,7 @@
             return
         }
         const hint = bus.hint ? bus.hint : bus.last_time_ + '; ' + bus.azimuth
-        const desc = bus.desc ? bus.desc :  bus.last_time_ + JSON.stringify(bus, null, ' ')
+        const desc = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
 
         const bus_mark = new BusMark(bus, bus.route_name_.trim(), hint, desc)
         my_map.geoObjects.add(bus_mark)
