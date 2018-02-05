@@ -221,7 +221,7 @@ class CdsRequest:
             now = datetime.now(tz=tz)
             delta = timedelta(days=1)
             key_check = lambda x: x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < delta
-            short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_))
+            short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_) and natural_sort_key(str(s.last_time_)))
             return short_result
         return []
 
@@ -331,7 +331,7 @@ class CdsRequest:
             cur.execute('''SELECT bs.NAME_ as BUS_STATION_, rt.NAME_ as ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
                 o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.PROJ_ID_
                 FROM OBJECTS O join BUS_STATIONS bs
-                on o.DISP_ROUTE_ = bs.ROUT_ and o.LAST_STATION_ = bs.NUMBER_
+                on o.LAST_ROUT_ = bs.ROUT_ and o.LAST_STATION_ = bs.NUMBER_
                 join ROUTS rt on o.LAST_ROUT_ = rt.ID_
                 where obj_output_=0''')
             self.logger.info('Finish execution')
