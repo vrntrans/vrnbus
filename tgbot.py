@@ -59,6 +59,7 @@ class BusBot:
     def error(self, bot, update, error):
         """Log Errors caused by Updates."""
         self.logger.warning('Update "%s" caused error "%s"', update, error)
+        update.message.reply_text(f"Update caused error {error}")
 
     def start(self, bot, update):
         """Send a message when the command /help is issued."""
@@ -217,8 +218,12 @@ class BusBot:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
             self.logger.info(f"{user} '{text}' {user_loc}")
             response = self.cds.bus_request(*parse_routes(text), user_loc=user_loc)
-            self.logger.info(f'user_input. User: {user}; Response: {response}')
-            message.reply_text(response[0], reply_markup=ReplyKeyboardRemove())
+            self.logger.info(f'user_input. User: {user}; Response: {response[:1024]}')
+            reply_text = response[0]
+            if len(reply_text) > 4000:
+                message.reply_text("Слишком длинный запрос, показаны первые 4000 символов:\n" + response[0][:4000], reply_markup=ReplyKeyboardRemove())
+            else:
+                message.reply_text(reply_text, reply_markup=ReplyKeyboardRemove())
 
     def show_arrival(self, update, lat, lon):
         user = update.message.from_user
