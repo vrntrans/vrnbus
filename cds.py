@@ -332,7 +332,7 @@ class CdsRequest:
                 o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.PROJ_ID_
                 FROM OBJECTS O join BUS_STATIONS bs
                 on o.DISP_ROUTE_ = bs.ROUT_ and o.LAST_STATION_ = bs.NUMBER_
-                join ROUTS rt on o.DISP_ROUTE_ = rt.ID_
+                join ROUTS rt on o.LAST_ROUT_ = rt.ID_
                 where obj_output_=0''')
             self.logger.info('Finish execution')
             result = cur.fetchallmap()
