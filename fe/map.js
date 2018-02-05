@@ -228,21 +228,59 @@
         if (clear) {
             my_map.geoObjects.removeAll()
         }
-        buses.forEach(function (bus) {
-            add_bus(bus)
+
+
+        const objectManager = new ymaps.ObjectManager()
+
+        objectManager.objects.options.set({
+            iconLayout: 'default#imageWithContent',
+            iconImageHref: 'bus_round.png',
+            iconImageSize: [32, 32],
+            iconImageOffset: [-16, -16],
+            iconContentOffset: [0, 0],
+            iconContentLayout: BusIconContentLayout,
         })
+
+        my_map.geoObjects.add(objectManager);
+
+        const features = []
+
+        buses.forEach(function (bus, index) {
+            features.push(add_bus(bus, index))
+        })
+
+        objectManager.add({
+            "type": "FeatureCollection",
+            "features": features
+        })
+
     }
 
-    function add_bus(bus) {
+    function add_bus(bus, id) {
         if (!bus) {
             return
         }
-        const hint = bus.hint ? bus.hint : bus.last_time_ + '; ' + bus.azimuth
-        const desc = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
+        const hint_content = bus.hint ? bus.hint : bus.last_time_ + '; ' + bus.azimuth
+        const balloon_content = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
+        const lat = bus.lat2 || bus.last_lat_
+        const lon = bus.lon2 || bus.last_lon_
+        const icon_content = bus.route_name_.trim()
+        const rotation = bus.azimuth
 
-        const bus_mark = new BusMark(bus, bus.route_name_.trim(), hint, desc)
-        my_map.geoObjects.add(bus_mark)
-        return bus_mark
+        const result = {
+                    "type": "Feature",
+                    "id": id,
+                    "geometry": {"type": "Point", "coordinates": [lat, lon]},
+                    "properties": {
+                        "balloonContent": balloon_content,
+                        "hintContent": hint_content,
+                        "iconContent": icon_content,
+                        "rotation": rotation
+                    }
+                }
+
+
+        return result
     }
 
     var BusMark = function (bus, caption, hint, description) {
@@ -295,49 +333,7 @@
         )
 
         if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-            test_mark()
         }
-    }
-
-
-    function test_mark() {
-        const bus_obj = {
-            "obj_id_": 0,
-            "proj_id_": 0,
-            "last_speed_": 0,
-            "last_lon_": 39.262801,
-            "last_lat_": 51.683984,
-            "lon2": 0,
-            "lat2": 0,
-            "azimuth": 0,
-            "dist": 0,
-            "last_time_": "Jan 31, 2018 11:42:48 AM",
-            "route_name_": "18 ",
-            "type_proj": 0,
-            "lowfloor": 0
-        };
-
-        my_map.setCenter([bus_obj.last_lat_, bus_obj.last_lon_])
-        my_map.geoObjects.removeAll()
-
-        const bus_mark = add_bus(bus_obj)
-
-        const marker = new ymaps.Placemark([bus_obj.last_lat_, bus_obj.last_lon_], {
-            rotation: 0
-        }, {});
-        my_map.geoObjects.add(marker);
-        var i = 0
-        // начать повторы с интервалом 2 сек
-        const timerId = setInterval(function () {
-            const rotation = (5 * (i++));
-            bus_mark.properties.set('rotation', rotation);
-            bus_mark.properties.set('iconContent', rotation);
-            // bus_marker.balloon.open();
-        }, 100);
-
-        setTimeout(function () {
-            clearInterval(timerId);
-        }, 50000);
     }
 
     function save_to_ls(key, value) {

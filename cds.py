@@ -235,13 +235,13 @@ class CdsRequest:
         if not bus_info.bus_station_:
             self.logger.debug(f"Empty station: {bus_info.short()} {result}")
             return result
-        bus_stop = list(filter(lambda bs: bs.NAME_ == bus_info.bus_station_, self.bus_stops))
+        bus_stop = next((x for x in self.bus_stops if x.NAME_ == bus_info.bus_station_), None)
         if bus_stop:
-            d1 = bus_info.distance(bus_stop[0])
+            d1 = bus_info.distance(bus_stop)
             d2 = bus_info.distance(result)
             if d2 > d1 or d1 < 0.015:
-                self.logger.debug(f"Original: {bus_info.short()}; By name: {bus_stop[0]}, Closests: {result}, {d1} {d2}")
-                return bus_stop[0]
+                self.logger.debug(f"Original: {bus_info.short()}; By name: {bus_stop}, Closests: {result}, {d1} {d2}")
+                return bus_stop
 
         return result
 
@@ -482,9 +482,9 @@ class CdsRequest:
                     return v
                 return v
         self.logger.error(f"Wrong params {route_name}, {bus_stop_name}")
-        bus_stop = list(filter(lambda bs: bs.NAME_ == bus_stop_name, self.bus_stops))
+        bus_stop = next((x for x in self.bus_stops if x.NAME_ == bus_stop_name), None)
         if bus_stop:
-            return bus_stop[0]
+            return bus_stop
         else:
             self.logger.error(f"Cannot found {bus_stop_name}, will return first bus_stop")
             return self.bus_stops[0]
