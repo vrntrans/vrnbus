@@ -5,25 +5,56 @@
     const lastbusquery = document.getElementById('lastbusquery');
     var my_map
     var BusIconContentLayout
+    var timer_id = 0
+    var timer_stop_id = 0
 
     const info = document.getElementById('info')
     const businfo = document.getElementById('businfo')
     const lastbus = document.getElementById('lastbus')
     const nextbus_loading = document.getElementById('nextbus_loading')
     const lastbus_loading = document.getElementById('lastbus_loading')
+    const cb_refresh = document.getElementById('cb_refresh')
 
     lastbus.onclick = function () {
-        const bus_query = lastbusquery.value
-        get_bus_positions(bus_query)
+        get_cds_bus()
+    }
+
+    cb_refresh.onclick = function () {
+        if (!cb_refresh.checked){
+            clearTimeout(timer_id)
+            clearTimeout(timer_stop_id)
+            timer_id = 0
+            timer_stop_id = 0
+        }
     }
 
     lastbusquery.onkeyup = function (event) {
         event.preventDefault()
         if (event.keyCode === 13) {
-            const bus_query = lastbusquery.value
-            save_to_ls('bus_query', bus_query)
-            get_bus_positions(bus_query)
+            get_cds_bus()
         }
+    }
+
+    function get_cds_bus() {
+        if (cb_refresh.checked && !timer_id){
+            timer_id = setTimeout(function tick() {
+                get_cds_bus().then(function () {
+                    timer_id = setTimeout(tick, 30*1000);
+                })
+            }, 30*1000)
+            if (!timer_stop_id)
+                timer_stop_id = setTimeout(function () {
+                    cb_refresh.checked = false
+                    clearTimeout(timer_id)
+                    timer_id = 0
+                    timer_stop_id = 0
+
+                }, 10*30*1000)
+        }
+
+        const bus_query = lastbusquery.value
+        save_to_ls('bus_query', bus_query)
+        return get_bus_positions(bus_query)
     }
 
     if ("geolocation" in navigator) {
@@ -69,21 +100,20 @@
     }
 
     function waiting(element, button, state){
-        element.className = state || 'spinner'
+        element.className = state ? 'spinner': ''
         lastbus.disabled = state
     }
 
     function get_bus_positions(query) {
         waiting(lastbus_loading, lastbus, true)
 
-        save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
             params += '&lon=' + encodeURIComponent(coords.longitude)
         }
 
-        fetch('/businfo?' + params,
+        return fetch('/businfo?' + params,
             {
                 method: 'GET',
                 headers: {
