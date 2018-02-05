@@ -204,7 +204,7 @@ class BusBot:
         user = message.from_user
         text = message.text
 
-        self.logger.info(f'user_input. User: {user}; "{text}"')
+        self.logger.info(f'"{text}" User: {user}; ')
 
         if text.lower()  == 'на рефакторинг!':
             message.reply_text('Тогда срочно сюда @deeprefactoring!')
@@ -219,7 +219,7 @@ class BusBot:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
             self.logger.info(f"{user} '{text}' {user_loc}")
             response = self.cds.bus_request(*parse_routes(text), user_loc=user_loc)
-            self.logger.info(f'user_input. User: {user}; Response: {response[:1024]}')
+            self.logger.info(f'"{text}" User: {user}; Response: {response[:256]}')
             reply_text = response[0]
             if len(reply_text) > 4000:
                 message.reply_text("Слишком длинный запрос, показаны первые 4000 символов:\n" + response[0][:4000], reply_markup=ReplyKeyboardRemove())
