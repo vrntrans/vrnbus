@@ -228,6 +228,11 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(maxsize=1024)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
+        bus_stop = next((x for x in self.bus_stops if x.NAME_ == bus_info.bus_station_), None)
+        if bus_stop:
+            if bus_info.distance(bus_stop) < 0.015:
+                return bus_stop
+
         if strict:
             bus_stops = self.bus_routes.get(bus_info.route_name_, [])
             result = min(bus_stops, key=bus_info.distance)
@@ -236,11 +241,11 @@ class CdsRequest:
         if not bus_info.bus_station_:
             self.logger.debug(f"Empty station: {bus_info.short()} {result}")
             return result
-        bus_stop = next((x for x in self.bus_stops if x.NAME_ == bus_info.bus_station_), None)
+
         if bus_stop:
             d1 = bus_info.distance(bus_stop)
             d2 = bus_info.distance(result)
-            if d2 > d1 or d1 < 0.015:
+            if d2 > d1:
                 self.logger.debug(f"Original: {bus_info.short()}; By name: {bus_stop}, Closests: {result}, {d1} {d2}")
                 return bus_stop
 
@@ -253,7 +258,7 @@ class CdsRequest:
             self.logger.error(f"{result} {bus_info}")
         return result.NAME_
 
-    # @cachetools.func.ttl_cache(ttl=ttl_sec)
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request(self, full_info=False, bus_route=tuple(), bus_filter='', user_loc: UserLoc = None):
         def time_check(d: CdsRouteBus):
             return d.last_time_ and (now - get_time(d.last_time_)) < delta
