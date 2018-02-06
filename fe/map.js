@@ -29,12 +29,11 @@
         }
     }
 
-    if (cb_show_info) {
+    if (cb_show_info)
         cb_show_info.onclick = function () {
             const show = cb_show_info.checked
             businfo.style = show ? "white-space:pre-wrap;" : "display: none;"
         }
-    }
 
     lastbusquery.onkeyup = function (event) {
         event.preventDefault()
@@ -47,9 +46,9 @@
         if (cb_refresh.checked && !timer_id) {
             timer_id = setTimeout(function tick() {
                 get_cds_bus().then(function () {
-                    timer_id = setTimeout(tick, 30 * 1000);
+                    timer_id = setTimeout(tick, 20 * 1000);
                 })
-            }, 30 * 1000)
+            }, 20 * 1000)
             if (!timer_stop_id)
                 timer_stop_id = setTimeout(function () {
                     cb_refresh.checked = false
@@ -79,13 +78,12 @@
 
     function get_bus_arrival(position) {
         const nextbusgeo = document.getElementById('nextbusgeo')
-        nextbus_loading.className = "spinner"
-        nextbusgeo.disabled = true
+        waiting(nextbus_loading, nextbusgeo, true)
 
         coords = position.coords
         const params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
 
-        fetch('/arrival?' + params,
+        return fetch('/arrival?' + params,
             {
                 method: 'GET',
                 headers: {
@@ -96,20 +94,18 @@
                 return res.json()
             })
             .then(function (data) {
-                nextbus_loading.className = ""
-                nextbusgeo.disabled = false
+                waiting(nextbus_loading, nextbusgeo, false)
                 info.innerHTML = data.text
             })
             .catch(function (error) {
-                nextbus_loading.className = ""
-                nextbusgeo.disabled = false
+                waiting(nextbus_loading, nextbusgeo, false)
                 info.innerHTML = 'Ошибка: ' + error
             })
     }
 
     function waiting(element, button, state) {
         element.className = state ? 'spinner' : ''
-        lastbus.disabled = state
+        button.disabled = state
     }
 
     function get_bus_positions(query) {
@@ -135,7 +131,7 @@
                 waiting(lastbus_loading, lastbus, false)
                 const q = data.q
                 const text = data.text
-                businfo.innerHTML = 'Маршруты: ' + q + '\n' + text
+                businfo.innerHTML = 'Маршруты: ' + q + '\nКоличество результатов: ' + data.buses.length + '\n' + text
 
                 if (!my_map)
                     return
@@ -165,7 +161,7 @@
     }
 
     function get_bus_list() {
-        fetch('/buslist',
+        return fetch('/buslist',
             {
                 method: 'GET',
                 headers: {
@@ -195,8 +191,7 @@
 
     function get_bus_codd_positions(query) {
         const lastbus_codd = document.getElementById('lastbus_codd')
-        lastbus_loading.className = "spinner"
-        lastbus_codd.disabled = true
+        waiting(lastbus_loading, lastbus_codd, true)
         save_to_ls('bus_query', query)
         var params = 'q=' + encodeURIComponent(query)
         if (coords) {
@@ -204,7 +199,7 @@
             params += '&lon=' + encodeURIComponent(coords.longitude)
         }
 
-        fetch('/coddbus?' + params,
+        return fetch('/coddbus?' + params,
             {
                 method: 'GET',
                 headers: {
@@ -215,28 +210,20 @@
                 return res.json()
             })
             .then(function (data) {
-                lastbus_loading.className = ""
-                lastbus_codd.disabled = false
+                waiting(lastbus_loading, lastbus_codd, false)
 
                 update_map(data.result, true)
             }).catch(function (error) {
-            lastbus_loading.className = ""
-            lastbus_codd.disabled = false
+            waiting(lastbus_loading, lastbus_codd, false)
 
             businfo.innerHTML = 'Ошибка: ' + error
         })
     }
 
-
     function update_map(buses, clear) {
         if (!my_map) {
             return
         }
-
-        if (clear) {
-            my_map.geoObjects.removeAll()
-        }
-
 
         const objectManager = new ymaps.ObjectManager()
 
@@ -249,8 +236,6 @@
             iconContentLayout: BusIconContentLayout,
         })
 
-        my_map.geoObjects.add(objectManager);
-
         const features = []
 
         buses.forEach(function (bus, index) {
@@ -262,6 +247,11 @@
             "features": features
         })
 
+        if (clear) {
+            my_map.geoObjects.removeAll()
+        }
+
+        my_map.geoObjects.add(objectManager)
     }
 
     function add_bus(bus, id) {
@@ -283,7 +273,8 @@
                 "balloonContent": balloon_content,
                 "hintContent": hint_content,
                 "iconContent": icon_content,
-                "rotation": rotation
+                "rotation": rotation,
+                "clusterCaption": icon_content + ' ' + hint_content
             }
         }
 

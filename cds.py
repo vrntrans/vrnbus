@@ -30,7 +30,7 @@ else:
 
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
-ttl_sec = 60 if not debug else 600
+ttl_sec = 30 if not debug else 30
 
 tz = pytz.timezone('Europe/Moscow')
 
