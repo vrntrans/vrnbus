@@ -14,17 +14,25 @@
     const nextbus_loading = document.getElementById('nextbus_loading')
     const lastbus_loading = document.getElementById('lastbus_loading')
     const cb_refresh = document.getElementById('cb_refresh')
+    const cb_show_info = document.getElementById('cb_show_info')
 
     lastbus.onclick = function () {
         get_cds_bus()
     }
 
     cb_refresh.onclick = function () {
-        if (!cb_refresh.checked){
+        if (!cb_refresh.checked) {
             clearTimeout(timer_id)
             clearTimeout(timer_stop_id)
             timer_id = 0
             timer_stop_id = 0
+        }
+    }
+
+    if (cb_show_info) {
+        cb_show_info.onclick = function () {
+            const show = cb_show_info.checked
+            businfo.style = show ? "white-space:pre-wrap;" : "display: none;"
         }
     }
 
@@ -36,12 +44,12 @@
     }
 
     function get_cds_bus() {
-        if (cb_refresh.checked && !timer_id){
+        if (cb_refresh.checked && !timer_id) {
             timer_id = setTimeout(function tick() {
                 get_cds_bus().then(function () {
-                    timer_id = setTimeout(tick, 30*1000);
+                    timer_id = setTimeout(tick, 30 * 1000);
                 })
-            }, 30*1000)
+            }, 30 * 1000)
             if (!timer_stop_id)
                 timer_stop_id = setTimeout(function () {
                     cb_refresh.checked = false
@@ -49,7 +57,7 @@
                     timer_id = 0
                     timer_stop_id = 0
 
-                }, 10*30*1000)
+                }, 10 * 30 * 1000)
         }
 
         const bus_query = lastbusquery.value
@@ -99,8 +107,8 @@
             })
     }
 
-    function waiting(element, button, state){
-        element.className = state ? 'spinner': ''
+    function waiting(element, button, state) {
+        element.className = state ? 'spinner' : ''
         lastbus.disabled = state
     }
 
@@ -150,10 +158,10 @@
                 })
                 update_map(bus_with_azimuth, true)
             }).catch(function (error) {
-            waiting(lastbus_loading, lastbus, false)
+                waiting(lastbus_loading, lastbus, false)
 
-            businfo.innerHTML = 'Ошибка: ' + error
-        })
+                businfo.innerHTML = 'Ошибка: ' + error
+            })
     }
 
     function get_bus_list() {
@@ -268,16 +276,16 @@
         const rotation = bus.azimuth
 
         const result = {
-                    "type": "Feature",
-                    "id": id,
-                    "geometry": {"type": "Point", "coordinates": [lat, lon]},
-                    "properties": {
-                        "balloonContent": balloon_content,
-                        "hintContent": hint_content,
-                        "iconContent": icon_content,
-                        "rotation": rotation
-                    }
-                }
+            "type": "Feature",
+            "id": id,
+            "geometry": {"type": "Point", "coordinates": [lat, lon]},
+            "properties": {
+                "balloonContent": balloon_content,
+                "hintContent": hint_content,
+                "iconContent": icon_content,
+                "rotation": rotation
+            }
+        }
 
 
         return result
