@@ -1,6 +1,7 @@
 import codecs
 import json
 import os
+import time
 from datetime import datetime, timedelta
 from itertools import groupby
 from logging import Logger
@@ -227,11 +228,11 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(maxsize=1024)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
-        result = min(self.bus_stops, key=bus_info.distance)
         if strict:
             bus_stops = self.bus_routes.get(bus_info.route_name_, [])
-            if bus_stops:
-                result = min(bus_stops, key=bus_info.distance)
+            result = min(bus_stops, key=bus_info.distance)
+        else:
+            result = min(self.bus_stops, key=bus_info.distance)
         if not bus_info.bus_station_:
             self.logger.debug(f"Empty station: {bus_info.short()} {result}")
             return result
@@ -326,6 +327,7 @@ class CdsRequest:
             return {k.lower(): v for (k, v) in x.iteritems()}
 
         self.logger.info('Execute fetch all from DB')
+        start = time.time()
         with fdb.TransactionContext(self.cds_db):
             cur = self.cds_db.cursor()
             cur.execute('''SELECT bs.NAME_ as BUS_STATION_, rt.NAME_ as ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
@@ -337,10 +339,13 @@ class CdsRequest:
             self.logger.info('Finish execution')
             result = cur.fetchallmap()
             cur.close()
-            self.logger.info("Finish fetch")
+            end = time.time()
+            self.logger.info(f"Finish fetch. Elapsed: {end - start:.2f}")
 
         result = [CdsRouteBus(**make_names_lower(x)) for x in result]
         result.sort(key=lambda s: s.last_time_, reverse=True)
+        end = time.time()
+        self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
@@ -349,7 +354,7 @@ class CdsRequest:
         all_buses = self.load_all_cds_buses_from_db()
         if not keys:
             return all_buses
-        result = list(filter(lambda x: x.route_name_ in keys, all_buses))
+        result = (x for x in all_buses if x.route_name_ in keys)
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec * 1.5)
