@@ -259,17 +259,17 @@ class CdsRequest:
         return result.NAME_
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def bus_request(self, full_info=False, bus_route=tuple(), bus_filter='', user_loc: UserLoc = None):
+    def bus_request(self, full_info=False, bus_route=tuple(), bus_filter='', user_loc: UserLoc = None, short_format=False):
         def time_check(d: CdsRouteBus):
             return d.last_time_ and (now - get_time(d.last_time_)) < delta
 
         def filtered(d: CdsRouteBus):
             return bus_filter == '' or bus_filter in d.name_
 
-        def station(d: CdsRouteBus):
+        def station(d: CdsRouteBus, show_route_name=True):
             bus_station = self.bus_station(d)
             dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
-            result = f"{d.route_name_} {get_time(d.last_time_):%H:%M} {bus_station} {dist}"
+            result = (f"{d.route_name_} " if show_route_name else "")+  f"{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
             if full_info:
                 show_orig_bus_stop = (' | ' + str(d.bus_station_)) if not bus_station == d.bus_station_ else ''
                 return f"{result} {d.name_} {show_orig_bus_stop}"
@@ -286,7 +286,19 @@ class CdsRequest:
             stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d, True))) for d in short_result if
                                  filtered(d) and (full_info or time_check(d))]
             if stations_filtered:
-                text = ' \n'.join([station(d[0]) for d in stations_filtered])
+                stations_filtered.sort(key=lambda x: natural_sort_key(x[0].route_name_))
+                if short_format:
+                    lines = []
+                    cur_route = ''
+                    for (k,v) in stations_filtered:
+                        if cur_route != k.route_name_:
+                            cur_route = k.route_name_
+                            lines.append("")
+                            lines.append(cur_route)
+                        lines.append(station(k, False))
+                    text = ' \n'.join(lines)
+                else:
+                    text = ' \n'.join((station(d[0]) for d in stations_filtered))
                 return text, stations_filtered
 
         return 'Ничего не нашлось', []

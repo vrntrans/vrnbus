@@ -66,7 +66,7 @@ class BusInfoHandler(BaseHandler):
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
-        result = self.cds.bus_request(*parse_routes(query), user_loc=user_loc)
+        result = self.cds.bus_request(*parse_routes(query), user_loc=user_loc, short_format=True)
         response = {'q': query, 'text': result[0], 'buses': [(x[0]._asdict(), x[1]._asdict() if x[1] else {})  for x in result[1]]}
         self.write(json.dumps(response, cls=DateTimeEncoder))
         self.caching()
