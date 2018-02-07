@@ -29,10 +29,12 @@
         }
     }
 
-    if (cb_show_info) {cb_show_info.onclick = function () {
-        const show = cb_show_info.checked
-        businfo.style = show ? "white-space:pre-wrap;" : "display: none;"
-    }}
+    if (cb_show_info) {
+        cb_show_info.onclick = function () {
+            const show = cb_show_info.checked
+            businfo.style = show ? "white-space:pre-wrap;" : "display: none;"
+        }
+    }
 
     lastbusquery.onkeyup = function (event) {
         event.preventDefault()
@@ -65,14 +67,20 @@
 
     if ("geolocation" in navigator) {
         const nextbusgeo = document.getElementById('nextbusgeo');
+        const nextbusgeo_alt = document.getElementById('nextbusgeo_alt');
         nextbusgeo.onclick = function (event) {
             event.preventDefault()
-            get_current_pos()
+            get_current_pos(get_bus_arrival)
         }
+        nextbusgeo_alt.onclick = function (event) {
+            event.preventDefault()
+            get_current_pos(get_bus_arrival_alt)
+        }
+
     }
 
-    function get_current_pos() {
-        navigator.geolocation.getCurrentPosition(get_bus_arrival)
+    function get_current_pos(func) {
+        navigator.geolocation.getCurrentPosition(func)
     }
 
     function get_bus_arrival(position) {
@@ -101,6 +109,34 @@
                 info.innerHTML = 'Ошибка: ' + error
             })
     }
+
+    function get_bus_arrival_alt(position) {
+        const nextbusgeo = document.getElementById('nextbusgeo')
+        waiting(nextbus_loading, nextbusgeo, true)
+
+        coords = position.coords
+        const params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
+
+        return fetch('/arrival_alt?' + params,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
+                waiting(nextbus_loading, nextbusgeo, false)
+                info.innerHTML = data.text
+            })
+            .catch(function (error) {
+                waiting(nextbus_loading, nextbusgeo, false)
+                info.innerHTML = 'Ошибка: ' + error
+            })
+    }
+
 
     function waiting(element, button, state) {
         element.className = state ? 'spinner' : ''
@@ -213,10 +249,10 @@
 
                 update_map(data.result, true)
             }).catch(function (error) {
-            waiting(lastbus_loading, lastbus_codd, false)
+                waiting(lastbus_loading, lastbus_codd, false)
 
-            businfo.innerHTML = 'Ошибка: ' + error
-        })
+                businfo.innerHTML = 'Ошибка: ' + error
+            })
     }
 
     function update_map(buses, clear) {
@@ -277,6 +313,7 @@
             }
         }
     }
+
     if ('ymaps' in window) {
         ymaps.ready(ymap_show);
     }

@@ -41,6 +41,7 @@ class BusSite(tornado.web.Application):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
+            (r"/arrival_alt", ArrivalAltHandler),
             (r"/businfo", BusInfoHandler),
             (r"/buslist", BusListHandler),
             (r"/coddbus", MapHandler),
@@ -100,6 +101,21 @@ class ArrivalHandler(BaseHandler):
         (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
         self.arrival_response(lat, lon)
 
+class ArrivalAltHandler(BaseHandler):
+    executor = ThreadPoolExecutor()
+
+    def arrival_response(self, lat, lon):
+        matches = self.cds.matches_bus_stops(lat, lon)
+        self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
+        result = self.cds.next_bus_for_matches_alt(matches, [])
+        response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
+        self.write(json.dumps(response))
+        self.caching()
+
+    @run_on_executor
+    def get(self):
+        (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
+        self.arrival_response(lat, lon)
 
 class MapHandler(BaseHandler):
     executor = ThreadPoolExecutor()

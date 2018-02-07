@@ -54,17 +54,20 @@ class BusStop(NamedTuple):
     def __str__(self):
         return f'(BusStop: {self.NAME_} {self.LON_} {self.LAT_} )'
 
+    def distance_km(self, bus_stop):
+        return distance_km(self.LON, self.LAT_, bus_stop.LON_, bus_stop.LAT_,)
+
 
 class LongBusRouteStop(NamedTuple):
     NUMBER_: int
     NAME_: str
-    LON_: float
     LAT_: float
+    LON_: float
     ROUT_: int
     CONTROL_: int
 
-    def as_bus_stop(self):
-        return BusStop(self.NAME_, self.LAT_, self.LON_)
+    def distance_km(self, bus_stop):
+        return distance_km(self.LAT_, self.LON_, bus_stop.LAT_, bus_stop.LON_)
 
 
 class ShortBusRoute(NamedTuple):
@@ -434,6 +437,35 @@ class CdsRequest:
         result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
         return ('\n'.join(result), " ".join(routes_list))
 
+    def get_bus_distance_to(self, bus_route_names, bus_stop_name):
+        result = []
+        all_buses = self.load_cds_buses_from_db(tuple(bus_route_names))
+        for bus in all_buses:
+            dist = self.get_dist(bus.route_name_, bus.bus_station_, bus_stop_name)
+            if dist > 0:
+                result.append((bus, dist))
+        return result
+
+    # @cachetools.func.ttl_cache(ttl=60)
+    def next_bus_for_matches_alt(self, bus_stop_matches, user_bus_list):
+        result = []
+        routes_set = set()
+        if user_bus_list:
+            result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}. Настройка: /settings")
+        for item in bus_stop_matches:
+            arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
+            routes_set.update(arrival_buses)
+            arrival_buses.sort(key=natural_sort_key)
+            result.append(f'{item.NAME_}: {", ".join(arrival_buses)}')
+            distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_)
+            distance_list.sort(key=lambda x: x[1])
+            result.append('\n'.join((f'{d[0].route_name_} {d[1]:.2f} км {d[0].bus_station_}' for d in distance_list )))
+        routes_list = list(routes_set)
+        routes_list.sort(key=natural_sort_key)
+        result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
+        return ('\n'.join(result), " ".join(routes_list))
+
+
     @cachetools.func.ttl_cache(ttl=30)
     @retry_multi(max_retries=5)
     def get_cds_buses(self) -> Iterable[CdsBus]:
@@ -510,6 +542,28 @@ class CdsRequest:
             self.logger.warning(f'Wrong parse {text}')
             return []
         return json_object
+
+    def get_dist(self, route_name, bus_stop_start, bus_stop_stop):
+        route: Iterable[LongBusRouteStop] = self.bus_routes.get(route_name, [])
+        dist = 0
+        prev_stop = None
+        for bus_stop in route:
+            print(bus_stop, dist)
+            if prev_stop:
+                dist += prev_stop.distance_km(bus_stop)
+                prev_stop = bus_stop
+            if not prev_stop and bus_stop.NAME_ == bus_stop_start:
+                prev_stop = bus_stop
+            if bus_stop.NAME_ == bus_stop_stop:
+                break
+        return dist
+
+    def get_routes_on_bus_stop(self, bus_stop_name):
+        result = []
+        for (k, v) in self.bus_routes.items():
+            if next((True for x in v if x.NAME_ == bus_stop_name), False):
+                result.append(k)
+        return result
 
     def get_next_bus_stop(self, route_name, bus_stop_name):
         route = self.bus_routes.get(route_name, [])
