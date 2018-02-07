@@ -442,7 +442,7 @@ class CdsRequest:
         all_buses = self.load_cds_buses_from_db(tuple(bus_route_names))
         for bus in all_buses:
             dist = self.get_dist(bus.route_name_, bus.bus_station_, bus_stop_name)
-            if dist > 0:
+            if dist > 0 and dist < 50:
                 result.append((bus, dist))
         return result
 
@@ -455,6 +455,8 @@ class CdsRequest:
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
             arrival_buses = [x for x in arrival_buses if not user_bus_list or x in user_bus_list]
+            if not arrival_buses:
+                continue
             routes_set.update(arrival_buses)
             arrival_buses.sort(key=natural_sort_key)
             result.append(f'{item.NAME_}: {", ".join(arrival_buses)}')
@@ -549,7 +551,6 @@ class CdsRequest:
         dist = 0
         prev_stop = None
         for bus_stop in route:
-            print(bus_stop, dist)
             if prev_stop:
                 dist += prev_stop.distance_km(bus_stop)
                 prev_stop = bus_stop
