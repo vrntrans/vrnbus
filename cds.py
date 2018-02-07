@@ -400,7 +400,7 @@ class CdsRequest:
         result = [x for x in all_buses if x.route_name_ in keys]
         return result
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec * 1.5)
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     def next_bus(self, bus_stop, user_bus_list):
         bus_stop = ' '.join(bus_stop)
         bus_stop_matches = [x for x in self.bus_stops if bus_stop.upper() in x.NAME_.upper()]
@@ -476,11 +476,12 @@ class CdsRequest:
         result = []
         now = datetime.now(tz=tz)
         routes_set = set()
+        bus_filter = list(set([x for x in self.cds_routes.keys() for r in user_bus_list if x.upper() == r.upper()]))
         if user_bus_list:
             result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}.")
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
-            arrival_buses = [x for x in arrival_buses if not user_bus_list or x in user_bus_list]
+            arrival_buses = [x for x in arrival_buses if not bus_filter or x in bus_filter]
             if not arrival_buses:
                 continue
             routes_set.update(arrival_buses)

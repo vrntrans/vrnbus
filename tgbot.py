@@ -44,6 +44,7 @@ class BusBot:
         self.dp.add_handler(CommandHandler("последние", self.last_buses, pass_args=True))
 
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
+        self.dp.add_handler(CommandHandler("nextbusalt", self.next_bus_handler_alt, pass_args=True))
         self.dp.add_handler(CommandHandler("следующий", self.next_bus_handler, pass_args=True))
         self.dp.add_handler(CommandHandler("следующибыстро", self.next_bus_handler, pass_args=True))
         #
@@ -200,6 +201,25 @@ class BusBot:
         settings = self.user_settings.get(user.id, {})
         response = self.cds.next_bus(tuple(args), tuple(settings))
         update.message.reply_text(response)
+
+    def next_bus_handler_alt(self, _, update, args):
+        """Send a message when the command /start is issued."""
+        user = update.message.from_user
+        self.logger.info(f"next_bus_handler_alt. User: {user}; {args}")
+        if not args:
+            args = []
+
+        user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
+        if not user_loc:
+            update.message.reply_text("Сначала отправьте местоположение")
+            return
+
+        matches = self.cds.matches_bus_stops(user_loc.lat, user_loc.lon)
+        self.logger.info(f'{user_loc.lat};{user_loc.lon} {";".join([str(i) for i in matches])}')
+        routes = parse_routes(' '.join(args))[1]
+        result = self.cds.next_bus_for_matches_alt(matches, routes)
+
+        update.message.reply_text(result[0])
 
     def stats(self, _, update):
         """Send a message when the command /stats is issued."""
