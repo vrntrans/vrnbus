@@ -49,7 +49,7 @@ class BusBot:
         self.dp.add_error_handler(self.error)
 
         # Start the Bot
-        self.updater.start_polling()
+        self.updater.start_polling(timeout=30)
 
         # Run the bot until you press Ctrl-C or the process receives SIGINT,
         # SIGTERM or SIGABRT. This should be used most of the time, since
