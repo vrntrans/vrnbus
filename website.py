@@ -104,10 +104,10 @@ class ArrivalHandler(BaseHandler):
 class ArrivalAltHandler(BaseHandler):
     executor = ThreadPoolExecutor()
 
-    def arrival_response(self, lat, lon):
+    def arrival_response(self, lat, lon, query):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
-        result = self.cds.next_bus_for_matches_alt(matches, [])
+        result = self.cds.next_bus_for_matches_alt(matches, parse_routes(query)[1])
         response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
         self.write(json.dumps(response))
         self.caching()
@@ -115,7 +115,8 @@ class ArrivalAltHandler(BaseHandler):
     @run_on_executor
     def get(self):
         (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
-        self.arrival_response(lat, lon)
+        q = self.get_argument('q')
+        self.arrival_response(lat, lon, q)
 
 class MapHandler(BaseHandler):
     executor = ThreadPoolExecutor()

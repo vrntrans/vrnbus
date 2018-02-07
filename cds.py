@@ -454,6 +454,7 @@ class CdsRequest:
             result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}. Настройка: /settings")
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
+            arrival_buses = [x for x in arrival_buses if not user_bus_list or x in user_bus_list]
             routes_set.update(arrival_buses)
             arrival_buses.sort(key=natural_sort_key)
             result.append(f'{item.NAME_}: {", ".join(arrival_buses)}')

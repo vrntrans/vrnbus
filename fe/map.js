@@ -115,7 +115,11 @@
         waiting(nextbus_loading, nextbusgeo, true)
 
         coords = position.coords
-        const params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
+        const bus_query = lastbusquery.value
+
+        const params = 'q=' + encodeURIComponent(bus_query) +
+            '&lat=' + encodeURIComponent(coords.latitude) +
+            '&lon=' + encodeURIComponent(coords.longitude)
 
         return fetch('/arrival_alt?' + params,
             {
