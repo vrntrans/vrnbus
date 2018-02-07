@@ -36,7 +36,7 @@ else:
 
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
-ttl_sec = 30 if not debug else 30
+ttl_sec = 30 if not debug else 600
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -120,12 +120,13 @@ class CdsRouteBus(NamedTuple):
     last_lat_: float
     last_lon_: float
     last_speed_: float
-    last_time_: str
+    last_time_: datetime
     name_: str
     obj_id_: int
     proj_id_: int
     route_name_: str
     type_proj: int = 0
+    last_station_time_: datetime = None
     bus_station_: str = None
     address: str = None
 
@@ -240,7 +241,7 @@ class CdsRequest:
             return short_result
         return []
 
-    @cachetools.func.ttl_cache(maxsize=1024)
+    @cachetools.func.ttl_cache(maxsize=2048)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
         bus_stop = next((x for x in self.bus_stops if x.NAME_ == bus_info.bus_station_), None)
         if bus_stop:
@@ -373,7 +374,7 @@ class CdsRequest:
         with fdb.TransactionContext(self.cds_db):
             cur = self.cds_db.cursor()
             cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
-                o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.PROJ_ID_
+                o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_
                 FROM OBJECTS O JOIN BUS_STATIONS bs
                 ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
                 JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
@@ -396,7 +397,7 @@ class CdsRequest:
         all_buses = self.load_all_cds_buses_from_db()
         if not keys:
             return all_buses
-        result = (x for x in all_buses if x.route_name_ in keys)
+        result = [x for x in all_buses if x.route_name_ in keys]
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec * 1.5)
@@ -416,7 +417,7 @@ class CdsRequest:
         result = []
         routes_set = set()
         if user_bus_list:
-            result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}. Настройка: /settings")
+            result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}")
         for item in bus_stop_matches:
             arrivals = self.next_bus_for_lat_lon(item.LAT_, item.LON_)
             if arrivals:
@@ -438,20 +439,45 @@ class CdsRequest:
         return ('\n'.join(result), " ".join(routes_list))
 
     def get_bus_distance_to(self, bus_route_names, bus_stop_name):
+        def time_filter(bus):
+            if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=30):
+                return False
+            if bus.last_station_time_ and (now - get_time(bus.last_station_time_)) > timedelta(minutes=30):
+                return False
+            return True
+
+        def time_to_arrive(km, last_time):
+            speed = avg_speed  if avg_speed > 0 else 20
+            minutes = (km * 60 // speed)
+            time_diff = now - get_time(last_time)
+            return minutes - time_diff.seconds // 60
+        now = datetime.now(tz=tz)
+
         result = []
-        all_buses = self.load_cds_buses_from_db(tuple(bus_route_names))
+        all_buses = [x for x in self.load_cds_buses_from_db(tuple(bus_route_names)) if time_filter(x)]
+        if not all_buses:
+            return result
+        sum_speed = sum((x.last_speed_ for x in all_buses))
+        avg_speed = sum_speed/len(all_buses)
+        self.logger.info(f'Average speed for {bus_route_names}: {avg_speed:.1f}')
         for bus in all_buses:
-            dist = self.get_dist(bus.route_name_, bus.bus_station_, bus_stop_name)
-            if dist > 0 and dist < 50:
-                result.append((bus, dist))
+            closest_stop = self.get_closest_bus_stop(bus, True)
+            bus_dist = bus.distance_km(closest_stop)
+            route_dist = self.get_dist(bus.route_name_, closest_stop.NAME_, bus_stop_name)
+            if bus.bus_station_ != closest_stop.NAME_:
+                route_dist += self.get_dist(bus.route_name_, bus.bus_station_, bus_stop_name)
+            dist = bus_dist + route_dist
+            if route_dist > 0 and dist < 20:
+                result.append((bus, dist, time_to_arrive(dist, bus.last_time_)))
         return result
 
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches_alt(self, bus_stop_matches, user_bus_list):
         result = []
+        now = datetime.now(tz=tz)
         routes_set = set()
         if user_bus_list:
-            result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}. Настройка: /settings")
+            result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}.")
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
             arrival_buses = [x for x in arrival_buses if not user_bus_list or x in user_bus_list]
@@ -459,10 +485,11 @@ class CdsRequest:
                 continue
             routes_set.update(arrival_buses)
             arrival_buses.sort(key=natural_sort_key)
-            result.append(f'{item.NAME_}: {", ".join(arrival_buses)}')
+            result.append(f'{item.NAME_}:')
             distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_)
             distance_list.sort(key=lambda x: x[1])
-            result.append('\n'.join((f'{d[0].route_name_} {d[1]:.2f} км {d[0].bus_station_}' for d in distance_list )))
+            result.append('\n'.join((f'{d[0].route_name_} {d[2]:2.0f} мин {d[1]:.2f} км {d[0].bus_station_} {d[0].last_time_:%H:%M} ' for d in distance_list )))
+            result.append("")
         routes_list = list(routes_set)
         routes_list.sort(key=natural_sort_key)
         result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
