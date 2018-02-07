@@ -2,7 +2,7 @@
     position: absolute;
     width: 32px;
     height: 32px;
-    margin-left:-5px; margin-top:0px;
+    margin-left:-5px; margin-top:0;
 }
 
 .bus-title {
@@ -20,15 +20,13 @@
     display: inline-grid;
     height: 10px;
     width: 10px;
-    margin: 0px auto;
+    margin: 0 auto;
     -webkit-animation: rotation .6s infinite linear;
     -moz-animation: rotation .6s infinite linear;
     -o-animation: rotation .6s infinite linear;
     animation: rotation .6s infinite linear;
-    border-left: 2px solid rgba(0, 174, 239, .15);
-    border-right: 2px solid rgba(0, 174, 239, .15);
-    border-bottom: 2px solid rgba(0, 174, 239, .15);
-    border-top: 2px solid rgba(0, 174, 239, .8);
+    border: 2px solid rgba(0, 174, 239, .15);
+    border-top-color: rgba(0, 174, 239, .8);
     border-radius: 100%;
 }
 

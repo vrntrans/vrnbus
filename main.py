@@ -16,6 +16,7 @@ if not Path('logs').is_dir():
 # Enable logging
 file_handler = TimedRotatingFileHandler("logs/vrnbus.log", 'midnight', 1)
 file_handler.suffix = "%Y-%m-%d"
+# noinspection SpellCheckingInspection
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
                     level=logging.INFO,
                     handlers=[logging.StreamHandler(), file_handler])
@@ -32,7 +33,7 @@ user_settings = {}
 
 if __name__ == "__main__":
     cds = CdsRequest(logger)
-    bot = BusBot(cds, user_settings, logger, debug)
+    bot = BusBot(cds, user_settings, logger)
     application = BusSite(cds, logger, debug)
     application.listen(os.environ.get('PORT', 8080))
     tornado.ioloop.IOLoop.instance().start()

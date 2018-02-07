@@ -11,6 +11,7 @@ import pytz
 tz = pytz.timezone('Europe/Moscow')
 logger = logging.getLogger("vrnbus")
 
+
 def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
             for text in re.split(_nsre, s)]
@@ -19,7 +20,7 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
 def parse_routes(text):
     if not text:
         return False, tuple(), ''
-    if isinstance(text, (list,tuple,)):
+    if isinstance(text, (list, tuple,)):
         text = ' '.join(text)
     args = re.split("[ ,;]+", text)
     if not args:
@@ -39,7 +40,7 @@ def parse_routes(text):
             continue
         result.append(i)
     if not result:
-        return False , tuple(), bus_filter
+        return False, tuple(), bus_filter
     full_info = result[0].upper() in ['PRO', 'ПРО']
     if full_info:
         result = result[1:]

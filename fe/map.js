@@ -29,11 +29,10 @@
         }
     }
 
-    if (cb_show_info)
-        cb_show_info.onclick = function () {
-            const show = cb_show_info.checked
-            businfo.style = show ? "white-space:pre-wrap;" : "display: none;"
-        }
+    if (cb_show_info) {cb_show_info.onclick = function () {
+        const show = cb_show_info.checked
+        businfo.style = show ? "white-space:pre-wrap;" : "display: none;"
+    }}
 
     lastbusquery.onkeyup = function (event) {
         event.preventDefault()
@@ -181,7 +180,7 @@
                     select.appendChild(opt)
                 })
 
-                select.onchange = function (event) {
+                select.onchange = function () {
                     var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
                     if (text !== '-')
                         lastbusquery.value += ' ' + text
@@ -265,7 +264,7 @@
         const icon_content = bus.route_name_.trim()
         const rotation = bus.azimuth
 
-        const result = {
+        return {
             "type": "Feature",
             "id": id,
             "geometry": {"type": "Point", "coordinates": [lat, lon]},
@@ -277,38 +276,7 @@
                 "clusterCaption": icon_content + ' ' + hint_content
             }
         }
-
-
-        return result
     }
-
-    var BusMark = function (bus, caption, hint, description) {
-        const lat = bus.lat2 || bus.last_lat_
-        const lon = bus.lon2 || bus.last_lon_
-        this.placemark = new ymaps.Placemark([lat, lon], {
-            hintContent: hint,
-            balloonContent: description,
-            iconContent: caption,
-            rotation: bus.azimuth,
-        }, {
-            // Опции.
-            // Необходимо указать данный тип макета.
-            iconLayout: 'default#imageWithContent',
-            // Своё изображение иконки метки.
-            iconImageHref: 'bus_round.png',
-            // Размеры метки.
-            iconImageSize: [32, 32],
-            // Смещение левого верхнего угла иконки относительно
-            // её "ножки" (точки привязки).
-            iconImageOffset: [-16, -16],
-            // Смещение слоя с содержимым относительно слоя с картинкой.
-            iconContentOffset: [0, 0],
-            // Макет содержимого.
-            iconContentLayout: BusIconContentLayout,
-        });
-        return this.placemark
-    }
-
     if ('ymaps' in window) {
         ymaps.ready(ymap_show);
     }

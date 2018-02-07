@@ -17,7 +17,10 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    def set_extra_headers(self, path):
+    def data_received(self, chunk):
+        pass
+
+    def set_extra_headers(self, _):
         self.set_header("Tk", "N")
         self.caching()
 
@@ -48,6 +51,7 @@ class BusSite(tornado.web.Application):
         self.cds = cds
         self.logger = logger
 
+
 class PingHandler(BaseHandler):
     executor = ThreadPoolExecutor()
 
@@ -67,7 +71,8 @@ class BusInfoHandler(BaseHandler):
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
         result = self.cds.bus_request(*parse_routes(query), user_loc=user_loc, short_format=True)
-        response = {'q': query, 'text': result[0], 'buses': [(x[0]._asdict(), x[1]._asdict() if x[1] else {})  for x in result[1]]}
+        response = {'q': query, 'text': result[0],
+                    'buses': [(x[0]._asdict(), x[1]._asdict() if x[1] else {}) for x in result[1]]}
         self.write(json.dumps(response, cls=DateTimeEncoder))
         self.caching()
 
@@ -81,6 +86,7 @@ class BusInfoHandler(BaseHandler):
 
 class ArrivalHandler(BaseHandler):
     executor = ThreadPoolExecutor()
+
     def arrival_response(self, lat, lon):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
@@ -93,6 +99,7 @@ class ArrivalHandler(BaseHandler):
     def get(self):
         (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
         self.arrival_response(lat, lon)
+
 
 class MapHandler(BaseHandler):
     executor = ThreadPoolExecutor()

@@ -1,26 +1,34 @@
+import os
 import re
 
 import cachetools
-from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, \
-    ReplyKeyboardMarkup
+from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
+    KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
 from tornado.httpclient import AsyncHTTPClient
 
 from cds import UserLoc
 from helpers import parse_routes, natural_sort_key, grouper
 
+try:
+    import settings
+
+    VRNBUSBOT_TOKEN = settings.VRNBUSBOT_TOKEN
+    PING_HOST = settings.PING_HOST
+except ImportError:
+    env = os.environ
+    VRNBUSBOT_TOKEN = env['VRNBUSBOT_TOKEN']
+    PING_HOST = env['PING_HOST']
+
 
 class BusBot:
-    def __init__(self, cds, user_settings, logger, debug):
+    def __init__(self, cds, user_settings, logger):
         """Start the bot."""
         self.cds = cds
         self.user_settings = user_settings
         self.logger = logger
-        self.debug = debug
         # Create the EventHandler and pass it your bot's token.
-        DEBUG_TOKEN = "524433920:AAFA-Qz4-ioogQ2WRviG_mD1lRzvrz7IPUc"
-        VRNBUSBOT_TOKEN = "548203169:AAE68R3o9ghnoe2LMnOkiqoU5R-OdGY4YCQ"
-        self.updater = Updater(DEBUG_TOKEN if debug else VRNBUSBOT_TOKEN)
+        self.updater = Updater(VRNBUSBOT_TOKEN)
 
         # Get the dispatcher to register handlers
         self.dp = self.updater.dispatcher
@@ -56,13 +64,13 @@ class BusBot:
         # start_polling() is non-blocking and will stop the bot gracefully.
         # updater.idle()
 
-    def error(self, bot, update, error):
+    def error(self, _, update, error):
         """Log Errors caused by Updates."""
         self.logger.warning('Update "%s" caused error "%s"', update, error)
         if update:
             update.message.reply_text(f"Update caused error {error}")
 
-    def start(self, bot, update):
+    def start(self, _, update):
         """Send a message when the command /help is issued."""
         self.ping_prod()
         user = update.message.from_user
@@ -72,13 +80,16 @@ class BusBot:
         cancel_button = KeyboardButton(text="Отмена")
         custom_keyboard = [[location_keyboard, cancel_button]]
         reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-        update.message.reply_text("/последние номера маршрутов через пробел - последние остановки (или /last)\n"
+        update.message.reply_text("/последние номера маршрутов через пробел - последние "
+                                  "остановки (или /last)\n"
                                   "/следующий имя остановки - ожидаемое время прибытия (или /nextbus)\n"
-                                  "Отправка местоположения - ожидаемое время прибытия для ближайших трёх остановок\n"
-                                  "Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)",
+                                  "Отправка местоположения - ожидаемое время прибытия для ближайших "
+                                  "трёх остановок\n"
+                                  "Свободный ввод - номера маршрутов и расстояние до автобусов "
+                                  "(если отправляли местоположение)",
                                   reply_markup=reply_markup)
 
-    def helpcmd(self, bot, update):
+    def helpcmd(self, _, update):
         """Send a message when the command /help is issued."""
         self.ping_prod()
         user = update.message.from_user
@@ -89,7 +100,7 @@ class BusBot:
 Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)""",
                                   reply_markup=ReplyKeyboardRemove())
 
-    def last_buses(self, bot, update, args):
+    def last_buses(self, _, update, args):
         """Send a message when the command /last is issued."""
         self.ping_prod()
         user = update.message.from_user
@@ -115,8 +126,8 @@ class BusBot:
         ]
         return keyboard
 
-    def settings(self, bot, update, args):
-        user_id = user = update.message.from_user.id
+    def settings(self, _, update, args):
+        user_id = update.message.from_user.id
         settings = self.user_settings.get(user_id, {})
         route_settings = settings.get('route_settings', [])
         input_routes = parse_routes(args)[1]
@@ -173,7 +184,7 @@ class BusBot:
                               message_id=query.message.message_id,
                               reply_markup=reply_markup)
 
-    def next_bus_handler(self, bot, update, args):
+    def next_bus_handler(self, _, update, args):
         """Send a message when the command /start is issued."""
         user = update.message.from_user
         self.logger.info(f"next_bus_handler. User: {user}; {args}")
@@ -190,7 +201,7 @@ class BusBot:
         response = self.cds.next_bus(tuple(args), tuple(settings))
         update.message.reply_text(response)
 
-    def stats(self, bot, update):
+    def stats(self, _, update):
         """Send a message when the command /stats is issued."""
         self.ping_prod()
         user = update.message.from_user
@@ -198,7 +209,7 @@ class BusBot:
         response = self.cds.get_all_buses()
         update.message.reply_text(response)
 
-    def user_input(self, bot, update):
+    def user_input(self, _, update):
         self.ping_prod()
         message = update.message
         user = message.from_user
@@ -206,12 +217,11 @@ class BusBot:
 
         self.logger.info(f'"{text}" User: {user}; ')
 
-        if text.lower()  == 'на рефакторинг!':
+        if text.lower() == 'на рефакторинг!':
             message.reply_text('Тогда срочно сюда @deeprefactoring!')
             return
 
-
-        match = re.search('https:\/\/maps\.google\.com\/maps\?.*\&ll=(?P<lat>[-?\d\.]*)\,(?P<lon>[-?\d\.]*)', text)
+        match = re.search('https://maps\.google\.com/maps\?.*&ll=(?P<lat>[-?\d.]*),(?P<lon>[-?\d.]*)', text)
         if match:
             (lat, lon) = (match.group('lat'), match.group('lon'))
             self.show_arrival(update, float(lat), float(lon))
@@ -222,7 +232,9 @@ class BusBot:
             self.logger.info(f'"{text}" User: {user}; Response: {response[:256]}')
             reply_text = response[0]
             if len(reply_text) > 4000:
-                message.reply_text("Слишком длинный запрос, показаны первые 4000 символов:\n" + response[0][:4000], reply_markup=ReplyKeyboardRemove())
+                message.reply_text("Слишком длинный запрос, показаны первые 4000 символов:\n" +
+                                   response[0][:4000],
+                                   reply_markup=ReplyKeyboardRemove())
             else:
                 message.reply_text(reply_text, reply_markup=ReplyKeyboardRemove())
 
@@ -238,7 +250,7 @@ class BusBot:
         self.logger.info(f"next_bus_for_matches {user} {result}")
         update.message.reply_text(result[0], reply_markup=ReplyKeyboardRemove())
 
-    def location(self, bot, update):
+    def location(self, _, update):
         self.ping_prod()
         loc = update.message.location
         (lat, lon) = loc.latitude, loc.longitude
@@ -246,6 +258,5 @@ class BusBot:
 
     @cachetools.func.ttl_cache(ttl=30)
     def ping_prod(self):
-        base_url = 'http://localhost:8080' if self.debug else 'https://vrnbus.herokuapp.com'
         http_client = AsyncHTTPClient()
-        http_client.fetch(f"{base_url}/ping")
+        http_client.fetch(f"{PING_HOST}/ping")

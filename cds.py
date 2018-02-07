@@ -16,7 +16,12 @@ import requests
 from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi
 
 try:
-    from settings import *
+    import settings
+
+    CDS_HOST = settings.CDS_HOST
+    CDS_DB_PATH = settings.CDS_DB_PATH
+    CDS_USER = settings.CDS_USER
+    CDS_PASS = settings.CDS_PASS
 except ImportError:
     env = os.environ
     CDS_HOST = env['CDS_HOST']
@@ -158,11 +163,12 @@ class CdsRequest:
         self.cookies = {'JSESSIONID': 'C8ED75C7EC5371CBE836BDC748BB298F', 'session_id': 'vrntrans'}
         self.logger = logger
         self.fake_header = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/63.0.3239.132 Safari/537.36'}
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                          '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.bus_stops = [BusStop(**i) for i in init_bus_stops()]
         self.bus_routes = init_bus_routes()
-        self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER, password=CDS_PASS, charset='WIN1251')
+        self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
+                                  password=CDS_PASS, charset='WIN1251')
         self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
@@ -209,11 +215,16 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache()
     def matches_bus_stops(self, lat, lon, size=3):
-        curr_distance = lambda item: distance(item.LAT_, item.LON_, lon, lat)
-        return sorted(self.bus_stops, key=curr_distance)[:size]
+        def distance_key(item):
+            return distance(item.LAT_, item.LON_, lon, lat)
+
+        return sorted(self.bus_stops, key=distance_key)[:size]
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_route):
+        def key_check(route):
+            return route.name_ and route.last_time_ and (now - get_time(route.last_time_)) < delta
+
         keys = set([x for x in self.cds_routes.keys() for r in bus_route if x.upper() == r.upper()])
 
         routes = self.load_cds_buses_from_db(tuple(keys))
@@ -221,8 +232,8 @@ class CdsRequest:
         if routes:
             now = datetime.now(tz=tz)
             delta = timedelta(days=1)
-            key_check = lambda x: x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < delta
-            short_result = sorted([d for d in routes if key_check(d)], key=lambda s: natural_sort_key(s.route_name_))
+            short_result = sorted([d for d in routes if key_check(d)],
+                                  key=lambda s: natural_sort_key(s.route_name_))
             return short_result
         return []
 
@@ -246,7 +257,8 @@ class CdsRequest:
             d1 = bus_info.distance(bus_stop)
             d2 = bus_info.distance(result)
             if d2 > d1:
-                self.logger.debug(f"Original: {bus_info.short()}; By name: {bus_stop}, Closests: {result}, {d1} {d2}")
+                self.logger.debug(f"Original: {bus_info.short()}; "
+                                  "By name: {bus_stop}, Closests: {result}, {d1} {d2}")
                 return bus_stop
 
         return result
@@ -258,47 +270,57 @@ class CdsRequest:
             self.logger.error(f"{result} {bus_info}")
         return result.NAME_
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def bus_request(self, full_info=False, bus_route=tuple(), bus_filter='', user_loc: UserLoc = None, short_format=False):
-        def time_check(d: CdsRouteBus):
+    def station(self, d: CdsRouteBus, show_route_name=True, user_loc: UserLoc = None, full_info=False):
+        bus_station = self.bus_station(d)
+        dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
+        route_name = f"{d.route_name_} " if show_route_name else ""
+        result = f"{route_name}{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
+        if full_info:
+            orig_bus_stop = ""
+            if not bus_station == d.bus_station_:
+                orig_bus_stop = (' | ' + str(d.bus_station_))
+            return f"{result} {d.name_}{orig_bus_stop}"
+        return result
+
+    def filter_bus_list(self, bus_list, bus_filter='', full_info=False):
+        def time_check(d: CdsRouteBus, now, delta):
             return d.last_time_ and (now - get_time(d.last_time_)) < delta
 
-        def filtered(d: CdsRouteBus):
+        def filtered(d: CdsRouteBus, bus_filter):
             return bus_filter == '' or bus_filter in d.name_
 
-        def station(d: CdsRouteBus, show_route_name=True):
-            bus_station = self.bus_station(d)
-            dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
-            result = (f"{d.route_name_} " if show_route_name else "")+  f"{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
-            if full_info:
-                show_orig_bus_stop = (' | ' + str(d.bus_station_)) if not bus_station == d.bus_station_ else ''
-                return f"{result} {d.name_} {show_orig_bus_stop}"
-            return result
+        now = datetime.now(tz=tz)
+        delta = timedelta(minutes=30)
+        stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d, True))) for d in
+                             bus_list if
+                             filtered(d, bus_filter) and (full_info or time_check(d, now, delta))]
+        return stations_filtered
 
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    def bus_request(self, full_info=False, bus_route=tuple(), bus_filter='',
+                    user_loc: UserLoc = None, short_format=False):
         keys = set([x for x in self.cds_routes.keys() for r in bus_route if x.upper() == r.upper()])
 
         if not keys and bus_filter == '':
             return 'Не заданы маршруты', []
         short_result = self.bus_request_as_list(tuple(keys))
         if short_result:
-            now = datetime.now(tz=tz)
-            delta = timedelta(minutes=30)
-            stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d, True))) for d in short_result if
-                                 filtered(d) and (full_info or time_check(d))]
+            stations_filtered = self.filter_bus_list(short_result, bus_filter, full_info)
             if stations_filtered:
                 stations_filtered.sort(key=lambda x: natural_sort_key(x[0].route_name_))
                 if short_format:
                     lines = []
                     cur_route = ''
-                    for (k,v) in stations_filtered:
+                    for (k, v) in stations_filtered:
                         if cur_route != k.route_name_:
                             cur_route = k.route_name_
                             lines.append("")
                             lines.append(cur_route)
-                        lines.append(station(k, False))
+                        lines.append(self.station(k, False, full_info=full_info, user_loc=user_loc))
                     text = ' \n'.join(lines)
                 else:
-                    text = ' \n'.join((station(d[0]) for d in stations_filtered))
+                    text = ' \n'.join((self.station(d[0], full_info=full_info, user_loc=user_loc)
+                                       for d in stations_filtered))
                 return text, stations_filtered
 
         return 'Ничего не нашлось', []
@@ -347,12 +369,12 @@ class CdsRequest:
         start = time.time()
         with fdb.TransactionContext(self.cds_db):
             cur = self.cds_db.cursor()
-            cur.execute('''SELECT bs.NAME_ as BUS_STATION_, rt.NAME_ as ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
+            cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
                 o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.PROJ_ID_
-                FROM OBJECTS O join BUS_STATIONS bs
-                on o.LAST_ROUT_ = bs.ROUT_ and o.LAST_STATION_ = bs.NUMBER_
-                join ROUTS rt on o.LAST_ROUT_ = rt.ID_
-                where obj_output_=0''')
+                FROM OBJECTS O JOIN BUS_STATIONS bs
+                ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
+                JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
+                WHERE obj_output_=0''')
             self.logger.info('Finish execution')
             result = cur.fetchallmap()
             cur.close()
