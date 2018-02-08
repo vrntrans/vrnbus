@@ -400,7 +400,7 @@ class CdsRequest:
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def next_bus(self, bus_stop, user_bus_list):
+    def next_bus(self, bus_stop, user_bus_list, alt):
         bus_stop = ' '.join(bus_stop)
         bus_stop_matches = [x for x in self.bus_stops if bus_stop.upper() in x.NAME_.upper()]
         print(bus_stop, bus_stop_matches)
@@ -409,7 +409,8 @@ class CdsRequest:
         if len(bus_stop_matches) > 5:
             first_matches = '\n'.join([x.NAME_ for x in bus_stop_matches[:20]])
             return f'Уточните остановку. Найденные варианты:\n{first_matches}'
-        return self.next_bus_for_matches(bus_stop_matches, user_bus_list)[0]
+        method = self.next_bus_for_matches_alt if alt else self.next_bus_for_matches
+        return method(bus_stop_matches, SearchResult(bus_routes=user_bus_list))[0]
 
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches(self, bus_stop_matches, search_result: SearchResult):
@@ -494,7 +495,7 @@ class CdsRequest:
             arrival_buses.sort(key=natural_sort_key)
             result.append(f'{item.NAME_}:')
             distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_)
-            distance_list.sort(key=lambda x: x[1])
+            distance_list.sort(key=lambda x: x[2])
             result.append('\n'.join((bus_info(*d) for d in distance_list )))
             result.append("")
         routes_list = list(routes_set)

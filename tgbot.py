@@ -185,7 +185,7 @@ class BusBot:
                               message_id=query.message.message_id,
                               reply_markup=reply_markup)
 
-    def next_bus_handler(self, _, update, args):
+    def next_bus_general(self, update, args, alt):
         """Send a message when the command /start is issued."""
         user = update.message.from_user
         self.logger.info(f"next_bus_handler. User: {user}; {args}")
@@ -199,27 +199,15 @@ class BusBot:
             return
 
         settings = self.user_settings.get(user.id, {})
-        response = self.cds.next_bus(tuple(args), tuple(settings))
-        update.message.reply_text(response)
+        response = self.cds.next_bus(tuple(args), tuple(settings), alt)
+        update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
+
+    def next_bus_handler(self, _, update, args):
+        self.next_bus_general(update, args, False)
 
     def next_bus_handler_alt(self, _, update, args):
-        """Send a message when the command /start is issued."""
-        user = update.message.from_user
-        self.logger.info(f"next_bus_handler_alt. User: {user}; {args}")
-        if not args:
-            args = []
+        self.next_bus_general(update, args, True)
 
-        user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
-        if not user_loc:
-            update.message.reply_text("Сначала отправьте местоположение")
-            return
-
-        matches = self.cds.matches_bus_stops(user_loc.lat, user_loc.lon)
-        self.logger.info(f'{user_loc.lat};{user_loc.lon} {";".join([str(i) for i in matches])}')
-        search_result = parse_routes(' '.join(args))
-        result = self.cds.next_bus_for_matches_alt(matches, search_result)
-        result_arrival = result[0]
-        update.message.reply_text(f'```\n{result[0]}\n```', parse_mode='Markdown')
 
     def stats(self, _, update):
         """Send a message when the command /stats is issued."""
@@ -266,9 +254,10 @@ class BusBot:
         settings = self.user_settings.get(user.id, {})
         settings['user_loc'] = user_loc
         self.user_settings[user.id] = settings
-        result = self.cds.next_bus_for_matches(matches, SearchResult(bus_routes=settings.get('route_settings')))
+        bus_routes = settings.get('route_settings')
+        result = self.cds.next_bus_for_matches_alt(matches, SearchResult(bus_routes=(bus_routes if bus_routes else tuple())))
         self.logger.info(f"next_bus_for_matches {user} {result}")
-        update.message.reply_text(result[0], reply_markup=ReplyKeyboardRemove())
+        update.message.reply_text(f'```\n{result[0]}\n```', reply_markup=ReplyKeyboardRemove(), parse_mode='Markdown')
 
     def location(self, _, update):
         self.ping_prod()
