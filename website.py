@@ -17,6 +17,7 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
 
 
 class BaseHandler(tornado.web.RequestHandler):
+    executor = ThreadPoolExecutor()
     def data_received(self, chunk):
         pass
 
@@ -54,8 +55,6 @@ class BusSite(tornado.web.Application):
 
 
 class PingHandler(BaseHandler):
-    executor = ThreadPoolExecutor()
-
     @run_on_executor
     def get(self):
         self.logger.info('PING')
@@ -64,8 +63,6 @@ class PingHandler(BaseHandler):
 
 
 class BusInfoHandler(BaseHandler):
-    executor = ThreadPoolExecutor()
-
     def bus_info_response(self, query, lat, lon):
         self.logger.info(f'Bus info query: "{query}"')
         user_loc = None
@@ -86,42 +83,29 @@ class BusInfoHandler(BaseHandler):
 
 
 class ArrivalHandler(BaseHandler):
-    executor = ThreadPoolExecutor()
+    def arrival_response(self, alt):
+        (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
+        query = self.get_argument('q')
 
-    def arrival_response(self, lat, lon, query):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
-        result = self.cds.next_bus_for_matches(matches, parse_routes(query))
+        func = self.cds.next_bus_for_matches_alt if alt else self.cds.next_bus_for_matches
+        result = func(matches, parse_routes(query))
         response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
         self.write(json.dumps(response))
         self.caching()
 
     @run_on_executor
     def get(self):
-        (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
-        q = self.get_argument('q')
-        self.arrival_response(lat, lon, q)
+        self.arrival_response(False)
 
-class ArrivalAltHandler(BaseHandler):
-    executor = ThreadPoolExecutor()
 
-    def arrival_response(self, lat, lon, query):
-        matches = self.cds.matches_bus_stops(lat, lon)
-        self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
-        result = self.cds.next_bus_for_matches_alt(matches, parse_routes(query))
-        response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
-        self.write(json.dumps(response))
-        self.caching()
-
+class ArrivalAltHandler(ArrivalHandler):
     @run_on_executor
     def get(self):
-        (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
-        q = self.get_argument('q')
-        self.arrival_response(lat, lon, q)
+        self.arrival_response(True)
 
 class MapHandler(BaseHandler):
-    executor = ThreadPoolExecutor()
-
     def bus_info_response(self, query):
         self.logger.info(f'Bus info query: "{query}"')
 
@@ -137,8 +121,6 @@ class MapHandler(BaseHandler):
 
 
 class BusListHandler(BaseHandler):
-    executor = ThreadPoolExecutor()
-
     def _response(self):
         self.logger.info(f'Bus list query')
 
