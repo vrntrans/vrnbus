@@ -1,6 +1,6 @@
-requests
-python-telegram-bot
-cachetools
-tornado
-pytz
-fdb
+requests==2.18.4
+python-telegram-bot==9.0.0
+cachetools==2.0.1
+tornado==4.5.3
+pytz==2017.3
+fdb==1.8
