@@ -89,8 +89,10 @@
         const nextbusgeo = document.getElementById('nextbusgeo')
         waiting(nextbus_loading, nextbusgeo, true)
 
+        const bus_query = lastbusquery.value
+
         coords = position.coords
-        const params = 'lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
+        const params = 'q=' + encodeURIComponent(bus_query) + '&lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
 
         return fetch('/arrival?' + params,
             {
