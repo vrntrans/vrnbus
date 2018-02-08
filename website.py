@@ -18,6 +18,7 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
 
 class BaseHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor()
+
     def data_received(self, chunk):
         pass
 
@@ -104,6 +105,7 @@ class ArrivalAltHandler(ArrivalHandler):
     @run_on_executor
     def get(self):
         self.arrival_response(True)
+
 
 class MapHandler(BaseHandler):
     def bus_info_response(self, query):

@@ -208,7 +208,6 @@ class BusBot:
     def next_bus_handler_alt(self, _, update, args):
         self.next_bus_general(update, args, True)
 
-
     def stats(self, _, update):
         """Send a message when the command /stats is issued."""
         self.ping_prod()
@@ -255,9 +254,12 @@ class BusBot:
         settings['user_loc'] = user_loc
         self.user_settings[user.id] = settings
         bus_routes = settings.get('route_settings')
-        result = self.cds.next_bus_for_matches_alt(matches, SearchResult(bus_routes=(bus_routes if bus_routes else tuple())))
+        search_result = SearchResult(bus_routes=(bus_routes if bus_routes else tuple()))
+        result = self.cds.next_bus_for_matches_alt(matches, search_result)
         self.logger.info(f"next_bus_for_matches {user} {result}")
-        update.message.reply_text(f'```\n{result[0]}\n```', reply_markup=ReplyKeyboardRemove(), parse_mode='Markdown')
+        update.message.reply_text(f'```\n{result[0]}\n```',
+                                  reply_markup=ReplyKeyboardRemove(),
+                                  parse_mode='Markdown')
 
     def location(self, _, update):
         self.ping_prod()

@@ -15,6 +15,7 @@ class SearchResult(NamedTuple):
     bus_routes: tuple = tuple()
     bus_filter: str = ''
 
+
 tz = pytz.timezone('Europe/Moscow')
 logger = logging.getLogger("vrnbus")
 
@@ -41,9 +42,6 @@ def parse_routes(text):
             continue
         if bus_filter_start:
             bus_filter += i
-            continue
-        if result and result[-1] == 'Тр.':
-            result[-1] += ' ' + i
             continue
         result.append(i)
     if not result:
