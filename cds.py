@@ -412,17 +412,17 @@ class CdsRequest:
         return self.next_bus_for_matches(bus_stop_matches, user_bus_list)[0]
 
     # @cachetools.func.ttl_cache(ttl=60)
-    def next_bus_for_matches(self, bus_stop_matches, user_bus_list):
+    def next_bus_for_matches(self, bus_stop_matches, search_result: SearchResult):
         result = []
         routes_set = set()
-        if user_bus_list:
-            result.append(f"Фильтр по маршрутам: {' '.join(user_bus_list)}")
+        if search_result.bus_routes:
+            result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}")
         for item in bus_stop_matches:
             arrivals = self.next_bus_for_lat_lon(item.LAT_, item.LON_)
             if arrivals:
                 header = arrivals[0]
                 items = [x for x in arrivals[1:] if
-                         x.time_ > 0 and (not user_bus_list or x.rname_.strip() in user_bus_list)]
+                         x.time_ > 0 and (not search_result.bus_routes or x.rname_.strip() in search_result.bus_routes)]
                 routes_set.update([x.rname_.strip() for x in items])
                 self.logger.info(items)
                 items.sort(key=lambda s: natural_sort_key(s.rname_))
@@ -474,7 +474,7 @@ class CdsRequest:
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult):
         def bus_info(bus: CdsRouteBus, distance, time_left):
-            info = f'{bus.route_name_} {time_left:2.0f} мин {distance:.2f} км'
+            info = f'{bus.route_name_:>5} {time_left:>2.0f} мин ( {distance:.2f} км )'
             if search_result.full_info:
                 info += f' {bus.bus_station_} {bus.last_time_:%H:%M} {bus.name_}'
             return info

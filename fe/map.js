@@ -32,7 +32,7 @@
     if (cb_show_info) {
         cb_show_info.onclick = function () {
             const show = cb_show_info.checked
-            businfo.style = show ? "white-space:pre-wrap;" : "display: none;"
+            businfo.className = show ? "" : "hide_info"
         }
     }
 

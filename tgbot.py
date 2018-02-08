@@ -8,7 +8,7 @@ from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageH
 from tornado.httpclient import AsyncHTTPClient
 
 from cds import UserLoc
-from helpers import parse_routes, natural_sort_key, grouper
+from helpers import parse_routes, natural_sort_key, grouper, SearchResult
 
 try:
     import settings
@@ -218,8 +218,8 @@ class BusBot:
         self.logger.info(f'{user_loc.lat};{user_loc.lon} {";".join([str(i) for i in matches])}')
         search_result = parse_routes(' '.join(args))
         result = self.cds.next_bus_for_matches_alt(matches, search_result)
-
-        update.message.reply_text(result[0])
+        result_arrival = result[0]
+        update.message.reply_text(f'```\n{result[0]}\n```', parse_mode='Markdown')
 
     def stats(self, _, update):
         """Send a message when the command /stats is issued."""
@@ -266,7 +266,7 @@ class BusBot:
         settings = self.user_settings.get(user.id, {})
         settings['user_loc'] = user_loc
         self.user_settings[user.id] = settings
-        result = self.cds.next_bus_for_matches(matches, settings.get('route_settings'))
+        result = self.cds.next_bus_for_matches(matches, SearchResult(bus_routes=settings.get('route_settings')))
         self.logger.info(f"next_bus_for_matches {user} {result}")
         update.message.reply_text(result[0], reply_markup=ReplyKeyboardRemove())
 

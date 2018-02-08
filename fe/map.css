@@ -16,6 +16,10 @@
     font-weight: bold;
 }
 
+.hide_info {
+    display: none;
+}
+
 .spinner {
     display: inline-grid;
     height: 10px;
