@@ -76,13 +76,15 @@
             event.preventDefault()
             get_current_pos(get_bus_arrival_alt)
         }
-
     }
 
     function get_current_pos(func) {
         const bus_query = lastbusquery.value
         save_to_ls('bus_query', bus_query)
-        navigator.geolocation.getCurrentPosition(func)
+        navigator.geolocation.getCurrentPosition(function (position) {
+            console.log(position)
+            func(position)
+        })
     }
 
     function get_bus_arrival(position) {
@@ -115,8 +117,8 @@
     }
 
     function get_bus_arrival_alt(position) {
-        const nextbusgeo = document.getElementById('nextbusgeo')
-        waiting(nextbus_loading, nextbusgeo, true)
+        const nextbusgeo_alt = document.getElementById('nextbusgeo_alt')
+        waiting(nextbus_loading, nextbusgeo_alt, true)
 
         coords = position.coords
         const bus_query = lastbusquery.value
@@ -136,11 +138,11 @@
                 return res.json()
             })
             .then(function (data) {
-                waiting(nextbus_loading, nextbusgeo, false)
+                waiting(nextbus_loading, nextbusgeo_alt, false)
                 info.innerHTML = data.text
             })
             .catch(function (error) {
-                waiting(nextbus_loading, nextbusgeo, false)
+                waiting(nextbus_loading, nextbusgeo_alt, false)
                 info.innerHTML = 'Ошибка: ' + error
             })
     }
