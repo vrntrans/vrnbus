@@ -71,7 +71,7 @@ class BusInfoHandler(BaseHandler):
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
-        result = self.cds.bus_request(*parse_routes(query), user_loc=user_loc, short_format=True)
+        result = self.cds.bus_request(parse_routes(query), user_loc=user_loc, short_format=True)
         response = {'q': query, 'text': result[0],
                     'buses': [(x[0]._asdict(), x[1]._asdict() if x[1] else {}) for x in result[1]]}
         self.write(json.dumps(response, cls=DateTimeEncoder))
@@ -107,7 +107,7 @@ class ArrivalAltHandler(BaseHandler):
     def arrival_response(self, lat, lon, query):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
-        result = self.cds.next_bus_for_matches_alt(matches, parse_routes(query)[1])
+        result = self.cds.next_bus_for_matches_alt(matches, parse_routes(query))
         response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
         self.write(json.dumps(response))
         self.caching()

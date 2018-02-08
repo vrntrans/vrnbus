@@ -5,8 +5,15 @@ import re
 import time
 from functools import wraps
 from itertools import zip_longest
+from typing import NamedTuple
 
 import pytz
+
+
+class SearchResult(NamedTuple):
+    full_info: bool = False
+    bus_routes: tuple = tuple()
+    bus_filter: str = ''
 
 tz = pytz.timezone('Europe/Moscow')
 logger = logging.getLogger("vrnbus")
@@ -19,12 +26,12 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
 
 def parse_routes(text):
     if not text:
-        return False, tuple(), ''
+        return SearchResult()
     if isinstance(text, (list, tuple,)):
         text = ' '.join(text)
     args = re.split("[ ,;]+", text)
     if not args:
-        return False, tuple(), ''
+        return SearchResult()
     result = []
     bus_filter_start = False
     bus_filter = ''
@@ -40,12 +47,12 @@ def parse_routes(text):
             continue
         result.append(i)
     if not result:
-        return False, tuple(), bus_filter
+        return SearchResult(bus_filter=bus_filter)
     full_info = result[0].upper() in ['PRO', 'ПРО']
     if full_info:
         result = result[1:]
 
-    return full_info, tuple(result), bus_filter
+    return SearchResult(full_info, tuple(result), bus_filter)
 
 
 def distance(lat1, lon1, lat2, lon2):

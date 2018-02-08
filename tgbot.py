@@ -107,7 +107,7 @@ class BusBot:
         user = update.message.from_user
         self.logger.info(f"last_buses. User: {user}; {args}")
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
-        response = self.cds.bus_request(*parse_routes(args), user_loc=user_loc)
+        response = self.cds.bus_request(parse_routes(args), user_loc=user_loc)
         text = response[0]
         self.logger.info(f"last_buses. User: {user}; Response {text}")
         update.message.reply_text(text)
@@ -216,8 +216,8 @@ class BusBot:
 
         matches = self.cds.matches_bus_stops(user_loc.lat, user_loc.lon)
         self.logger.info(f'{user_loc.lat};{user_loc.lon} {";".join([str(i) for i in matches])}')
-        routes = parse_routes(' '.join(args))[1]
-        result = self.cds.next_bus_for_matches_alt(matches, routes)
+        search_result = parse_routes(' '.join(args))
+        result = self.cds.next_bus_for_matches_alt(matches, search_result)
 
         update.message.reply_text(result[0])
 
@@ -248,7 +248,7 @@ class BusBot:
         else:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
             self.logger.info(f"{user} '{text}' {user_loc}")
-            response = self.cds.bus_request(*parse_routes(text), user_loc=user_loc)
+            response = self.cds.bus_request(parse_routes(text), user_loc=user_loc)
             self.logger.info(f'"{text}" User: {user}; Response: {response[:256]}')
             reply_text = response[0]
             if len(reply_text) > 4000:
