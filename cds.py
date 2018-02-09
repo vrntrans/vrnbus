@@ -175,6 +175,7 @@ class CdsRequest:
         self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
+        self.avg_speed = 18.0
 
     def load_cds_bus_routes(self) -> {}:
         routes_base_local = {}
@@ -395,7 +396,24 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
     def load_cds_buses_from_db(self, keys):
+        def time_filter(bus, now):
+            if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=15):
+                return False
+            if bus.last_station_time_ and (now - get_time(bus.last_station_time_)) > timedelta(minutes=15):
+                return False
+            return True
+
+        def get_avg_speed(bus_list):
+            now = datetime.now(tz=tz)
+            bus_list = [x for x in bus_list if time_filter(x, now)]
+            sum_speed = sum((x.last_speed_ for x in all_buses))
+            avg_speed = sum_speed * 1.0 / len(bus_list)
+            return avg_speed
+
         all_buses = self.load_all_cds_buses_from_db()
+        self.avg_speed = get_avg_speed(all_buses)
+        self.logger.info(f'Average speed for all buses: {self.avg_speed:.1f}')
+
         if not keys:
             return all_buses
         result = [x for x in all_buses if x.route_name_ in keys]
@@ -444,19 +462,19 @@ class CdsRequest:
         result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
         return ('\n'.join(result), " ".join(routes_list))
 
-    def get_bus_distance_to(self, bus_route_names, bus_stop_name):
+    def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
         def time_filter(bus):
-            if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=30):
+            if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=15):
                 return False
-            if bus.last_station_time_ and (now - get_time(bus.last_station_time_)) > timedelta(minutes=30):
+            if bus.last_station_time_ and (now - get_time(bus.last_station_time_)) > timedelta(minutes=15):
                 return False
             return True
 
         def time_to_arrive(km, last_time):
-            speed = 20
-            minutes = (km * 60 // speed)
+            speed = self.avg_speed
+            minutes = (km * 60 / speed)
             time_diff = now - get_time(last_time)
-            return minutes - time_diff.seconds // 60
+            return minutes - time_diff.seconds / 60
 
         now = datetime.now(tz=tz)
         result = []
@@ -467,6 +485,8 @@ class CdsRequest:
         avg_speed = sum_speed / len(all_buses)
         self.logger.info(f'Average speed for {bus_route_names}: {avg_speed:.1f}')
         for bus in all_buses:
+            if bus_filter and bus_filter not in bus.name_:
+                continue
             closest_stop = self.get_closest_bus_stop(bus, True)
             bus_dist = bus.distance_km(closest_stop)
             route_dist = self.get_dist(bus.route_name_, closest_stop.NAME_, bus_stop_name)
@@ -491,7 +511,8 @@ class CdsRequest:
         bus_filter = list(set([x for x in self.cds_routes.keys()
                                for r in search_result.bus_routes if x.upper() == r.upper()]))
         if search_result.bus_routes:
-            result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}.")
+            result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}. "
+                          f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
             arrival_buses = [x for x in arrival_buses if not bus_filter or x in bus_filter]
@@ -500,7 +521,7 @@ class CdsRequest:
             routes_set.update(arrival_buses)
             arrival_buses.sort(key=natural_sort_key)
             result.append(f'{item.NAME_}:')
-            distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_)
+            distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_, search_result.bus_filter)
             distance_list.sort(key=lambda x: x[2])
             result.append('\n'.join((bus_info(*d) for d in distance_list)))
             result.append("")
