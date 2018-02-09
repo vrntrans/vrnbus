@@ -186,12 +186,14 @@
                     }
 
                     bus.hint = next_bus_stop.NAME_
-                    bus.desc = 'Следующая остановка:' + next_bus_stop.NAME_ + ' ' + bus.name_ + ' ' + bus.last_time_
 
-                    const x = next_bus_stop.LON_ - bus.last_lat_
-                    const y = next_bus_stop.LAT_ - bus.last_lon_
+                    const x = next_bus_stop.LAT_ - bus.last_lat_
+                    const y = next_bus_stop.LON_ - bus.last_lon_
 
                     bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
+                    const time = bus.last_time_.substring(bus.last_time_.length - 8)
+                    bus.desc = 'След.: ' + next_bus_stop.NAME_ + ' ' + time + ' ' + bus.name_ + '\nПред: ' + bus.bus_station_
+
                     return bus
                 })
                 update_map(bus_with_azimuth, true)
