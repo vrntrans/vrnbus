@@ -39,14 +39,10 @@ class BusBot:
         self.dp.add_handler(CommandHandler("start", self.start))
 
         self.dp.add_handler(CommandHandler("help", self.helpcmd))
-        self.dp.add_handler(CommandHandler("помощь", self.helpcmd))
         self.dp.add_handler(CommandHandler("last", self.last_buses, pass_args=True))
-        self.dp.add_handler(CommandHandler("последние", self.last_buses, pass_args=True))
 
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
-        self.dp.add_handler(CommandHandler("nextbusalt", self.next_bus_handler_alt, pass_args=True))
-        self.dp.add_handler(CommandHandler("следующий", self.next_bus_handler, pass_args=True))
-        self.dp.add_handler(CommandHandler("следующибыстро", self.next_bus_handler, pass_args=True))
+        self.dp.add_handler(CommandHandler("nextbusold", self.next_bus_handler_old, pass_args=True))
         #
         self.dp.add_handler(CommandHandler("stats", self.stats))
         #
@@ -81,11 +77,12 @@ class BusBot:
         cancel_button = KeyboardButton(text="Отмена")
         custom_keyboard = [[location_keyboard, cancel_button]]
         reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
-        update.message.reply_text("/последние номера маршрутов через пробел - последние "
-                                  "остановки (или /last)\n"
-                                  "/следующий имя остановки - ожидаемое время прибытия (или /nextbus)\n"
+        update.message.reply_text(
+                                  "/nextbus имя остановки - ожидаемое время прибытия\n"
                                   "Отправка местоположения - ожидаемое время прибытия для ближайших "
                                   "трёх остановок\n"
+                                  "/last номера маршрутов через пробел - последние "
+                                  "остановки автобусов\n"
                                   "Свободный ввод - номера маршрутов и расстояние до автобусов "
                                   "(если отправляли местоположение)",
                                   reply_markup=reply_markup)
@@ -95,10 +92,30 @@ class BusBot:
         self.ping_prod()
         user = update.message.from_user
         self.logger.info(user)
-        update.message.reply_text("""/последние номера маршрутов через пробел - последние остановки(или /last)
-/следующий имя остановки - ожидаемое время прибытия (или /nextbus)
+        update.message.reply_text("""
+/nextbus имя остановки - ожидаемое время прибытия
+/last номера маршрутов через пробел - последние остановки
 Отправка местоположения - ожидаемое время прибытия для ближайших трёх остановок
-Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)""",
+Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)
+Примеры:
+/nextbus памятник славы
+выведет прибытие на остановки:
+
+    Памятник Славы (Московский проспект в центр),
+    Памятник славы (Московский проспект из центра),
+    Памятник славы (ул. Хользунова в центр)
+/last 5а 113кш
+выведет последние остановки автобусов на маршрутах 5А и 113КШ:
+
+    5А 18:14 ул. Хользунова (из центра)  
+    5А 18:14 ул. 60 Армии (ул. Лизюкова в центр)  
+    (...)
+    5А 18:11 ул. Куцыгина (из центра)  
+    5А 18:02 ПАТП-4 (в центр)
+    113КШ 18:14 ул. Комиссаржевской (ул. Кольцовская в центр)  
+    113КШ 18:12 ул. Колесниченко (из центра)  
+    113КШ 18:12 Аптека (ул Домостроителей из центра)  
+""",
                                   reply_markup=ReplyKeyboardRemove())
 
     def last_buses(self, _, update, args):
@@ -202,10 +219,10 @@ class BusBot:
         response = self.cds.next_bus(tuple(args), tuple(settings), alt)
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
-    def next_bus_handler(self, _, update, args):
+    def next_bus_handler_old(self, _, update, args):
         self.next_bus_general(update, args, False)
 
-    def next_bus_handler_alt(self, _, update, args):
+    def next_bus_handler(self, _, update, args):
         self.next_bus_general(update, args, True)
 
     def stats(self, _, update):
