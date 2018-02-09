@@ -94,27 +94,31 @@ class BusBot:
         self.logger.info(user)
         update.message.reply_text("""
 /nextbus имя остановки - ожидаемое время прибытия
+
 /last номера маршрутов через пробел - последние остановки
+
+/settings [+|-|add|del|all|none|все] номера маршрутов - фильтрация по маршрутам
+
 Отправка местоположения - ожидаемое время прибытия для ближайших трёх остановок
 Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)
-Примеры:
-/nextbus памятник славы
-выведет прибытие на остановки:
 
+Примеры:
+/nextbus памятник славы - выведет прибытие на остановки: 
     Памятник Славы (Московский проспект в центр),
     Памятник славы (Московский проспект из центра),
     Памятник славы (ул. Хользунова в центр)
-/last 5а 113кш
-выведет последние остановки автобусов на маршрутах 5А и 113КШ:
+    
+/last 5а 113кш - выведет последние остановки автобусов на маршрутах 5А и 113КШ
+      
+/settings 27 5а - фильтрует автобусы в остальных командах, оставляя только выбранные
+/settings all - выбрать все (эквивалентно /settings none) или
+/settings все
 
-    5А 18:14 ул. Хользунова (из центра)  
-    5А 18:14 ул. 60 Армии (ул. Лизюкова в центр)  
-    (...)
-    5А 18:11 ул. Куцыгина (из центра)  
-    5А 18:02 ПАТП-4 (в центр)
-    113КШ 18:14 ул. Комиссаржевской (ул. Кольцовская в центр)  
-    113КШ 18:12 ул. Колесниченко (из центра)  
-    113КШ 18:12 Аптека (ул Домостроителей из центра)  
+/settings add 104 125 - добавить к фильтру маршруты 104 125 или
+/settings + 104 125
+
+/settings del 37 52 - удалить из фильтра маршруты 37 52 или
+/settings - 37 52
 """,
                                   reply_markup=ReplyKeyboardRemove())
 
@@ -131,7 +135,7 @@ class BusBot:
 
     def get_buttons_routes(self, user_routes):
         # TODO: too many buttons
-        routes_list = sorted(list(self.cds.routes_base.keys()), key=natural_sort_key)
+        routes_list = sorted(list(self.cds.bus_routes.keys()), key=natural_sort_key)
         routes_groups = list(grouper(8, routes_list))
         route_btns = [[InlineKeyboardButton('Hide', callback_data='hide')],
                       [InlineKeyboardButton('All', callback_data='all'),
@@ -150,19 +154,20 @@ class BusBot:
         route_settings = settings.get('route_settings', [])
         input_routes = parse_routes(args)[1]
         if input_routes:
-            cmd = input_routes[0]
+            cmd = input_routes[0].lower()
             items = input_routes[1:]
-            if len(input_routes) == 1 and cmd in ('all', 'none'):
-                settings = []
-            elif cmd == 'del':
-                settings = [x for x in settings if x not in items]
-            elif cmd == 'add':
-                settings += [x for x in items if x in self.cds.routes_base.keys() and x not in settings]
+            change_routes = [y for x in input_routes for y in self.cds.bus_routes.keys() if x.upper() == y.upper()]
+            if len(input_routes) == 1 and cmd in ('all', 'none', 'все'):
+                route_settings = []
+            elif cmd in ('del', '-'):
+                route_settings = [x for x in route_settings if x not in change_routes]
+            elif cmd in ('add', '+'):
+                route_settings = list(set(route_settings + change_routes))
             else:
-                settings = [x for x in input_routes if x in self.cds.routes_base.keys()]
+                route_settings = change_routes
             settings['route_settings'] = route_settings
             self.user_settings[user_id] = settings
-            update.message.reply_text(f"Текущие маршруты для вывода: {' '.join(settings)}")
+            update.message.reply_text(f"Текущие маршруты для вывода: {' '.join(route_settings)}")
             return
 
         keyboard = self.get_buttons_routes(route_settings)
@@ -178,7 +183,7 @@ class BusBot:
         key = query.data
 
         if key == 'all':
-            settings = list(self.cds.routes_base.keys())
+            settings = list(self.cds.bus_routes.keys())
         elif key == 'none':
             settings = []
         elif key == 'hide':
@@ -215,8 +220,8 @@ class BusBot:
                                       reply_markup=reply_markup)
             return
 
-        settings = self.user_settings.get(user.id, {})
-        response = self.cds.next_bus(tuple(args), tuple(settings), alt)
+        user_settings = self.user_settings.get(user.id, {})
+        response = self.cds.next_bus(tuple(args), tuple(user_settings.get('route_settings', [])), alt)
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
     def next_bus_handler_old(self, _, update, args):
@@ -233,13 +238,18 @@ class BusBot:
         response = self.cds.get_all_buses()
         update.message.reply_text(response)
 
-    def user_input(self, _, update):
+    def user_input(self, bot, update):
         self.ping_prod()
         message = update.message
         user = message.from_user
         text = message.text
 
         self.logger.info(f'"{text}" User: {user}; ')
+
+        if not text or text == 'Отмена':
+            message.reply_text(text=f"Попробуйте воспользоваться справкой /help",
+                                   reply_markup=ReplyKeyboardRemove())
+            return
 
         if text.lower() == 'на рефакторинг!':
             message.reply_text('Тогда срочно сюда @deeprefactoring!')
