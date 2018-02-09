@@ -504,6 +504,9 @@ class CdsRequest:
                 result.append((bus, dist, time_left))
         return result
 
+    def preload_data(self):
+        self.load_cds_buses_from_db()
+
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult):
         def bus_info(bus: CdsRouteBus, distance, time_left):
@@ -516,9 +519,12 @@ class CdsRequest:
         routes_set = set()
         bus_filter = list(set([x for x in self.cds_routes.keys()
                                for r in search_result.bus_routes if x.upper() == r.upper()]))
+        result.append(f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
         if search_result.bus_routes:
-            result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}. "
-                          f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
+            result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)};")
+            if search_result.full_info:
+                avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed) for x in bus_filter)) / len(bus_filter)
+                result.append(f"Средняя скороть на маршрутах {avg_speed_routes:.2f} км/ч")
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
             arrival_buses = [x for x in arrival_buses if not bus_filter or x in bus_filter]

@@ -81,10 +81,7 @@
     function get_current_pos(func) {
         const bus_query = lastbusquery.value
         save_to_ls('bus_query', bus_query)
-        navigator.geolocation.getCurrentPosition(function (position) {
-            console.log(position)
-            func(position)
-        })
+        navigator.geolocation.getCurrentPosition(func)
     }
 
     function get_bus_arrival(position) {
