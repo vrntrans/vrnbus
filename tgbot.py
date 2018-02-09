@@ -255,7 +255,7 @@ class BusBot:
         self.user_settings[user.id] = settings
         bus_routes = settings.get('route_settings')
         search_result = SearchResult(bus_routes=(bus_routes if bus_routes else tuple()))
-        result = self.cds.next_bus_for_matches_alt(matches, search_result)
+        result = self.cds.next_bus_for_matches_alt(tuple(matches), search_result)
         self.logger.info(f"next_bus_for_matches {user} {result}")
         update.message.reply_text(f'```\n{result[0]}\n```',
                                   reply_markup=ReplyKeyboardRemove(),

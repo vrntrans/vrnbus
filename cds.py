@@ -435,7 +435,7 @@ class CdsRequest:
             first_matches = '\n'.join([x.NAME_ for x in bus_stop_matches[:20]])
             return f'Уточните остановку. Найденные варианты:\n{first_matches}'
         method = self.next_bus_for_matches_alt if alt else self.next_bus_for_matches
-        return method(bus_stop_matches, SearchResult(bus_routes=user_bus_list))[0]
+        return method(tuple(bus_stop_matches), SearchResult(bus_routes=user_bus_list))[0]
 
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches(self, bus_stop_matches, search_result: SearchResult):
@@ -467,6 +467,7 @@ class CdsRequest:
         result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
         return ('\n'.join(result), " ".join(routes_list))
 
+    @cachetools.func.ttl_cache(ttl=30, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
         def time_filter(bus):
             if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=15):
@@ -507,7 +508,7 @@ class CdsRequest:
         all_buses = self.load_all_cds_buses_from_db()
         self.calc_avg_speed(all_buses)
 
-    # @cachetools.func.ttl_cache(ttl=60)
+    @cachetools.func.ttl_cache(ttl=30)
     def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult):
         def bus_info(bus: CdsRouteBus, distance, time_left):
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
@@ -535,7 +536,7 @@ class CdsRequest:
             routes_set.update(arrival_buses)
             arrival_buses.sort(key=natural_sort_key)
             result.append(f'{item.NAME_}:')
-            distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_, search_result.bus_filter)
+            distance_list = self.get_bus_distance_to(tuple(arrival_buses), item.NAME_, search_result.bus_filter)
             distance_list.sort(key=lambda x: x[2])
             result.append('\n'.join((bus_info(*d) for d in distance_list)))
             result.append("")
@@ -621,6 +622,7 @@ class CdsRequest:
             return []
         return json_object
 
+    @cachetools.func.ttl_cache()
     def get_dist(self, route_name, bus_stop_start, bus_stop_stop):
         route: Iterable[LongBusRouteStop] = self.bus_routes.get(route_name, [])
         dist = 0
@@ -635,6 +637,7 @@ class CdsRequest:
                 break
         return dist
 
+    @cachetools.func.ttl_cache()
     def get_routes_on_bus_stop(self, bus_stop_name):
         result = []
         for (k, v) in self.bus_routes.items():
@@ -642,6 +645,7 @@ class CdsRequest:
                 result.append(k)
         return result
 
+    @cachetools.func.ttl_cache(maxsize=4096)
     def get_next_bus_stop(self, route_name, bus_stop_name):
         route = self.bus_routes.get(route_name, [])
         if not route:

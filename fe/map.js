@@ -66,15 +66,11 @@
     }
 
     if ("geolocation" in navigator) {
-        const nextbusgeo = document.getElementById('nextbusgeo');
-        const nextbusgeo_alt = document.getElementById('nextbusgeo_alt');
-        nextbusgeo.onclick = function (event) {
+        const nextbus = document.getElementById('nextbus');
+
+        nextbus.onclick = function (event) {
             event.preventDefault()
             get_current_pos(get_bus_arrival)
-        }
-        nextbusgeo_alt.onclick = function (event) {
-            event.preventDefault()
-            get_current_pos(get_bus_arrival_alt)
         }
     }
 
@@ -85,37 +81,11 @@
     }
 
     function get_bus_arrival(position) {
-        const nextbusgeo = document.getElementById('nextbusgeo')
-        waiting(nextbus_loading, nextbusgeo, true)
+        const nextbus = document.getElementById('nextbus')
+        const cb_nextbus_old = document.getElementById('cb_nextbus_old')
 
-        const bus_query = lastbusquery.value
-
-        coords = position.coords
-        const params = 'q=' + encodeURIComponent(bus_query) + '&lat=' + encodeURIComponent(coords.latitude) + '&lon=' + encodeURIComponent(coords.longitude);
-
-        return fetch('/arrival?' + params,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-            })
-            .then(function (res) {
-                return res.json()
-            })
-            .then(function (data) {
-                waiting(nextbus_loading, nextbusgeo, false)
-                info.innerHTML = data.text
-            })
-            .catch(function (error) {
-                waiting(nextbus_loading, nextbusgeo, false)
-                info.innerHTML = 'Ошибка: ' + error
-            })
-    }
-
-    function get_bus_arrival_alt(position) {
-        const nextbusgeo_alt = document.getElementById('nextbusgeo_alt')
-        waiting(nextbus_loading, nextbusgeo_alt, true)
+        const use_old_version = cb_nextbus_old.checked
+        waiting(nextbus_loading, nextbus, true)
 
         coords = position.coords
         const bus_query = lastbusquery.value
@@ -124,7 +94,9 @@
             '&lat=' + encodeURIComponent(coords.latitude) +
             '&lon=' + encodeURIComponent(coords.longitude)
 
-        return fetch('/arrival_alt?' + params,
+        const url = use_old_version ? '/arrival?' : '/arrival_alt?'
+
+        return fetch(url + params,
             {
                 method: 'GET',
                 headers: {
@@ -135,11 +107,11 @@
                 return res.json()
             })
             .then(function (data) {
-                waiting(nextbus_loading, nextbusgeo_alt, false)
+                waiting(nextbus_loading, nextbus, false)
                 info.innerHTML = data.text
             })
             .catch(function (error) {
-                waiting(nextbus_loading, nextbusgeo_alt, false)
+                waiting(nextbus_loading, nextbus, false)
                 info.innerHTML = 'Ошибка: ' + error
             })
     }

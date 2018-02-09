@@ -91,7 +91,7 @@ class ArrivalHandler(BaseHandler):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
         func = self.cds.next_bus_for_matches_alt if alt else self.cds.next_bus_for_matches
-        result = func(matches, parse_routes(query))
+        result = func(tuple(matches), parse_routes(query))
         response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
         self.write(json.dumps(response))
         self.caching()
