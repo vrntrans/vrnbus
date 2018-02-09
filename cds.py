@@ -474,19 +474,19 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=30, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
         def time_filter(bus_info):
-            if not bus_info.last_time_ or tz.localize(bus_info.last_time_) < last_n_minutes:
+            if not bus_info.last_time_ or bus_info.last_time_ < last_n_minutes:
                 return False
-            if bus_info.last_station_time_ and tz.localize(bus_info.last_station_time_) < last_n_minutes:
+            if bus_info.last_station_time_ and bus_info.last_station_time_ < last_n_minutes:
                 return False
             return True
 
         def time_to_arrive(km, last_time):
             speed = self.avg_speed
             minutes = (km * 60 / speed)
-            time_diff = now - get_time(last_time)
+            time_diff = now - last_time
             return minutes - time_diff.seconds / 60
 
-        now = datetime.now(tz=tz)
+        now = datetime.now()
         last_n_minutes = now - timedelta(minutes=15)
 
         result = []
