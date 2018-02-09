@@ -411,7 +411,6 @@ class CdsRequest:
         curr_bus_routes = Counter((x.route_name_ for x in bus_list))
         for (route, size) in curr_bus_routes.items():
             self.speed_dict[route] = sum((x.last_speed_ for x in bus_list if x.route_name_ == route)) / size
-        self.logger.info(self.speed_dict)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
