@@ -538,7 +538,7 @@ class CdsRequest:
             if routes_filter:
                 avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed)
                                         for x in routes_filter)) / len(routes_filter)
-                self.logger.info(f'Average speed on routes {arrival_buses} {avg_speed_routes} kmh')
+                self.logger.info(f'Average speed on routes {arrival_buses} {avg_speed_routes:.2f} kmh')
 
             routes_set.update(arrival_buses)
             arrival_buses.sort(key=natural_sort_key)
