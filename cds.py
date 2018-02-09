@@ -2,6 +2,7 @@ import codecs
 import json
 import os
 import time
+from collections import Counter
 from datetime import datetime, timedelta
 from itertools import groupby
 from logging import Logger
@@ -176,6 +177,7 @@ class CdsRequest:
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
+        self.speed_dict = {}
 
     def load_cds_bus_routes(self) -> {}:
         routes_base_local = {}
@@ -393,9 +395,7 @@ class CdsRequest:
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
         return result
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
-    @retry_multi()
-    def load_cds_buses_from_db(self, keys):
+    def calc_avg_speed(self, bus_list):
         def time_filter(bus, now):
             if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=15):
                 return False
@@ -403,15 +403,21 @@ class CdsRequest:
                 return False
             return True
 
-        def get_avg_speed(bus_list):
-            now = datetime.now(tz=tz)
-            bus_list = [x for x in bus_list if time_filter(x, now)]
-            sum_speed = sum((x.last_speed_ for x in all_buses))
-            avg_speed = sum_speed * 1.0 / len(bus_list)
-            return avg_speed
+        now = datetime.now(tz=tz)
+        bus_list = [x for x in bus_list if time_filter(x, now)]
+        sum_speed = sum((x.last_speed_ for x in bus_list))
+        self.avg_speed = sum_speed * 1.0 / len(bus_list)
 
+        curr_bus_routes = Counter((x.route_name_ for x in bus_list))
+        for (route, size) in curr_bus_routes.items():
+            self.speed_dict[route] = sum((x.last_speed_ for x in bus_list if x.route_name_ == route)) / size
+        self.logger.info(self.speed_dict)
+
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    @retry_multi()
+    def load_cds_buses_from_db(self, keys):
         all_buses = self.load_all_cds_buses_from_db()
-        self.avg_speed = get_avg_speed(all_buses)
+        self.calc_avg_speed(all_buses)
         self.logger.info(f'Average speed for all buses: {self.avg_speed:.1f}')
 
         if not keys:
