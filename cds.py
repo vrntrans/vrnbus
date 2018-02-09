@@ -505,7 +505,8 @@ class CdsRequest:
         return result
 
     def preload_data(self):
-        self.load_cds_buses_from_db()
+        all_buses = self.load_all_cds_buses_from_db()
+        self.calc_avg_speed(all_buses)
 
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult):
@@ -519,6 +520,7 @@ class CdsRequest:
         routes_set = set()
         bus_filter = list(set([x for x in self.cds_routes.keys()
                                for r in search_result.bus_routes if x.upper() == r.upper()]))
+        self.preload_data()
         result.append(f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
         if search_result.bus_routes:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)};")
