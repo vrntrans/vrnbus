@@ -511,9 +511,10 @@ class CdsRequest:
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult):
         def bus_info(bus: CdsRouteBus, distance, time_left):
-            info = f'{bus.route_name_:>5} {time_left:>2.0f} мин ( {distance:.2f} км )'
+            arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
+            info = f'{bus.route_name_:>5} {arrival_time}'
             if search_result.full_info:
-                info += f' {bus.bus_station_} {bus.last_time_:%H:%M} {bus.name_}'
+                info += f' {distance:.2f} км {bus.bus_station_} {bus.last_time_:%H:%M} {bus.name_}'
             return info
 
         result = []
@@ -526,7 +527,7 @@ class CdsRequest:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)};")
             if search_result.full_info:
                 avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed) for x in bus_filter)) / len(bus_filter)
-                result.append(f"Средняя скороть на маршрутах {avg_speed_routes:.2f} км/ч")
+                result.append(f"Средняя скорость на маршрутах {avg_speed_routes:.2f} км/ч")
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
             arrival_buses = [x for x in arrival_buses if not bus_filter or x in bus_filter]
