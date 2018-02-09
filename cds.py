@@ -395,30 +395,34 @@ class CdsRequest:
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
         return result
 
-    def calc_avg_speed(self, bus_list):
-        def time_filter(bus, now):
-            if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=15):
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    def calc_avg_speed(self):
+        def time_filter(bus):
+            if not bus.last_time_ or bus.last_time_ < last_n_minutes:
                 return False
-            if bus.last_station_time_ and (now - get_time(bus.last_station_time_)) > timedelta(minutes=15):
+            if bus.last_station_time_ and bus.last_station_time_ < last_n_minutes:
                 return False
             return True
 
-        now = datetime.now(tz=tz)
-        bus_list = [x for x in bus_list if time_filter(x, now)]
+        now = datetime.now()
+        last_n_minutes = now - timedelta(minutes=15)
+
+        bus_full_list = self.load_all_cds_buses_from_db()
+        bus_list = list(filter(time_filter, bus_full_list))
+        self.logger.info(f'Buses in last 15 munutes {len(bus_list)} from {len(bus_full_list)}')
         sum_speed = sum((x.last_speed_ for x in bus_list))
         self.avg_speed = sum_speed * 1.0 / len(bus_list)
-
+        self.logger.info(f'Average speed for all buses: {self.avg_speed:.1f}')
+        speed_dict = {}
         curr_bus_routes = Counter((x.route_name_ for x in bus_list))
         for (route, size) in curr_bus_routes.items():
-            self.speed_dict[route] = sum((x.last_speed_ for x in bus_list if x.route_name_ == route)) / size
+            speed_dict[route] = sum((x.last_speed_ for x in bus_list if x.route_name_ == route)) / size
+        self.speed_dict = speed_dict
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
     def load_cds_buses_from_db(self, keys):
         all_buses = self.load_all_cds_buses_from_db()
-        self.calc_avg_speed(all_buses)
-        self.logger.info(f'Average speed for all buses: {self.avg_speed:.1f}')
-
         if not keys:
             return all_buses
         result = [x for x in all_buses if x.route_name_ in keys]
@@ -469,10 +473,10 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=30, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
-        def time_filter(bus):
-            if not bus.last_time_ or (now - get_time(bus.last_time_)) > timedelta(minutes=15):
+        def time_filter(bus_info):
+            if not bus_info.last_time_ or tz.localize(bus_info.last_time_) < last_n_minutes:
                 return False
-            if bus.last_station_time_ and (now - get_time(bus.last_station_time_)) > timedelta(minutes=15):
+            if bus_info.last_station_time_ and tz.localize(bus_info.last_station_time_) < last_n_minutes:
                 return False
             return True
 
@@ -483,13 +487,13 @@ class CdsRequest:
             return minutes - time_diff.seconds / 60
 
         now = datetime.now(tz=tz)
+        last_n_minutes = now - timedelta(minutes=15)
+
         result = []
         all_buses = [x for x in self.load_cds_buses_from_db(tuple(bus_route_names)) if time_filter(x)]
         if not all_buses:
             return result
-        sum_speed = sum((x.last_speed_ for x in all_buses))
-        avg_speed = sum_speed / len(all_buses)
-        self.logger.info(f'Average speed for {bus_route_names}: {avg_speed:.1f}')
+
         for bus in all_buses:
             if bus_filter and bus_filter not in bus.name_:
                 continue
@@ -504,11 +508,7 @@ class CdsRequest:
                 result.append((bus, dist, time_left))
         return result
 
-    def preload_data(self):
-        all_buses = self.load_all_cds_buses_from_db()
-        self.calc_avg_speed(all_buses)
-
-    @cachetools.func.ttl_cache(ttl=30)
+    # @cachetools.func.ttl_cache(ttl=30)
     def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult):
         def bus_info(bus: CdsRouteBus, distance, time_left):
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
@@ -519,20 +519,27 @@ class CdsRequest:
 
         result = []
         routes_set = set()
-        bus_filter = list(set([x for x in self.cds_routes.keys()
+        routes_filter = list(set([x for x in self.cds_routes.keys()
                                for r in search_result.bus_routes if x.upper() == r.upper()]))
-        self.preload_data()
+        self.calc_avg_speed()
         result.append(f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
         if search_result.bus_routes:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)};")
             if search_result.full_info:
-                avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed) for x in bus_filter)) / len(bus_filter)
+                avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed)
+                                        for x in routes_filter)) / len(routes_filter)
                 result.append(f"Средняя скорость на маршрутах {avg_speed_routes:.2f} км/ч")
+
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
-            arrival_buses = [x for x in arrival_buses if not bus_filter or x in bus_filter]
+            arrival_buses = [x for x in arrival_buses if not routes_filter or x in routes_filter]
             if not arrival_buses:
                 continue
+            if routes_filter:
+                avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed)
+                                        for x in routes_filter)) / len(routes_filter)
+                self.logger.info(f'Average speed on routes {arrival_buses} {avg_speed_routes} kmh')
+
             routes_set.update(arrival_buses)
             arrival_buses.sort(key=natural_sort_key)
             result.append(f'{item.NAME_}:')
@@ -542,7 +549,7 @@ class CdsRequest:
             result.append("")
         routes_list = list(routes_set)
         routes_list.sort(key=natural_sort_key)
-        result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
+        result.append(f'Возможные маршруты: {" ".join(routes_list)}')
         return ('\n'.join(result), " ".join(routes_list))
 
     @cachetools.func.ttl_cache(ttl=30)

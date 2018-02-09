@@ -165,7 +165,7 @@ class BusBot:
                 route_settings = list(set(route_settings + change_routes))
             else:
                 route_settings = change_routes
-            settings['route_settings'] = route_settings
+            settings['route_settings'] = sorted(route_settings, key=natural_sort_key)
             self.user_settings[user_id] = settings
             update.message.reply_text(f"Текущие маршруты для вывода: {' '.join(route_settings)}")
             return
