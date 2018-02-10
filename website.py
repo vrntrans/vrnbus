@@ -43,9 +43,9 @@ class BusSite(tornado.web.Application):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
-            (r"/arrival_alt", ArrivalAltHandler),
             (r"/businfo", BusInfoHandler),
             (r"/buslist", BusListHandler),
+            (r"/bus_stop_search", BusStopSearchHandler),
             (r"/coddbus", MapHandler),
             (r"/ping", PingHandler),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
@@ -84,13 +84,15 @@ class BusInfoHandler(BaseHandler):
 
 
 class ArrivalHandler(BaseHandler):
-    def arrival_response(self, alt):
+    def arrival_response(self):
         (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
         query = self.get_argument('q')
 
+        new_version = self.get_argument('old', '') != 'true'
+
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
-        func = self.cds.next_bus_for_matches_alt if alt else self.cds.next_bus_for_matches
+        func = self.cds.next_bus_for_matches_alt if new_version else self.cds.next_bus_for_matches
         result = func(tuple(matches), parse_routes(query))
         response = {'lat': lat, 'lon': lon, 'text': result[0], 'routes': result[1]}
         self.write(json.dumps(response))
@@ -98,13 +100,7 @@ class ArrivalHandler(BaseHandler):
 
     @run_on_executor
     def get(self):
-        self.arrival_response(False)
-
-
-class ArrivalAltHandler(ArrivalHandler):
-    @run_on_executor
-    def get(self):
-        self.arrival_response(True)
+        self.arrival_response()
 
 
 class MapHandler(BaseHandler):
@@ -136,6 +132,21 @@ class BusListHandler(BaseHandler):
     def get(self):
         self._response()
 
+class BusStopSearchHandler(BaseHandler):
+    def _response(self):
+        query = self.get_argument('q')
+        station_query = self.get_argument('station')
+        new_version = self.get_argument('old', '') != 'true'
+
+        result = self.cds.next_bus(station_query, parse_routes(query), new_version)
+
+        response = {'text': result}
+        self.write(json.dumps(response))
+        self.caching()
+
+    @run_on_executor
+    def get(self):
+        self._response()
 
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, o):

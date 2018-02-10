@@ -411,7 +411,8 @@ class CdsRequest:
         bus_list = list(filter(time_filter, bus_full_list))
         self.logger.info(f'Buses in last 15 munutes {len(bus_list)} from {len(bus_full_list)}')
         sum_speed = sum((x.last_speed_ for x in bus_list))
-        self.avg_speed = sum_speed * 1.0 / len(bus_list)
+        if len(bus_list) > 0:
+            self.avg_speed = sum_speed * 1.0 / len(bus_list)
         self.logger.info(f'Average speed for all buses: {self.avg_speed:.1f}')
         speed_dict = {}
         curr_bus_routes = Counter((x.route_name_ for x in bus_list))
@@ -429,17 +430,15 @@ class CdsRequest:
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def next_bus(self, bus_stop, user_bus_list, alt):
-        bus_stop = ' '.join(bus_stop)
-        bus_stop_matches = [x for x in self.bus_stops if bus_stop.upper() in x.NAME_.upper()]
-        print(bus_stop, bus_stop_matches)
+    def next_bus(self, bus_stop_query, search_result, alt=True):
+        bus_stop_matches = [x for x in self.bus_stops if bus_stop_query.upper() in x.NAME_.upper()]
         if not bus_stop_matches:
-            return f'Остановки c именем "{bus_stop}" не найдены'
+            return f'Остановки c именем "{bus_stop_query}" не найдены'
         if len(bus_stop_matches) > 5:
             first_matches = '\n'.join([x.NAME_ for x in bus_stop_matches[:20]])
             return f'Уточните остановку. Найденные варианты:\n{first_matches}'
         method = self.next_bus_for_matches_alt if alt else self.next_bus_for_matches
-        return method(tuple(bus_stop_matches), SearchResult(bus_routes=user_bus_list))[0]
+        return method(tuple(bus_stop_matches), search_result)[0]
 
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches(self, bus_stop_matches, search_result: SearchResult):
@@ -447,7 +446,7 @@ class CdsRequest:
             routes = search_result.bus_routes
             return info.time_ > 0 and (not routes or info.rname_.strip() in routes)
 
-        result = []
+        result = [f'Время: {datetime.now():%H:%M} (Рассчёт ЦОДД)']
         routes_set = set()
         if search_result.bus_routes:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}")
@@ -464,7 +463,7 @@ class CdsRequest:
                     result.append(f'Остановка {header.rname_}: нет данных')
                     continue
                 next_bus_info = f"Остановка {header.rname_}:\n"
-                next_bus_info += '\n'.join((f"{x.rname_} - {x.time_} мин" for x in items))
+                next_bus_info += '\n'.join((f"{x.rname_:>5} {x.time_:>2.0f} мин" for x in items))
                 result.append(next_bus_info)
         routes_list = list(routes_set)
         routes_list.sort(key=natural_sort_key)
@@ -481,7 +480,7 @@ class CdsRequest:
             return True
 
         def time_to_arrive(km, last_time):
-            speed = self.avg_speed
+            speed = self.avg_speed if self.avg_speed > 0.1 else 0.1
             minutes = (km * 60 / speed)
             time_diff = now - last_time
             return minutes - time_diff.seconds / 60
@@ -517,17 +516,20 @@ class CdsRequest:
                 info += f' {distance:.2f} км {bus.bus_station_} {bus.last_time_:%H:%M} {bus.name_}'
             return info
 
-        result = []
+        result = [f'Время: {datetime.now():%H:%M}']
         routes_set = set()
         routes_filter = list(set([x for x in self.cds_routes.keys()
                                for r in search_result.bus_routes if x.upper() == r.upper()]))
         self.calc_avg_speed()
-        result.append(f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
+
         if search_result.bus_routes:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)};")
-            if search_result.full_info:
+        if search_result.full_info:
+            result.append(f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
+            if search_result.bus_routes:
                 avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed)
                                         for x in routes_filter)) / len(routes_filter)
+
                 result.append(f"Средняя скорость на маршрутах {avg_speed_routes:.2f} км/ч")
 
         for item in bus_stop_matches:

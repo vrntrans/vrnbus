@@ -11,9 +11,15 @@
     <a href="map.html">Карта</a>
 </div>
 <div>
-    <button id="nextbus">Прибытие на ближайшие остановки</button>
-    <label><input id="cb_nextbus_old" type='checkbox'>Старая версия</label>
+    <button id="nextbus">Поиск по месту</button>
+    <label><input id="cb_nextbus_old" type='checkbox'>Вариант ЦОДД</label>
     <span id="nextbus_loading"></span>
+</div>
+<div>
+    <button id="btn_station_search">Поиск по названию</button>
+    <input type="text" id="station_name" title="Введите название остановки" placeholder="Название остановки"/>
+    <span id="station_search_loading"></span>
+    <div id="stations" style="white-space:pre-wrap; font-family: monospace"></div>
 </div>
     <div>
         <input type="text" id="lastbusquery" title="Введите номер маршрута" placeholder="Маршруты"/>

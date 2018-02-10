@@ -221,7 +221,8 @@ class BusBot:
             return
 
         user_settings = self.user_settings.get(user.id, {})
-        response = self.cds.next_bus(tuple(args), tuple(user_settings.get('route_settings', [])), alt)
+        search_result = SearchResult(bus_routes=tuple(user_settings.get('route_settings', [])))
+        response = self.cds.next_bus(' '.join(args), search_result, alt)
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
     def next_bus_handler_old(self, _, update, args):
