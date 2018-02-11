@@ -517,7 +517,7 @@ class CdsRequest:
         result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
         return ('\n'.join(result), " ".join(routes_list))
 
-    @cachetools.func.ttl_cache(ttl=30, maxsize=4096)
+    @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
         def time_filter(bus_info):
             if not bus_info.last_time_ or bus_info.last_time_ < last_n_minutes:
@@ -560,7 +560,7 @@ class CdsRequest:
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
             info = f'{bus.route_name_:>5} {arrival_time}'
             if search_result.full_info:
-                info += f' {distance:.2f} км {bus.bus_station_} {bus.last_time_:%H:%M} {bus.name_}'
+                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {bus.bus_station_}'
             return info
 
         result = [f'Время: {self.now():%H:%M}']
@@ -601,7 +601,7 @@ class CdsRequest:
         result.append(f'Возможные маршруты: {" ".join(routes_list)}')
         return ('\n'.join(result), " ".join(routes_list))
 
-    @cachetools.func.ttl_cache(ttl=30)
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi(max_retries=5)
     def get_cds_buses(self) -> Iterable[CdsBus]:
         r = requests.get(f'{cds_url_base}GetBuses', cookies=self.cookies, headers=self.fake_header)
@@ -611,7 +611,7 @@ class CdsRequest:
         result: Iterable[CdsBus] = [CdsBus(**i) for i in self.json_fix_and_load(r.text) if 'User' not in i]
         return result
 
-    @cachetools.func.ttl_cache(ttl=30)
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi(max_retries=5)
     def get_codd_buses(self) -> Iterable[CoddBus]:
         r = requests.get(f'{codd_base_usl}GetBusesServlet', headers=self.fake_header)
