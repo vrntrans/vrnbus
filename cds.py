@@ -40,7 +40,8 @@ else:
 
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
-ttl_sec = 30 if not debug else 30
+ttl_sec = 30 if not LOAD_TEST_DATA else 1
+ttl_db_sec = 30 if not LOAD_TEST_DATA else 1
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -187,11 +188,23 @@ class CdsRequest:
                                       password=CDS_PASS, charset='WIN1251')
             self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
         else:
+            self.test_data_files = []
+            self.test_data_index = 0
             self.mocked_now = datetime.now()
+            self.load_test_data()
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
         self.speed_dict = {}
+
+    def load_test_data(self):
+        self.test_data_files = sorted(Path('./test_data/').glob('codd_data_db*.json'))
+        self.test_data_index = 0
+        if self.test_data_files:
+            path = self.test_data_files[0]
+            self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
+        else:
+            self.logger.error("Cannot load test data from ./test_data/")
 
     def load_cds_bus_routes(self) -> {}:
         routes_base_local = {}
@@ -382,17 +395,23 @@ class CdsRequest:
 
     def now(self):
         if LOAD_TEST_DATA:
+            path = self.test_data_files[self.test_data_index]
+            self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
             return self.mocked_now
         return datetime.now()
 
     def next_test_data(self):
-        file_name = 'test_data/codd_data_db18_02_11_10_17_22.json'
-        self.mocked_now = datetime.strptime(file_name, "test_data/codd_data_db%y_%m_%d_%H_%M_%S.json")
-        with open(Path(file_name), 'rb') as f:
+        if self.test_data_files and self.test_data_index >= len(self.test_data_files):
+            self.test_data_index = 0
+        path = self.test_data_files[self.test_data_index]
+        self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
+        with open(path, 'rb') as f:
             long_bus_stops = [CdsRouteBus.make(*i) for i in json.load(f)]
+        self.test_data_index += 1
+        self.logger.info(f'Loaded {path.name}; {self.mocked_now:%H:%M:S}')
         return long_bus_stops
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    @cachetools.func.ttl_cache(ttl=ttl_db_sec)
     @retry_multi()
     def load_all_cds_buses_from_db(self) -> Iterable[CdsRouteBus]:
         def make_names_lower(x):
