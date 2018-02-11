@@ -74,6 +74,10 @@ def distance_km(glat1, glon1, glat2, glon2):
     result = r * c
     return result
 
+def get_iso_time(s):
+    if isinstance(s, datetime.datetime):
+        return s
+    return datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S")
 
 def get_time(s):
     if isinstance(s, datetime.datetime):

@@ -14,7 +14,9 @@ import fdb
 import pytz
 import requests
 
-from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi, SearchResult
+from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi, SearchResult, get_iso_time
+
+LOAD_TEST_DATA = False
 
 try:
     import settings
@@ -23,6 +25,7 @@ try:
     CDS_DB_PATH = settings.CDS_DB_PATH
     CDS_USER = settings.CDS_USER
     CDS_PASS = settings.CDS_PASS
+    LOAD_TEST_DATA = settings.LOAD_TEST_DATA
 except ImportError:
     env = os.environ
     CDS_HOST = env['CDS_HOST']
@@ -37,7 +40,7 @@ else:
 
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
-ttl_sec = 30 if not debug else 600
+ttl_sec = 30 if not debug else 30
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -131,6 +134,14 @@ class CdsRouteBus(NamedTuple):
     bus_station_: str = None
     address: str = None
 
+    @staticmethod
+    def make(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
+                           type_proj, last_station_time_, bus_station_, address):
+        last_time_ = get_iso_time(last_time_)
+        last_station_time_ = get_iso_time(last_station_time_)
+        return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
+                           type_proj, last_station_time_, bus_station_, address)
+
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
 
@@ -171,9 +182,12 @@ class CdsRequest:
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.bus_stops = [BusStop(**i) for i in init_bus_stops()]
         self.bus_routes = init_bus_routes()
-        self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
-                                  password=CDS_PASS, charset='WIN1251')
-        self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+        if not LOAD_TEST_DATA:
+            self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
+                                      password=CDS_PASS, charset='WIN1251')
+            self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+        else:
+            self.mocked_now = datetime.now()
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
@@ -229,14 +243,14 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_routes):
         def key_check(route):
-            return route.name_ and route.last_time_ and (now - get_time(route.last_time_)) < delta
+            return route.name_ and route.last_time_ and (now - route.last_time_) < delta
 
         keys = set([x for x in self.cds_routes.keys() for r in bus_routes if x.upper() == r.upper()])
 
         routes = self.load_cds_buses_from_db(tuple(keys))
         self.logger.debug(routes)
         if routes:
-            now = datetime.now(tz=tz)
+            now = self.now()
             delta = timedelta(days=1)
             short_result = sorted([d for d in routes if key_check(d)],
                                   key=lambda s: natural_sort_key(s.route_name_))
@@ -292,12 +306,12 @@ class CdsRequest:
         def time_check(d: CdsRouteBus):
             if search_result.full_info:
                 return True
-            return d.last_time_ and (now - get_time(d.last_time_)) < delta
+            return d.last_time_ and (now - d.last_time_) < delta
 
         def filtered(d: CdsRouteBus):
             return search_result.bus_filter == '' or search_result.bus_filter in d.name_
 
-        now = datetime.now(tz=tz)
+        now = self.now()
         delta = timedelta(minutes=30)
         stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d, True)))
                              for d in bus_list if filtered(d) and time_check(d)]
@@ -366,11 +380,26 @@ class CdsRequest:
             return [CdsRouteBus(**i) for i in self.json_fix_and_load(r.text)]
         return []
 
+    def now(self):
+        if LOAD_TEST_DATA:
+            return self.mocked_now
+        return datetime.now()
+
+    def next_test_data(self):
+        file_name = 'test_data/codd_data_db18_02_11_10_17_22.json'
+        self.mocked_now = datetime.strptime(file_name, "test_data/codd_data_db%y_%m_%d_%H_%M_%S.json")
+        with open(Path(file_name), 'rb') as f:
+            long_bus_stops = [CdsRouteBus.make(*i) for i in json.load(f)]
+        return long_bus_stops
+
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
     def load_all_cds_buses_from_db(self) -> Iterable[CdsRouteBus]:
         def make_names_lower(x):
             return {k.lower(): v for (k, v) in x.iteritems()}
+
+        if LOAD_TEST_DATA:
+            return self.next_test_data()
 
         self.logger.info('Execute fetch all from DB')
         start = time.time()
@@ -404,10 +433,9 @@ class CdsRequest:
                 return False
             return True
 
-        now = datetime.now()
-        last_n_minutes = now - timedelta(minutes=15)
-
         bus_full_list = self.load_all_cds_buses_from_db()
+        now = self.now()
+        last_n_minutes = now - timedelta(minutes=15)
         bus_list = list(filter(time_filter, bus_full_list))
         self.logger.info(f'Buses in last 15 munutes {len(bus_list)} from {len(bus_full_list)}')
         sum_speed = sum((x.last_speed_ for x in bus_list))
@@ -446,7 +474,7 @@ class CdsRequest:
             routes = search_result.bus_routes
             return info.time_ > 0 and (not routes or info.rname_.strip() in routes)
 
-        result = [f'Время: {datetime.now():%H:%M} (Рассчёт ЦОДД)']
+        result = [f'Время: {self.now():%H:%M} (Рассчёт ЦОДД)']
         routes_set = set()
         if search_result.bus_routes:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}")
@@ -485,7 +513,7 @@ class CdsRequest:
             time_diff = now - last_time
             return minutes - time_diff.seconds / 60
 
-        now = datetime.now()
+        now = self.now()
         last_n_minutes = now - timedelta(minutes=15)
 
         result = []
@@ -516,10 +544,10 @@ class CdsRequest:
                 info += f' {distance:.2f} км {bus.bus_station_} {bus.last_time_:%H:%M} {bus.name_}'
             return info
 
-        result = [f'Время: {datetime.now():%H:%M}']
+        result = [f'Время: {self.now():%H:%M}']
         routes_set = set()
         routes_filter = list(set([x for x in self.cds_routes.keys()
-                               for r in search_result.bus_routes if x.upper() == r.upper()]))
+                                  for r in search_result.bus_routes if x.upper() == r.upper()]))
         self.calc_avg_speed()
 
         if search_result.bus_routes:
@@ -577,13 +605,13 @@ class CdsRequest:
     @cachetools.func.ttl_cache()
     def get_all_buses(self):
         def key_check(x: CdsBus):
-            return x.name_ and x.last_time_ and (now - get_time(x.last_time_)) < hour
+            return x.name_ and x.last_time_ and (now - x.last_time_) < hour
 
         cds_buses = self.load_all_cds_buses_from_db()
         if not cds_buses:
             return 'Ничего не нашлось'
 
-        now = datetime.now(tz=tz)
+        now = self.now()
         hour = timedelta(hours=1)
         short_result = [(d.name_, d.last_time_, d.route_name_, d.proj_id_) for d in cds_buses if
                         key_check(d)]
