@@ -547,12 +547,13 @@ class CdsRequest:
                 continue
             closest_stop = self.get_closest_bus_stop(bus, True)
             bus_dist = bus.distance_km(closest_stop)
+            same_station = bus.bus_station_ == bus_stop_name
             route_dist = self.get_dist(bus.route_name_, closest_stop.NAME_, bus_stop_name)
             if bus.bus_station_ != closest_stop.NAME_:
                 route_dist += self.get_dist(bus.route_name_, bus.bus_station_, bus_stop_name)
             dist = bus_dist + route_dist
             time_left = time_to_arrive(dist, bus.last_time_)
-            if route_dist > 0 and dist < 20 and time_left < 30:
+            if (same_station or route_dist > 0) and dist < 20 and time_left < 30:
                 result.append((bus, dist, time_left))
         return result
 
