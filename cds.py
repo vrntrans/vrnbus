@@ -2,7 +2,7 @@ import codecs
 import json
 import os
 import time
-from collections import Counter
+from collections import Counter, deque
 from datetime import datetime, timedelta
 from itertools import groupby
 from logging import Logger
@@ -40,8 +40,8 @@ else:
 
 cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
-ttl_sec = 30 if not LOAD_TEST_DATA else 1
-ttl_db_sec = 30 if not LOAD_TEST_DATA else 1
+ttl_sec = 30 if not LOAD_TEST_DATA else 0.01
+ttl_db_sec = 30 if not LOAD_TEST_DATA else 0.01
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -196,6 +196,7 @@ class CdsRequest:
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
         self.speed_dict = {}
+        self.speed_deque = deque(maxlen=10)
 
     def load_test_data(self):
         self.test_data_files = sorted(Path('./test_data/').glob('codd_data_db*.json'))
@@ -408,7 +409,7 @@ class CdsRequest:
         with open(path, 'rb') as f:
             long_bus_stops = [CdsRouteBus.make(*i) for i in json.load(f)]
         self.test_data_index += 1
-        self.logger.info(f'Loaded {path.name}; {self.mocked_now:%H:%M:S}')
+        self.logger.info(f'Loaded {path.name}; {self.mocked_now:%H:%M:%S}')
         return long_bus_stops
 
     @cachetools.func.ttl_cache(ttl=ttl_db_sec)
@@ -459,7 +460,8 @@ class CdsRequest:
         self.logger.info(f'Buses in last 15 munutes {len(bus_list)} from {len(bus_full_list)}')
         sum_speed = sum((x.last_speed_ for x in bus_list))
         if len(bus_list) > 0:
-            self.avg_speed = sum_speed * 1.0 / len(bus_list)
+            self.speed_deque.append(sum_speed * 1.0 / len(bus_list))
+            self.avg_speed = sum(self.speed_deque) / len(self.speed_deque)
         self.logger.info(f'Average speed for all buses: {self.avg_speed:.1f}')
         speed_dict = {}
         curr_bus_routes = Counter((x.route_name_ for x in bus_list))
@@ -563,7 +565,7 @@ class CdsRequest:
                 info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {bus.bus_station_}'
             return info
 
-        result = [f'Время: {self.now():%H:%M}']
+        result = [f'Время: {self.now():%H:%M:%S}']
         routes_set = set()
         routes_filter = list(set([x for x in self.cds_routes.keys()
                                   for r in search_result.bus_routes if x.upper() == r.upper()]))
