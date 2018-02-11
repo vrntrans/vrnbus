@@ -4,32 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="map.css">
-    <title>vrnbus (beta) | Прибытие на остановки</title>
+    <title>vrnbus (beta) | Поиск по автобусам Воронежа</title>
 </head>
 <body>
 <div>
-    <h3>Прибытие на остановки</h3>
+    <h3>Поиск по автобусам</h3>
     <a href="index.html">Прибытие</a>
     <a href="businfo.html">Автобусы</a>
     <a href="map.html">Карта</a>
     <a href="https://vk.com/vrntrans">Обратная связь</a>
 </div>
-<div>
-    <button id="nextbus">Найти ближайшие остановки</button>
-    <span id="nextbus_loading"></span>
-</div>
-<div>
-    <button id="btn_station_search">Поиск по названию</button>
-    <input type="text" id="station_name" title="Введите название остановки" placeholder="Название остановки"/>
-    <span id="station_search_loading"></span>
-    <div id="stations" style="white-space:pre-wrap; font-family: monospace"></div>
-</div>
+
     <div>
         <input type="text" id="lastbusquery" title="Введите номер маршрута" placeholder="Маршруты"/>
         <select id="buslist"></select>
         <span id="lastbus_loading"></span>
     </div>
 <div id="info" style="white-space:pre-wrap; font-family: monospace"></div>
+<div>
+
+    <div>
+        <label><input id='cb_refresh' type='checkbox'>Обновлять через 30 сек.</label>
+    </div>
+    <div>
+        <button id="lastbus">Поиск</button>
+    </div>
+</div>
+<div>
+    <div id="businfo" style="white-space:pre-wrap;"></div>
+</div>
+
 <script>
     (window.fetch && window.Promise && Array.prototype.find && String.prototype.includes) || document.write(
         '<script src="promises.min.js"><\/sc' + 'ript><script src="fetch.min.js"><\/sc' + 'ript>')

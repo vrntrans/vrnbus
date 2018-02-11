@@ -18,10 +18,12 @@
     const cb_show_info = document.getElementById('cb_show_info')
     const btn_station_search = document.getElementById('btn_station_search')
 
+    if (lastbus)
     lastbus.onclick = function () {
         get_cds_bus()
     }
 
+    if (cb_refresh)
     cb_refresh.onclick = function () {
         if (!cb_refresh.checked) {
             clearTimeout(timer_id)
@@ -38,8 +40,10 @@
         }
     }
 
-    btn_station_search.onclick = function () {
-        get_bus_arrival_by_name()
+    if (btn_station_search) {
+        btn_station_search.onclick = function () {
+            get_bus_arrival_by_name()
+        }
     }
 
     lastbusquery.onkeyup = function (event) {
@@ -49,10 +53,12 @@
         }
     }
 
-    station_name.onkeyup = function (event) {
-        event.preventDefault()
-        if (event.keyCode === 13) {
-            get_bus_arrival_by_name()
+    if (station_name) {
+        station_name.onkeyup = function (event) {
+            event.preventDefault()
+            if (event.keyCode === 13) {
+                get_bus_arrival_by_name()
+            }
         }
     }
 
@@ -81,6 +87,7 @@
     if ("geolocation" in navigator) {
         const nextbus = document.getElementById('nextbus');
 
+        if (nextbus)
         nextbus.onclick = function (event) {
             event.preventDefault()
             get_current_pos(get_bus_arrival)
@@ -95,9 +102,6 @@
 
     function get_bus_arrival_by_name() {
         const btn_station_search = document.getElementById('btn_station_search')
-        const cb_nextbus_old = document.getElementById('cb_nextbus_old')
-
-        const use_old_version = cb_nextbus_old.checked
         waiting(nextbus_loading, btn_station_search, true)
 
         const bus_query = lastbusquery.value
@@ -107,8 +111,8 @@
         save_to_ls('station_query', station_query)
 
         const params = 'q=' + encodeURIComponent(bus_query) +
-            '&station=' + encodeURIComponent(station_query) +
-            (use_old_version ? '&old=true' : '')
+            '&station=' + encodeURIComponent(station_query)
+
         return fetch('/bus_stop_search?' + params,
             {
                 method: 'GET',
@@ -131,9 +135,6 @@
 
     function get_bus_arrival(position) {
         const nextbus = document.getElementById('nextbus')
-        const cb_nextbus_old = document.getElementById('cb_nextbus_old')
-
-        const use_old_version = cb_nextbus_old.checked
         waiting(nextbus_loading, nextbus, true)
 
         coords = position.coords
@@ -141,8 +142,7 @@
 
         const params = 'q=' + encodeURIComponent(bus_query) +
             '&lat=' + encodeURIComponent(coords.latitude) +
-            '&lon=' + encodeURIComponent(coords.longitude) +
-            (use_old_version ? '&old=true' : '')
+            '&lon=' + encodeURIComponent(coords.longitude)
 
         return fetch('/arrival?' + params,
             {
@@ -400,10 +400,12 @@
     function init() {
         get_bus_list()
         const busquery = load_from_ls('bus_query')
-        lastbusquery.value = busquery || ''
+        if (lastbusquery)
+            lastbusquery.value = busquery || ''
 
         const station_query = load_from_ls('station_query')
-        station_name.value = station_query || ''
+        if (station_name)
+            station_name.value = station_query || ''
     }
 
     document.addEventListener("DOMContentLoaded", init);

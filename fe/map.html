@@ -3,24 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>vrnbus (beta)</title>
+    <title>vrnbus (beta) | Карта автобусов Воронежа</title>
     <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
     <link rel="stylesheet" href="map.css">
 </head>
 <body>
 <div>
-    <a href="index.html">Список</a>
-</div>
-<div>
-    <button id="nextbus">Поиск по месту</button>
-    <label><input id="cb_nextbus_old" type='checkbox'>Вариант ЦОДД</label>
-    <span id="nextbus_loading"></span>
-</div>
-<div>
-    <button id="btn_station_search">Поиск по названию</button>
-    <input type="text" id="station_name" title="Введите название остановки" placeholder="Название остановки"/>
-    <span id="station_search_loading"></span>
-    <div id="stations" style="white-space:pre-wrap; font-family: monospace"></div>
+    <h3>Поиск по автобусам</h3>
+    <a href="index.html">Прибытие</a>
+    <a href="businfo.html">Автобусы</a>
+    <a href="map.html">Карта</a>
+    <a href="https://vk.com/vrntrans">Обратная связь</a>
 </div>
     <div>
         <input type="text" id="lastbusquery" title="Введите номер маршрута" placeholder="Маршруты"/>
@@ -31,8 +24,10 @@
 <div>
 
     <div>
-        <label><input id='cb_refresh' type='checkbox'>Обновлять</label>
-        <label><input id='cb_show_info' type='checkbox' checked="checked">Список</label></div>
+        <label><input id='cb_refresh' type='checkbox'>Обновлять через 30 сек.</label>
+    </div>
+    <div>
+        <label><input id='cb_show_info' type='checkbox' checked="checked">Отображать список автобусов</label></div>
     <div>
         <button id="lastbus">Поиск в ЦДС</button>
         <button id="lastbus_codd">Поиск в ЦОДД</button>
