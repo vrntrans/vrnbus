@@ -265,7 +265,7 @@ class CdsRequest:
         self.logger.debug(routes)
         if routes:
             now = self.now()
-            delta = timedelta(days=1)
+            delta = timedelta(days=7)
             short_result = sorted([d for d in routes if key_check(d)],
                                   key=lambda s: natural_sort_key(s.route_name_))
             return short_result
@@ -308,11 +308,15 @@ class CdsRequest:
         bus_station = self.bus_station(d)
         dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
         route_name = f"{d.route_name_} " if show_route_name else ""
-        result = f"{route_name}{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
+        day_info = ""
+        if self.now() - d.last_time_ > timedelta(days=1):
+            day_info = f'{d.last_time_:%m.%d} '
+        result = f"{route_name}{day_info}{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
         if full_info:
             orig_bus_stop = ""
             if not bus_station == d.bus_station_:
                 orig_bus_stop = (' | ' + str(d.bus_station_))
+
             return f"{result} {d.name_}{orig_bus_stop}"
         return result
 
