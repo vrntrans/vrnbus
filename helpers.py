@@ -147,12 +147,22 @@ def fuzzy_search_advanced(needle: str, haystack: str) -> bool:
     if needle in haystack:
         return True
 
-    position = haystack.find(needle[0])
+    nch = needle[0]
+    position = haystack.find(nch)
     if position == -1:
         return False
 
-    i = 0
     skip_chars = (' ', ',', '(', ')', '.')
+    if position > 0 and nch not in skip_chars:
+        while True:
+            if haystack[position - 1] not in skip_chars:
+                position = haystack.find(nch, position) + 1
+                if position == 0:
+                    return False
+            else:
+                break
+
+    i = 1
     while i < nlen :
         nch = needle[i]
         prev_position = position + 1

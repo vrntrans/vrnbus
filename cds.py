@@ -311,7 +311,7 @@ class CdsRequest:
         route_name = f"{d.route_name_} " if show_route_name else ""
         day_info = ""
         if self.now() - d.last_time_ > timedelta(days=1):
-            day_info = f'{d.last_time_:%m.%d} '
+            day_info = f'{d.last_time_:%d.%m} '
         result = f"{route_name}{day_info}{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
         if full_info:
             orig_bus_stop = ""
