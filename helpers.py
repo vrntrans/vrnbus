@@ -74,10 +74,12 @@ def distance_km(glat1, glon1, glat2, glon2):
     result = r * c
     return result
 
+
 def get_iso_time(s):
     if isinstance(s, datetime.datetime):
         return s
     return datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S")
+
 
 def get_time(s):
     if isinstance(s, datetime.datetime):
@@ -114,3 +116,57 @@ def retry_multi(max_retries=5):
         return wrapper
 
     return retry
+
+
+def fuzzy_search(needle: str, haystack: str) -> bool:
+    hlen = len(haystack)
+    nlen = len(needle)
+    needle = needle.lower()
+    haystack = haystack.lower()
+    if nlen > hlen or nlen == 0:
+        return False
+    if needle in haystack:
+        return True
+    position = 0
+    for i in range(nlen):
+        nch = needle[i]
+        position = haystack.find(nch, position) + 1
+        if position == 0:
+            return False
+    return True
+
+
+def fuzzy_search_advanced(needle: str, haystack: str) -> bool:
+    hlen = len(haystack)
+    nlen = len(needle)
+    needle = needle.lower()
+    haystack = haystack.lower()
+    if nlen > hlen or nlen == 0:
+        return False
+
+    if needle in haystack:
+        return True
+
+    position = haystack.find(needle[0])
+    if position == -1:
+        return False
+
+    i = 0
+    skip_chars = (' ', ',', '(', ')', '.')
+    while i < nlen :
+        nch = needle[i]
+        prev_position = position + 1
+        position = haystack.find(nch, position) + 1
+
+        if position == 0:
+            return False
+
+        distance_search = position - prev_position
+
+        if distance_search > 0 and haystack[position - 2] not in skip_chars and nch not in skip_chars and i > 1:
+            i -= 1
+            continue
+
+        i += 1
+
+    return True

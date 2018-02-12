@@ -14,7 +14,8 @@ import fdb
 import pytz
 import requests
 
-from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi, SearchResult, get_iso_time
+from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi, SearchResult, get_iso_time, \
+    fuzzy_search_advanced
 
 LOAD_TEST_DATA = False
 
@@ -484,7 +485,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def next_bus(self, bus_stop_query, search_result, alt=True):
-        bus_stop_matches = [x for x in self.bus_stops if bus_stop_query.upper() in x.NAME_.upper()]
+        bus_stop_matches = [x for x in self.bus_stops if fuzzy_search_advanced(bus_stop_query, x.NAME_)]
         if not bus_stop_matches:
             return f'Остановки c именем "{bus_stop_query}" не найдены'
         if len(bus_stop_matches) > 5:
