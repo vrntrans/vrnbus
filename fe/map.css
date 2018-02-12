@@ -50,3 +50,31 @@
     from {transform: rotate(0deg);}
     to {transform: rotate(359deg);}
 }
+
+div.input-row {
+    width: 100%;
+    overflow: hidden;
+    max-width: 500px;
+    padding: 3px;
+}
+input.input-row {
+    width: 100%;
+}
+span.input-row {
+    display: block;
+    overflow: hidden;
+    padding-right:10px;
+}
+select.input-row {
+    display: block;
+    overflow: hidden;
+    margin-right: 5px;
+}
+
+.input-row-right {
+    float: right;
+}
+
+.input-row-left {
+    float: left;
+}

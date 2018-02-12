@@ -12,13 +12,15 @@
     <a href="index.html">Прибытие</a>
     <a href="businfo.html">Автобусы</a>
     <b>Карта</b>
-    <a href="feedback.html">Обратная связь</a>
+    <a href="feedback.html">О проекте</a>
 </div>
-    <div>
-        <input type="text" id="lastbusquery" title="Введите номер маршрута" placeholder="Маршруты"/>
-        <select id="buslist"></select>
-        <span id="lastbus_loading"></span>
-    </div>
+<div class="input-row">
+    <select class="input-row input-row-right" id="buslist"></select>
+    <span class="input-row"><input class="input-row" type="text" id="lastbusquery"
+                                   title="Введите номера машрутов автобусов"
+                                   placeholder="Введите номера машрутов автобусов"/></span>
+    <span id="lastbus_loading"></span>
+</div>
 <div id="info" style="white-space:pre-wrap; font-family: monospace"></div>
 <div>
 

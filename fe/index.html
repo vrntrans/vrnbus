@@ -11,23 +11,26 @@
     <b>Прибытие</b>
     <a href="businfo.html">Автобусы</a>
     <a href="map.html">Карта</a>
-    <a href="feedback.html">Обратная связь</a>
+    <a href="feedback.html">О проекте</a>
 </div>
 <div>
     <button id="nextbus">Найти ближайшие остановки</button>
     <span id="nextbus_loading"></span>
+    <div>(Нужно разрешить сайту запрашивать геолокацию)</div><br/>
 </div>
-<div>
-    <button id="btn_station_search">Поиск по названию</button>
-    <input type="text" id="station_name" title="Введите название остановки" placeholder="Название остановки"/>
+<div class="input-row">
+    <button class="input-row-left" id="btn_station_search">Поиск</button>
+    <span class="input-row"><input class="input-row" type="text" id="station_name" title="Введите название остановки" placeholder="Введите название остановки"/></span>
     <span id="station_search_loading"></span>
     <div id="stations" style="white-space:pre-wrap; font-family: monospace"></div>
 </div>
-    <div>
-        <input type="text" id="lastbusquery" title="Введите номер маршрута" placeholder="Маршруты"/>
-        <select id="buslist"></select>
-        <span id="lastbus_loading"></span>
-    </div>
+<div class="input-row">
+    <select class="input-row input-row-right" id="buslist"></select>
+    <span class="input-row"><input class="input-row" type="text" id="lastbusquery"
+                                   title="Введите номера машрутов автобусов"
+                                   placeholder="Введите номера машрутов автобусов"/></span>
+    <span id="lastbus_loading"></span>
+</div>
 <div id="info" style="white-space:pre-wrap; font-family: monospace"></div>
 <script>
     (window.fetch && window.Promise && Array.prototype.find && String.prototype.includes) || document.write(
