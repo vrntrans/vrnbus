@@ -2,8 +2,9 @@
     "use strict";
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
-    const lastbusquery = document.getElementById('lastbusquery');
-    const station_name = document.getElementById('station_name');
+    const lastbusquery = document.getElementById('lastbusquery')
+    const station_query = document.getElementById('station_query')
+    const station_name = document.getElementById('station_name')
     var my_map
     var BusIconContentLayout
     var timer_id = 0
@@ -19,19 +20,19 @@
     const btn_station_search = document.getElementById('btn_station_search')
 
     if (lastbus)
-    lastbus.onclick = function () {
-        get_cds_bus()
-    }
+        lastbus.onclick = function () {
+            get_cds_bus()
+        }
 
     if (cb_refresh)
-    cb_refresh.onclick = function () {
-        if (!cb_refresh.checked) {
-            clearTimeout(timer_id)
-            clearTimeout(timer_stop_id)
-            timer_id = 0
-            timer_stop_id = 0
+        cb_refresh.onclick = function () {
+            if (!cb_refresh.checked) {
+                clearTimeout(timer_id)
+                clearTimeout(timer_stop_id)
+                timer_id = 0
+                timer_stop_id = 0
+            }
         }
-    }
 
     if (cb_show_info) {
         cb_show_info.onclick = function () {
@@ -42,14 +43,24 @@
 
     if (btn_station_search) {
         btn_station_search.onclick = function () {
-            get_bus_arrival_by_name()
+            run_search_by_name()
+        }
+    }
+    if (lastbusquery) {
+        lastbusquery.onkeyup = function (event) {
+            event.preventDefault()
+            if (event.keyCode === 13) {
+                get_cds_bus()
+            }
         }
     }
 
-    lastbusquery.onkeyup = function (event) {
-        event.preventDefault()
-        if (event.keyCode === 13) {
-            get_cds_bus()
+    if (station_query){
+                station_query.onkeyup = function (event) {
+            event.preventDefault()
+            if (event.keyCode === 13) {
+                run_search_by_name()
+            }
         }
     }
 
@@ -57,18 +68,19 @@
         station_name.onkeyup = function (event) {
             event.preventDefault()
             if (event.keyCode === 13) {
-                get_bus_arrival_by_name()
+                run_search_by_name()
             }
         }
     }
 
-    function get_cds_bus() {
+    function run_timer(func) {
         if (cb_refresh.checked && !timer_id) {
             timer_id = setTimeout(function tick() {
-                get_cds_bus().then(function () {
-                    timer_id = setTimeout(tick, 20 * 1000);
+                func().then(function () {
+                    if (cb_refresh.checked)
+                        timer_id = setTimeout(tick, 30 * 1000)
                 })
-            }, 20 * 1000)
+            }, 30 * 1000)
             if (!timer_stop_id)
                 timer_stop_id = setTimeout(function () {
                     cb_refresh.checked = false
@@ -76,8 +88,17 @@
                     timer_id = 0
                     timer_stop_id = 0
 
-                }, 10 * 30 * 1000)
+                }, 10 * 60 * 1000)
         }
+    }
+
+    function run_search_by_name() {
+        run_timer(run_search_by_name)
+        return get_bus_arrival_by_name()
+    }
+
+    function get_cds_bus() {
+        run_timer(get_cds_bus)
 
         const bus_query = lastbusquery.value
         save_to_ls('bus_query', bus_query)
@@ -85,13 +106,13 @@
     }
 
     if ("geolocation" in navigator) {
-        const nextbus = document.getElementById('nextbus');
+        const nextbus = document.getElementById('nextbus')
 
         if (nextbus)
-        nextbus.onclick = function (event) {
-            event.preventDefault()
-            get_current_pos(get_bus_arrival)
-        }
+            nextbus.onclick = function (event) {
+                event.preventDefault()
+                get_current_pos(get_bus_arrival)
+            }
     }
 
     function get_current_pos(func) {
@@ -100,18 +121,35 @@
         navigator.geolocation.getCurrentPosition(func)
     }
 
+    function format_bus_stops(header, bus_stops) {
+        var bus_stop_info = header + '\n'
+        for (const prop in bus_stops) {
+            bus_stop_info += '<a class="bus_linked" href="">' + prop + '</a>' + '\n' + bus_stops[prop] + '\n'
+        }
+
+        info.innerHTML = bus_stop_info
+        var elements = document.getElementsByClassName('bus_linked')
+        for (var i = 0; i < elements.length; i++) {
+            elements[i].onclick = function (e) {
+                e.preventDefault()
+                if (e.srcElement && e.srcElement.text)
+                    station_name.value = e.srcElement.text
+            }
+        }
+    }
+
     function get_bus_arrival_by_name() {
         const btn_station_search = document.getElementById('btn_station_search')
         waiting(nextbus_loading, btn_station_search, true)
 
-        const bus_query = lastbusquery.value
-        const station_query = station_name.value
+        const bus_query = station_query.value
+        const station = station_name.value
 
         save_to_ls('bus_query', bus_query)
-        save_to_ls('station_query', station_query)
+        save_to_ls('station', station)
 
         const params = 'q=' + encodeURIComponent(bus_query) +
-            '&station=' + encodeURIComponent(station_query)
+            '&station=' + encodeURIComponent(station)
 
         return fetch('/bus_stop_search?' + params,
             {
@@ -125,7 +163,7 @@
             })
             .then(function (data) {
                 waiting(nextbus_loading, btn_station_search, false)
-                info.innerHTML = data.text
+                format_bus_stops(data.header, data.bus_stops)
             })
             .catch(function (error) {
                 waiting(nextbus_loading, btn_station_search, false)
@@ -156,7 +194,7 @@
             })
             .then(function (data) {
                 waiting(nextbus_loading, nextbus, false)
-                info.innerHTML = data.text
+                format_bus_stops(data.header, data.bus_stops)
             })
             .catch(function (error) {
                 waiting(nextbus_loading, nextbus, false)
@@ -403,9 +441,9 @@
         if (lastbusquery)
             lastbusquery.value = busquery || ''
 
-        const station_query = load_from_ls('station_query')
+        const station = load_from_ls('station')
         if (station_name)
-            station_name.value = station_query || ''
+            station_name.value = station || ''
     }
 
     document.addEventListener("DOMContentLoaded", init);

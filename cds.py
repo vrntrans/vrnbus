@@ -47,6 +47,12 @@ ttl_db_sec = 30 if not LOAD_TEST_DATA else 0.001
 tz = pytz.timezone('Europe/Moscow')
 
 
+class ArrivalInfo(NamedTuple):
+    text: str
+    header: str = ''
+    bus_stops: dict = {}
+
+
 class UserLoc(NamedTuple):
     lat: float
     lon: float
@@ -487,15 +493,17 @@ class CdsRequest:
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def next_bus(self, bus_stop_query, search_result, alt=True):
+    def next_bus(self, bus_stop_query, search_result, alt=True) -> ArrivalInfo:
         bus_stop_matches = [x for x in self.bus_stops if fuzzy_search_advanced(bus_stop_query, x.NAME_)]
         if not bus_stop_matches:
-            return f'Остановки c именем "{bus_stop_query}" не найдены'
+            text = f'Остановки c именем "{bus_stop_query}" не найдены'
+            return ArrivalInfo(text=text, header=text)
         if len(bus_stop_matches) > 5:
             first_matches = '\n'.join([x.NAME_ for x in bus_stop_matches[:20]])
-            return f'Уточните остановку. Найденные варианты:\n{first_matches}'
+            bus_stop_dict = {x.NAME_:'' for x in bus_stop_matches[:20]}
+            return ArrivalInfo(f'Уточните остановку. Найденные варианты:\n{first_matches}', 'Уточните остановку. Найденные варианты:', bus_stop_dict)
         method = self.next_bus_for_matches_alt if alt else self.next_bus_for_matches
-        return method(tuple(bus_stop_matches), search_result)[0]
+        return method(tuple(bus_stop_matches), search_result)
 
     # @cachetools.func.ttl_cache(ttl=60)
     def next_bus_for_matches(self, bus_stop_matches, search_result: SearchResult):
@@ -507,6 +515,8 @@ class CdsRequest:
         routes_set = set()
         if search_result.bus_routes:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}")
+        bus_stop_dict = {}
+        headers = result[:]
         for item in bus_stop_matches:
             arrivals = self.next_bus_for_lat_lon(item.LAT_, item.LON_)
             if arrivals:
@@ -518,14 +528,17 @@ class CdsRequest:
                 items.sort(key=lambda s: natural_sort_key(s.rname_))
                 if not items:
                     result.append(f'Остановка {header.rname_}: нет данных')
+                    bus_stop_dict[header.rname_] = ""
                     continue
                 next_bus_info = f"Остановка {header.rname_}:\n"
-                next_bus_info += '\n'.join((f"{x.rname_:>5} {x.time_:>2.0f} мин" for x in items))
+                bus_stop_value = '\n'.join((f"{x.rname_:>5} {x.time_:>2.0f} мин" for x in items))
+                next_bus_info += bus_stop_value
+                bus_stop_dict[header.rname_] = bus_stop_value
                 result.append(next_bus_info)
         routes_list = list(routes_set)
         routes_list.sort(key=natural_sort_key)
         result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
-        return ('\n'.join(result), " ".join(routes_list))
+        return ('\n'.join(result), "\n".join(headers), bus_stop_dict)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
@@ -565,8 +578,10 @@ class CdsRequest:
                 result.append((bus, dist, time_left))
         return result
 
+
+
     # @cachetools.func.ttl_cache(ttl=30)
-    def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult):
+    def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult) -> ArrivalInfo:
         def bus_info(bus: CdsRouteBus, distance, time_left):
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
             info = f'{bus.route_name_:>5} {arrival_time}'
@@ -574,11 +589,13 @@ class CdsRequest:
                 info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {bus.bus_station_}'
             return info
 
+
         result = [f'Время: {self.now():%H:%M:%S}']
         routes_set = set()
         routes_filter = list(set([x for x in self.cds_routes.keys()
                                   for r in search_result.bus_routes if x.upper() == r.upper()]))
         self.calc_avg_speed()
+
 
         if search_result.bus_routes:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)};")
@@ -590,6 +607,8 @@ class CdsRequest:
 
                 result.append(f"Средняя скорость на маршрутах {avg_speed_routes:.2f} км/ч")
 
+        bus_stop_dict = {}
+        headers = result[:]
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
             arrival_buses = [x for x in arrival_buses if not routes_filter or x in routes_filter]
@@ -605,12 +624,14 @@ class CdsRequest:
             result.append(f'{item.NAME_}:')
             distance_list = self.get_bus_distance_to(tuple(arrival_buses), item.NAME_, search_result.bus_filter)
             distance_list.sort(key=lambda x: x[2])
-            result.append('\n'.join((bus_info(*d) for d in distance_list)))
+            bus_stop_value = '\n'.join((bus_info(*d) for d in distance_list))
+            bus_stop_dict[item.NAME_] = bus_stop_value
+            result.append(bus_stop_value)
             result.append("")
         routes_list = list(routes_set)
         routes_list.sort(key=natural_sort_key)
         result.append(f'Возможные маршруты: {" ".join(routes_list)}')
-        return ('\n'.join(result), " ".join(routes_list))
+        return ArrivalInfo('\n'.join(result), "\n".join(headers), bus_stop_dict)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi(max_retries=5)

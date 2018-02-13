@@ -26,11 +26,14 @@
 </div>
 <div class="input-row">
     <select class="input-row input-row-right" id="buslist"></select>
-    <span class="input-row"><input class="input-row" type="text" id="lastbusquery"
+    <span class="input-row"><input class="input-row" type="text" id="station_query"
                                    title="Введите номера машрутов автобусов"
                                    placeholder="Введите номера машрутов автобусов"/></span>
     <span id="lastbus_loading"></span>
 </div>
+    <div>
+        <label><input id='cb_refresh' type='checkbox'>Обновлять через 30 сек.</label>
+    </div>
 <div id="info" style="white-space:pre-wrap; font-family: monospace"></div>
 <script>
     (window.fetch && window.Promise && Array.prototype.find && String.prototype.includes) || document.write(
