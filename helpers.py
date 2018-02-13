@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import math
 import re
@@ -9,6 +10,14 @@ from typing import NamedTuple
 
 import pytz
 
+
+class CustomJsonEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return o.isoformat()
+        if isinstance(o, set):
+            return list(o)
+        return json.JSONEncoder.default(self, o)
 
 class SearchResult(NamedTuple):
     full_info: bool = False
@@ -75,7 +84,7 @@ def distance_km(glat1, glon1, glat2, glon2):
     return result
 
 
-def get_iso_time(s):
+def get_iso_time(s) -> datetime.datetime:
     if isinstance(s, datetime.datetime):
         return s
     return datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S")
