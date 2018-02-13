@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,16 +7,16 @@
     <title>vrnbus (beta) | Прибытие на остановки</title>
 </head>
 <body>
-<div>
+<div class="menu">
     <b>Прибытие</b>
     <a href="businfo.html">Автобусы</a>
     <a href="map.html">Карта</a>
     <a href="feedback.html">О проекте</a>
 </div>
 <div>
-    <button id="nextbus">Найти ближайшие остановки</button>
+    <button id="nextbus">Найти ближайшие остановки<img src="geolocation.png" style="float: right;"></button>
     <span id="nextbus_loading"></span>
-    <div>(Нужно разрешить сайту запрашивать геолокацию)</div><br/>
+    <div style="font-size: x-small;">(Нужно разрешить сайту запрашивать геолокацию)</div><br/>
 </div>
 <div class="input-row">
     <button class="input-row-left" id="btn_station_search">Поиск</button>

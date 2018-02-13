@@ -78,3 +78,7 @@ select.input-row {
 .input-row-left {
     float: left;
 }
+
+div.menu{
+    margin-bottom: 10px;
+}
