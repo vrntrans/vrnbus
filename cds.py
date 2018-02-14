@@ -437,20 +437,31 @@ class CdsRequest:
 
         self.logger.info('Execute fetch all from DB')
         start = time.time()
-        with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
-            cur = tr.cursor()
-            cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
-                o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_
-                FROM OBJECTS O JOIN BUS_STATIONS bs
-                ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
-                JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
-                WHERE obj_output_=0''')
-            self.logger.info('Finish execution')
-            result = cur.fetchallmap()
-            tr.commit()
-            cur.close()
-            end = time.time()
-            self.logger.info(f"Finish fetch. Elapsed: {end - start:.2f}")
+        try:
+            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                cur = tr.cursor()
+                cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
+                    o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_
+                    FROM OBJECTS O JOIN BUS_STATIONS bs
+                    ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
+                    JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
+                    WHERE obj_output_=0''')
+                self.logger.info('Finish execution')
+                result = cur.fetchallmap()
+                tr.commit()
+                cur.close()
+                end = time.time()
+                self.logger.info(f"Finish fetch. Elapsed: {end - start:.2f}")
+        except fdb.fbcore.DatabaseError as db_error:
+            self.logger.error(db_error)
+            try:
+                self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
+                                          password=CDS_PASS, charset='WIN1251')
+                self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+            except Exception as general_error:
+                self.logger.error(general_error)
+            return []
+
 
         result = [CdsRouteBus(**make_names_lower(x)) for x in result]
         result.sort(key=lambda s: s.last_time_, reverse=True)

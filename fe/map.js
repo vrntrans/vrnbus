@@ -116,8 +116,12 @@
     }
 
     function get_current_pos(func) {
-        const bus_query = lastbusquery.value
-        save_to_ls('bus_query', bus_query)
+        const query = station_query.value
+        const station = station_name.value
+
+        save_to_ls('station_query', query)
+        save_to_ls('station', station)
+
         navigator.geolocation.getCurrentPosition(func)
     }
 
@@ -176,7 +180,7 @@
         waiting(nextbus_loading, nextbus, true)
 
         coords = position.coords
-        const bus_query = lastbusquery.value
+        const bus_query = station_query.value
 
         const params = 'q=' + encodeURIComponent(bus_query) +
             '&lat=' + encodeURIComponent(coords.latitude) +
@@ -285,8 +289,12 @@
 
                 select.onchange = function () {
                     var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
-                    if (text !== '-')
-                        lastbusquery.value += ' ' + text
+                    if (text !== '-'){
+                        if (lastbusquery)
+                            lastbusquery.value += ' ' + text
+                        if (station_query)
+                            station_query.value += ' ' + text
+                    }
                 }
             })
     }
@@ -437,13 +445,15 @@
 
     function init() {
         get_bus_list()
-        const busquery = load_from_ls('bus_query')
-        if (lastbusquery)
-            lastbusquery.value = busquery || ''
 
-        const station = load_from_ls('station')
+        if (lastbusquery)
+            lastbusquery.value = load_from_ls('bus_query') || ''
+
+        if (station_query)
+            station_query.value = load_from_ls('station_query') || ''
+
         if (station_name)
-            station_name.value = station || ''
+            station_name.value = load_from_ls('station') || ''
     }
 
     document.addEventListener("DOMContentLoaded", init);
