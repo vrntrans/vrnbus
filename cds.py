@@ -128,6 +128,12 @@ class CoddRouteBus(NamedTuple):
     dist: int = 0
 
 
+class CdsBusPosition(NamedTuple):
+    last_lat: float
+    last_lon: float
+    last_time: datetime
+
+
 class CdsRouteBus(NamedTuple):
     last_lat_: float
     last_lon_: float
@@ -149,6 +155,9 @@ class CdsRouteBus(NamedTuple):
         last_station_time_ = get_iso_time(last_station_time_)
         return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
                            type_proj, last_station_time_, bus_station_, address)
+
+    def get_bus_position(self) -> CdsBusPosition:
+        return CdsBusPosition(self.last_lat_, self.last_lon_, self.last_time_)
 
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
@@ -203,8 +212,19 @@ class CdsRequest:
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
+        self.last_bus_data = {}
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
+
+    def get_last_bus_data(self, bus_name):
+        return self.last_bus_data.get(bus_name, deque(maxlen=2))
+
+    def add_last_bus_data(self, bus_name, bus_data):
+        value = self.last_bus_data.get(bus_name, deque(maxlen=2))
+        if bus_data in value:
+            return
+        value.append(bus_data)
+        self.last_bus_data[bus_name] = value
 
     def load_test_data(self):
         self.test_data_files = sorted(Path('./test_data/').glob('codd_data_db*.json'))
@@ -430,11 +450,17 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=ttl_db_sec)
     @retry_multi()
     def load_all_cds_buses_from_db(self) -> Iterable[CdsRouteBus]:
+        def update_last_bus_data(buses):
+            for bus in buses:
+                self.add_last_bus_data(bus.name_, bus.get_bus_position())
+
         def make_names_lower(x):
             return {k.lower(): v for (k, v) in x.iteritems()}
 
         if LOAD_TEST_DATA:
-            return self.next_test_data()
+            data = self.next_test_data()
+            update_last_bus_data(data)
+            return data
 
         self.logger.info('Execute fetch all from DB')
         start = time.time()
@@ -465,6 +491,7 @@ class CdsRequest:
 
 
         result = [CdsRouteBus(**make_names_lower(x)) for x in result]
+        update_last_bus_data(result)
         result.sort(key=lambda s: s.last_time_, reverse=True)
         end = time.time()
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
