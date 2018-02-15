@@ -64,10 +64,10 @@ class BusStop(NamedTuple):
     LON_: float
 
     def __str__(self):
-        return f'(BusStop: {self.NAME_} {self.LON_} {self.LAT_} )'
+        return f'(BusStop: {self.NAME_} {self.LAT_} {self.LON_}  )'
 
     def distance_km(self, bus_stop):
-        return distance_km(self.LON, self.LAT_, bus_stop.LON_, bus_stop.LAT_)
+        return distance_km(self.LAT_, self.LON_, bus_stop.LAT_, bus_stop.LON_)
 
 
 class LongBusRouteStop(NamedTuple):
@@ -153,14 +153,15 @@ class CdsRouteBus(NamedTuple):
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
 
+
     def distance(self, bus_stop=None, user_loc: UserLoc = None):
         if not bus_stop and not user_loc:
             return 10000
-        (lat, lon) = (bus_stop.LON_, bus_stop.LAT_) if bus_stop else (user_loc.lat, user_loc.lon)
+        (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance(lat, lon, self.last_lat_, self.last_lon_)
 
     def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
-        (lat, lon) = (bus_stop.LON_, bus_stop.LAT_) if bus_stop else (user_loc.lat, user_loc.lon)
+        (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance_km(lat, lon, self.last_lat_, self.last_lon_)
 
 
@@ -597,7 +598,7 @@ class CdsRequest:
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
             info = f'{bus.route_name_:>5} {arrival_time}'
             if search_result.full_info:
-                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {bus.bus_station_}'
+                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {self.bus_station(bus)}'
             return info
 
 
@@ -612,7 +613,7 @@ class CdsRequest:
             result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)};")
         if search_result.full_info:
             result.append(f"Средняя скорость: {self.avg_speed:2.1f} км/ч")
-            if search_result.bus_routes:
+            if search_result.bus_routes and routes_filter:
                 avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed)
                                         for x in routes_filter)) / len(routes_filter)
 
