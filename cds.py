@@ -278,7 +278,7 @@ class CdsRequest:
     @cachetools.func.ttl_cache()
     def matches_bus_stops(self, lat, lon, size=3):
         def distance_key(item):
-            return distance(item.LAT_, item.LON_, lon, lat)
+            return distance(item.LAT_, item.LON_, lat, lon)
 
         return sorted(self.bus_stops, key=distance_key)[:size]
 
