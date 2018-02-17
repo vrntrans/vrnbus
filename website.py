@@ -126,7 +126,7 @@ class BusListHandler(BaseHandler):
         response.sort(key=natural_sort_key)
         response = {'result': response}
         self.write(json.dumps(response))
-        self.caching()
+        self.caching(max_age=24*60*60)
 
     @run_on_executor
     def get(self):
