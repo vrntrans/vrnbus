@@ -22,5 +22,8 @@ class TestFuzzySearch(unittest.TestCase):
                 self.assertEqual(f(needle, haystack), result)
 
 
+class TestBusStopCalc(unittest.TestCase):
+    pass
+
 if __name__ == '__main__':
     unittest.main()
