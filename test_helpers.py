@@ -4,7 +4,7 @@ import helpers
 
 
 class TestFuzzySearch(unittest.TestCase):
-    def test_something(self):
+    def test_different_cases(self):
         f = helpers.fuzzy_search_advanced
         cases = [
             ('кирова в центр', 'ул. Кирова (в центр)', True),
@@ -21,9 +21,6 @@ class TestFuzzySearch(unittest.TestCase):
             with self.subTest(f'{needle}, {haystack}, {result}'):
                 self.assertEqual(f(needle, haystack), result)
 
-
-class TestBusStopCalc(unittest.TestCase):
-    pass
 
 if __name__ == '__main__':
     unittest.main()

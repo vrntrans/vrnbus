@@ -298,6 +298,9 @@ class CdsRequest:
             return short_result
         return []
 
+    def get_closest_bus_stop_checked(self, bus_info: CdsRouteBus):
+        pass
+
     @cachetools.func.ttl_cache(maxsize=2048)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
         bus_stop = next((x for x in self.bus_stops if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
@@ -745,6 +748,7 @@ class CdsRequest:
     @cachetools.func.ttl_cache()
     def get_dist(self, route_name, bus_stop_start, bus_stop_stop):
         route: Iterable[LongBusRouteStop] = self.bus_routes.get(route_name, [])
+
         dist = 0
         prev_stop = None
         for bus_stop in route:
