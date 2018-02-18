@@ -21,11 +21,12 @@ class CdsTestCase(unittest.TestCase):
         route_name = "5А"
         stop_1 = "у-м Молодежный (ул. Лизюкова в центр)"
         stop_2 = "ул. Лизюкова (ул. Жукова в центр)"
-        with self.subTest(f'Normal bus station order'):
+
+        with self.subTest('Normal bus station order'):
             result = cds.get_dist(route_name, stop_1, stop_2)
             self.assertTrue(result)
 
-        with self.subTest(f'Reverse bus station order'):
+        with self.subTest('Reverse bus station order'):
             result = cds.get_dist(route_name, stop_2, stop_1)
             self.assertFalse(result)
 
