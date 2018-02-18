@@ -1,13 +1,14 @@
 import codecs
+import heapq
 import json
 import os
 import time
 from collections import Counter, deque
 from datetime import datetime, timedelta
-from itertools import groupby
+from itertools import groupby, product
 from logging import Logger
 from pathlib import Path
-from typing import NamedTuple, Iterable, Dict
+from typing import NamedTuple, Iterable, Dict, List
 
 import cachetools.func
 import fdb
@@ -132,6 +133,15 @@ class CdsBusPosition(NamedTuple):
     last_lat: float
     last_lon: float
     last_time: datetime
+    def distance(self, bus_stop: BusStop =None, user_loc: UserLoc = None):
+        if not bus_stop and not user_loc:
+            return 10000
+        (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
+        return distance(lat, lon, self.last_lat, self.last_lon)
+
+    def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
+        (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
+        return distance_km(lat, lon, self.last_lat, self.last_lon)
 
 
 class CdsRouteBus(NamedTuple):
@@ -162,7 +172,7 @@ class CdsRouteBus(NamedTuple):
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
 
-    def distance(self, bus_stop = None, user_loc: UserLoc = None):
+    def distance(self, bus_stop: BusStop =None, user_loc: UserLoc = None):
         if not bus_stop and not user_loc:
             return 10000
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
@@ -283,7 +293,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_routes):
-        def key_check(route):
+        def key_check(route:CdsRouteBus):
             return route.name_ and route.last_time_ and (now - route.last_time_) < delta
 
         keys = set([x for x in self.cds_routes.keys() for r in bus_routes if x.upper() == r.upper()])
@@ -298,8 +308,31 @@ class CdsRequest:
             return short_result
         return []
 
-    def get_closest_bus_stop_checked(self, bus_info: CdsRouteBus):
-        pass
+    def get_closest_bus_stop_checked(self, bus_info: CdsRouteBus, bus_positions: Iterable[CdsBusPosition]):
+        bus_stop = next((x for x in self.bus_stops if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
+        if bus_stop and bus_info.distance(bus_stop) < 0.015:
+            return bus_stop
+        bus_stops = self.bus_routes.get(bus_info.route_name_, [])
+
+        (curr_1, curr_2) = heapq.nsmallest(2, bus_stops, key=bus_info.distance)
+        if curr_1.NUMBER_ == curr_2.NUMBER_ + 1:
+            return curr_1
+        elif curr_2.NUMBER_ == curr_1.NUMBER_ + 1:
+            return curr_2
+
+        if not bus_positions:
+            return curr_1
+
+        prev_position = bus_positions[0]
+        closest_prev = heapq.nsmallest(2, bus_stops, key=prev_position.distance)
+        all_cases = product((curr_1, curr_2), closest_prev)
+        for (s1, s2) in all_cases:
+            if s1.NUMBER_ > s2.NUMBER_:
+                return s1
+
+        self.logger.warning(f"Didn't find correct bus stop for {bus_info}")
+
+        return curr_1
 
     @cachetools.func.ttl_cache(maxsize=2048)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
@@ -395,7 +428,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec * 1.5)
     @retry_multi()
-    def next_bus_for_lat_lon(self, lat, lon) -> Iterable[CoddNextBus]:
+    def next_bus_for_lat_lon(self, lat, lon) -> List[CoddNextBus]:
         url = f'{codd_base_usl}GetNextBus'
         payload = {'lat': lat, 'lon': lon}
         r = requests.post(url, data=payload, headers=self.fake_header)
@@ -498,7 +531,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def calc_avg_speed(self):
-        def time_filter(bus):
+        def time_filter(bus:CdsRouteBus):
             if not bus.last_time_ or bus.last_time_ < last_n_minutes:
                 return False
             if bus.last_station_time_ and bus.last_station_time_ < last_n_minutes:
@@ -523,7 +556,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
-    def load_cds_buses_from_db(self, keys):
+    def load_cds_buses_from_db(self, keys) -> Iterable[CdsRouteBus]:
         all_buses = self.load_all_cds_buses_from_db()
         if not keys:
             return all_buses
@@ -581,7 +614,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
-        def time_filter(bus_info):
+        def time_filter(bus_info:CdsRouteBus):
             if not bus_info.last_time_ or bus_info.last_time_ < last_n_minutes:
                 return False
             if bus_info.last_station_time_ and bus_info.last_station_time_ < last_n_minutes:
@@ -670,16 +703,6 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi(max_retries=5)
-    def get_cds_buses(self) -> Iterable[CdsBus]:
-        r = requests.get(f'{cds_url_base}GetBuses', cookies=self.cookies, headers=self.fake_header)
-        self.logger.info(f"{r.url} {r.elapsed} {len(r.text)}")
-        if not r.text:
-            raise Exception("Should be results")
-        result: Iterable[CdsBus] = [CdsBus(**i) for i in self.json_fix_and_load(r.text) if 'User' not in i]
-        return result
-
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
-    @retry_multi(max_retries=5)
     def get_codd_buses(self) -> Iterable[CoddBus]:
         r = requests.get(f'{codd_base_usl}GetBusesServlet', headers=self.fake_header)
         self.logger.info(f"{r.url} {r.elapsed} {len(r.text)}")
@@ -690,7 +713,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache()
     def get_all_buses(self):
-        def key_check(x: CdsBus):
+        def key_check(x: CdsRouteBus):
             return x.name_ and x.last_time_ and (now - x.last_time_) < hour
 
         cds_buses = self.load_all_cds_buses_from_db()
