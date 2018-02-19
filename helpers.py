@@ -19,6 +19,7 @@ class CustomJsonEncoder(json.JSONEncoder):
             return list(o)
         return json.JSONEncoder.default(self, o)
 
+
 class SearchResult(NamedTuple):
     full_info: bool = False
     bus_routes: tuple = tuple()
@@ -172,7 +173,7 @@ def fuzzy_search_advanced(needle: str, haystack: str) -> bool:
                 break
 
     i = 1
-    while i < nlen :
+    while i < nlen:
         nch = needle[i]
         prev_position = position + 1
         position = haystack.find(nch, position) + 1
@@ -180,9 +181,9 @@ def fuzzy_search_advanced(needle: str, haystack: str) -> bool:
         if position == 0:
             return False
 
-        distance_search = position - prev_position
+        skip_chars = position - prev_position
 
-        if distance_search > 0 and haystack[position - 2] not in skip_chars and nch not in skip_chars and i > 1:
+        if skip_chars > 0 and haystack[position - 2] not in skip_chars and nch not in skip_chars and i > 1:
             i -= 1
             continue
 

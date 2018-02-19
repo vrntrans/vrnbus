@@ -4,19 +4,20 @@ import json
 import os
 import time
 from collections import Counter, deque
+from collections import defaultdict
 from datetime import datetime, timedelta
 from itertools import groupby, product
 from logging import Logger
 from pathlib import Path
-from typing import NamedTuple, Iterable, Dict, List
+from typing import NamedTuple, Iterable, Dict, List, Container
 
 import cachetools.func
 import fdb
 import pytz
 import requests
 
-from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi, SearchResult, get_iso_time, \
-    fuzzy_search_advanced
+from helpers import get_iso_time, fuzzy_search_advanced
+from helpers import get_time, natural_sort_key, distance, distance_km, retry_multi, SearchResult
 
 LOAD_TEST_DATA = False
 
@@ -133,9 +134,11 @@ class CdsBusPosition(NamedTuple):
     last_lat: float
     last_lon: float
     last_time: datetime
-    def distance(self, bus_stop: BusStop =None, user_loc: UserLoc = None):
+
+    def distance(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         if not bus_stop and not user_loc:
             return 10000
+
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance(lat, lon, self.last_lat, self.last_lon)
 
@@ -163,8 +166,8 @@ class CdsRouteBus(NamedTuple):
              type_proj, last_station_time_, bus_station_, address):
         last_time_ = get_iso_time(last_time_)
         last_station_time_ = get_iso_time(last_station_time_)
-        return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
-                           type_proj, last_station_time_, bus_station_, address)
+        return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_,
+                           route_name_, type_proj, last_station_time_, bus_station_, address)
 
     def get_bus_position(self) -> CdsBusPosition:
         return CdsBusPosition(self.last_lat_, self.last_lon_, self.last_time_)
@@ -172,7 +175,7 @@ class CdsRouteBus(NamedTuple):
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '
 
-    def distance(self, bus_stop: BusStop =None, user_loc: UserLoc = None):
+    def distance(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         if not bus_stop and not user_loc:
             return 10000
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
@@ -221,19 +224,18 @@ class CdsRequest:
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
-        self.last_bus_data = {}
+        self.last_bus_data = defaultdict(lambda: deque(maxlen=10))
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
 
     def get_last_bus_data(self, bus_name):
-        return self.last_bus_data.get(bus_name, deque(maxlen=2))
+        return self.last_bus_data.get(bus_name)
 
     def add_last_bus_data(self, bus_name, bus_data):
-        value = self.last_bus_data.get(bus_name, deque(maxlen=2))
+        value = self.last_bus_data[bus_name]
         if bus_data in value:
             return
         value.append(bus_data)
-        self.last_bus_data[bus_name] = value
 
     def load_test_data(self):
         self.test_data_files = sorted(Path('./test_data/').glob('codd_data_db*.json'))
@@ -293,7 +295,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_routes):
-        def key_check(route:CdsRouteBus):
+        def key_check(route: CdsRouteBus):
             return route.name_ and route.last_time_ and (now - route.last_time_) < delta
 
         keys = set([x for x in self.cds_routes.keys() for r in bus_routes if x.upper() == r.upper()])
@@ -308,41 +310,51 @@ class CdsRequest:
             return short_result
         return []
 
-    def get_closest_bus_stop_checked(self, bus_info: CdsRouteBus, bus_positions: Iterable[CdsBusPosition]):
-        bus_stop = next((x for x in self.bus_stops if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
-        if bus_stop and bus_info.distance(bus_stop) < 0.015:
-            return bus_stop
-        bus_stops = self.bus_routes.get(bus_info.route_name_, [])
+    def get_closest_bus_stop_checked(self, route_name: str, bus_positions: Container[CdsBusPosition]):
+        bus_stops = self.bus_routes.get(route_name, [])
 
-        (curr_1, curr_2) = heapq.nsmallest(2, bus_stops, key=bus_info.distance)
+        if not bus_stops:
+            raise Exception(f"Empty bus_stops for {route_name}")
+
+        if not bus_positions:
+            raise Exception("Empty bus_positions for {route_name}")
+
+        last_position = bus_positions[-1]
+
+        (curr_1, curr_2) = heapq.nsmallest(2, bus_stops, key=last_position.distance)
         if curr_1.NUMBER_ == curr_2.NUMBER_ + 1:
             return curr_1
         elif curr_2.NUMBER_ == curr_1.NUMBER_ + 1:
             return curr_2
 
-        if not bus_positions:
-            return curr_1
+        m_num = bus_stops[len(bus_stops) // 2].NUMBER_
+        curr_pos = {curr_1, curr_2}
+        bus_positions = list(bus_positions)
+        for prev_position in bus_positions[-1::-1]:
+            closest_prev = heapq.nsmallest(2, bus_stops, key=prev_position.distance)
+            if set(closest_prev) == curr_pos:
+                continue
 
-        prev_position = bus_positions[0]
-        closest_prev = heapq.nsmallest(2, bus_stops, key=prev_position.distance)
-        all_cases = product((curr_1, curr_2), closest_prev)
-        for (s1, s2) in all_cases:
-            if s1.NUMBER_ > s2.NUMBER_:
-                return s1
+            all_cases = product((curr_1, curr_2), closest_prev)
+            for (s1, s2) in all_cases:
+                n1, n2 = s1.NUMBER_, s2.NUMBER_
+                if n1 > n2 and ((n1 <= m_num and n2 <= m_num) or (n1 >= m_num and n2 >= m_num)):
+                    return s1
 
-        self.logger.warning(f"Didn't find correct bus stop for {bus_info}")
+            self.logger.warning(f"Didn't find correct bus stop for {last_position}")
 
         return curr_1
 
-    @cachetools.func.ttl_cache(maxsize=2048)
+    @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=2048)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
-        bus_stop = next((x for x in self.bus_stops if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
+        bus_stop = next((x for x in self.bus_stops
+                         if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
         if bus_stop and bus_info.distance(bus_stop) < 0.015:
             return bus_stop
 
         if strict:
-            bus_stops = self.bus_routes.get(bus_info.route_name_, [])
-            result = min(bus_stops, key=bus_info.distance)
+            bus_positions = self.last_bus_data[bus_info.name_]
+            result = self.get_closest_bus_stop_checked(bus_info.route_name_, bus_positions)
         else:
             result = min(self.bus_stops, key=bus_info.distance)
         if not bus_info.bus_station_:
@@ -359,7 +371,7 @@ class CdsRequest:
 
         return result
 
-    @cachetools.func.ttl_cache()
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_station(self, bus_info: CdsRouteBus, strict=False):
         result = self.get_closest_bus_stop(bus_info, strict)
         if not result.NAME_:
@@ -367,7 +379,7 @@ class CdsRequest:
         return result.NAME_
 
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
-        bus_station = self.bus_station(d)
+        bus_station = self.bus_station(d, True)
         dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
         route_name = f"{d.route_name_} " if show_route_name else ""
         day_info = ""
@@ -531,7 +543,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def calc_avg_speed(self):
-        def time_filter(bus:CdsRouteBus):
+        def time_filter(bus: CdsRouteBus):
             if not bus.last_time_ or bus.last_time_ < last_n_minutes:
                 return False
             if bus.last_station_time_ and bus.last_station_time_ < last_n_minutes:
@@ -614,7 +626,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
-        def time_filter(bus_info:CdsRouteBus):
+        def time_filter(bus_info: CdsRouteBus):
             if not bus_info.last_time_ or bus_info.last_time_ < last_n_minutes:
                 return False
             if bus_info.last_station_time_ and bus_info.last_station_time_ < last_n_minutes:
@@ -656,7 +668,7 @@ class CdsRequest:
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
             info = f'{bus.route_name_:>5} {arrival_time}'
             if search_result.full_info:
-                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {self.bus_station(bus)}'
+                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {self.bus_station(bus, True)}'
             return info
 
         result = [f'Время: {self.now():%H:%M:%S}']
@@ -688,9 +700,9 @@ class CdsRequest:
                 self.logger.info(f'Average speed on routes {arrival_buses} {avg_speed_routes:.2f} kmh')
 
             routes_set.update(arrival_buses)
-            arrival_buses.sort(key=natural_sort_key)
+            arrival_buses = tuple(arrival_buses.sorted(key=natural_sort_key))
             result.append(f'{item.NAME_}:')
-            distance_list = self.get_bus_distance_to(tuple(arrival_buses), item.NAME_, search_result.bus_filter)
+            distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_, search_result.bus_filter)
             distance_list.sort(key=lambda x: x[2])
             bus_stop_value = '\n'.join((bus_info(*d) for d in distance_list))
             bus_stop_dict[item.NAME_] = bus_stop_value

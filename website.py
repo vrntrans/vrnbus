@@ -126,11 +126,12 @@ class BusListHandler(BaseHandler):
         response.sort(key=natural_sort_key)
         response = {'result': response}
         self.write(json.dumps(response))
-        self.caching(max_age=24*60*60)
+        self.caching(max_age=24 * 60 * 60)
 
     @run_on_executor
     def get(self):
         self._response()
+
 
 class BusStopSearchHandler(BaseHandler):
     def _response(self):
@@ -140,13 +141,14 @@ class BusStopSearchHandler(BaseHandler):
 
         result_tuple = self.cds.next_bus(station_query, parse_routes(query), new_version)
 
-        response = {'text': result_tuple[0], 'header':result_tuple[1], 'bus_stops': result_tuple[2]}
+        response = {'text': result_tuple[0], 'header': result_tuple[1], 'bus_stops': result_tuple[2]}
         self.write(json.dumps(response))
         self.caching()
 
     @run_on_executor
     def get(self):
         self._response()
+
 
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, o):

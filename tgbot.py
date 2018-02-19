@@ -78,14 +78,14 @@ class BusBot:
         custom_keyboard = [[location_keyboard, cancel_button]]
         reply_markup = ReplyKeyboardMarkup(custom_keyboard, one_time_keyboard=True)
         update.message.reply_text(
-                                  "/nextbus имя остановки - ожидаемое время прибытия\n"
-                                  "Отправка местоположения - ожидаемое время прибытия для ближайших "
-                                  "трёх остановок\n"
-                                  "/last номера маршрутов через пробел - последние "
-                                  "остановки автобусов\n"
-                                  "Свободный ввод - номера маршрутов и расстояние до автобусов "
-                                  "(если отправляли местоположение)",
-                                  reply_markup=reply_markup)
+            "/nextbus имя остановки - ожидаемое время прибытия\n"
+            "Отправка местоположения - ожидаемое время прибытия для ближайших "
+            "трёх остановок\n"
+            "/last номера маршрутов через пробел - последние "
+            "остановки автобусов\n"
+            "Свободный ввод - номера маршрутов и расстояние до автобусов "
+            "(если отправляли местоположение)",
+            reply_markup=reply_markup)
 
     def helpcmd(self, _, update):
         """Send a message when the command /help is issued."""
@@ -103,13 +103,13 @@ class BusBot:
 Свободный ввод - номера маршрутов и расстояние до автобусов (если отправляли местоположение)
 
 Примеры:
-/nextbus памятник славы - выведет прибытие на остановки: 
+/nextbus памятник славы - выведет прибытие на остановки:
     Памятник Славы (Московский проспект в центр),
     Памятник славы (Московский проспект из центра),
     Памятник славы (ул. Хользунова в центр)
-    
+
 /last 5а 113кш - выведет последние остановки автобусов на маршрутах 5А и 113КШ
-      
+
 /settings 27 5а - фильтрует автобусы в остальных командах, оставляя только выбранные
 /settings all - выбрать все (эквивалентно /settings none) или
 /settings все
@@ -155,8 +155,8 @@ class BusBot:
         input_routes = parse_routes(args)[1]
         if input_routes:
             cmd = input_routes[0].lower()
-            items = input_routes[1:]
-            change_routes = [y for x in input_routes for y in self.cds.bus_routes.keys() if x.upper() == y.upper()]
+            change_routes = [y for x in input_routes
+                             for y in self.cds.bus_routes.keys() if x.upper() == y.upper()]
             if len(input_routes) == 1 and cmd in ('all', 'none', 'все'):
                 route_settings = []
             elif cmd in ('del', '-'):
@@ -249,7 +249,7 @@ class BusBot:
 
         if not text or text == 'Отмена':
             message.reply_text(text=f"Попробуйте воспользоваться справкой /help",
-                                   reply_markup=ReplyKeyboardRemove())
+                               reply_markup=ReplyKeyboardRemove())
             return
 
         if text.lower() == 'на рефакторинг!':
