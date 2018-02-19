@@ -181,9 +181,9 @@ def fuzzy_search_advanced(needle: str, haystack: str) -> bool:
         if position == 0:
             return False
 
-        skip_chars = position - prev_position
+        skip_pos = position - prev_position
 
-        if skip_chars > 0 and haystack[position - 2] not in skip_chars and nch not in skip_chars and i > 1:
+        if skip_pos > 0 and haystack[position - 2] not in skip_chars and nch not in skip_chars and i > 1:
             i -= 1
             continue
 
