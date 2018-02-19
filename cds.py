@@ -700,7 +700,7 @@ class CdsRequest:
                 self.logger.info(f'Average speed on routes {arrival_buses} {avg_speed_routes:.2f} kmh')
 
             routes_set.update(arrival_buses)
-            arrival_buses = tuple(arrival_buses.sorted(key=natural_sort_key))
+            arrival_buses = tuple(sorted(arrival_buses, key=natural_sort_key))
             result.append(f'{item.NAME_}:')
             distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_, search_result.bus_filter)
             distance_list.sort(key=lambda x: x[2])
