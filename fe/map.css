@@ -80,5 +80,14 @@ select.input-row {
 }
 
 div.menu{
-    margin-bottom: 10px;
+    padding-bottom: 10px;
+}
+
+div.menu > div{
+    margin-right: 2%;
+    display: inline;
+}
+
+div.menu > div:last-child{
+    margin-right: 0;
 }
