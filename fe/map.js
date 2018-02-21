@@ -255,8 +255,9 @@
                     bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
                     const time = bus.last_time_.substring(bus.last_time_.length - 8)
 
-                    bus.desc = [time, next_bus_stop.NAME_,
-                        bus.route_name_.trim() + " ( " + bus.name_ + " ) "].join('<br/>')
+                    bus.desc = [time + " " + next_bus_stop.NAME_,
+                        bus.route_name_.trim() + " ( " + bus.name_ + " ) ",
+                    bus.last_lat_ + " " + bus.last_lon_].join('<br/>')
 
                     return bus
                 })
