@@ -41,7 +41,6 @@ if 'DYNO' in os.environ:
 else:
     debug = True
 
-cds_url_base = 'http://195.98.79.37:8080/CdsWebMaps/'
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
 ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
 ttl_db_sec = 30 if not LOAD_TEST_DATA else 0.001
@@ -206,7 +205,6 @@ def init_bus_routes():
 
 class CdsRequest:
     def __init__(self, logger: Logger):
-        self.cookies = {'JSESSIONID': 'C8ED75C7EC5371CBE836BDC748BB298F', 'session_id': 'vrntrans'}
         self.logger = logger
         self.fake_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
@@ -246,18 +244,6 @@ class CdsRequest:
         else:
             self.logger.error("Cannot load test data from ./test_data/")
 
-    def load_cds_bus_routes(self) -> {}:
-        routes_base_local = {}
-        cds_buses = self.get_cds_buses()
-        for bus in cds_buses:
-            if bus.proj_id_ and bus.route_name_:
-                route = bus.route_name_
-                if route not in routes_base_local:
-                    routes_base_local[bus.route_name_] = bus.proj_id_
-        with open('bus_routes_cds.json', 'wb') as f:
-            json.dump(routes_base_local, codecs.getwriter('utf-8')(f), ensure_ascii=False, indent=4)
-        return routes_base_local
-
     def load_codd_bus_routes(self) -> {}:
         routes_base_local = {}
         cds_buses = self.get_codd_buses()
@@ -278,13 +264,12 @@ class CdsRequest:
         else:
             return self.load_codd_bus_routes()
 
-    def init_cds_routes(self):
+    @staticmethod
+    def init_cds_routes():
         my_file = Path("bus_routes_cds.json")
         if my_file.is_file():
             with open(my_file, 'rb') as f:
                 return json.load(f)
-        else:
-            return self.load_cds_bus_routes()
 
     @cachetools.func.ttl_cache()
     def matches_bus_stops(self, lat, lon, size=3):
@@ -452,25 +437,6 @@ class CdsRequest:
         self.logger.debug(f'Response: {text}')
         result = [CoddNextBus(**i) for i in self.json_fix_and_load(text) if i]
         return result
-
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
-    @retry_multi()
-    def load_cds_buses(self, keys):
-        routes = [{'proj_ID': self.cds_routes.get(k), 'route': k} for k in keys]
-        if not routes:
-            return []
-        payload = {'routes': json.dumps(routes)}
-        self.logger.info(f"bus_request_as_list {routes}")
-        url = f'{cds_url_base}GetRouteBuses'
-        r = requests.post(url, cookies=self.cookies, data=payload, headers=self.fake_header)
-        self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2f} kB")
-        if len(r.text) == 0:
-            self.logger.warning(r)
-            raise Exception(f"Should be result for {keys}")
-
-        if r.text:
-            return [CdsRouteBus(**i) for i in self.json_fix_and_load(r.text)]
-        return []
 
     def now(self):
         if LOAD_TEST_DATA:
