@@ -1,4 +1,3 @@
-import datetime
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -7,6 +6,7 @@ from pathlib import Path
 import tornado.web
 from tornado.concurrent import run_on_executor
 
+import helpers
 from data_types import UserLoc
 from helpers import parse_routes, natural_sort_key
 
@@ -77,7 +77,7 @@ class BusInfoHandler(BaseHandler):
         result = self.cds.bus_request(parse_routes(query), user_loc=user_loc, short_format=True)
         response = {'q': query, 'text': result[0],
                     'buses': [(x[0]._asdict(), x[1]._asdict() if x[1] else {}) for x in result[1]]}
-        self.write(json.dumps(response, cls=DateTimeEncoder))
+        self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
     @run_on_executor
@@ -154,10 +154,3 @@ class BusStopSearchHandler(BaseHandler):
     def get(self):
         self._response()
 
-
-class DateTimeEncoder(json.JSONEncoder):
-    def default(self, o):
-        if isinstance(o, datetime.datetime):
-            return o.isoformat()
-
-        return json.JSONEncoder.default(self, o)

@@ -21,7 +21,6 @@ class CdsRouteTestCase(unittest.TestCase):
         self.cds = CdsRequest(logger, None)
         self.date_time = datetime.datetime(2018, 2, 15, 19, 56, 53)
 
-
     def test_routes_on_bus_stop(self):
         result = self.cds.get_routes_on_bus_stop('у-м Молодежный (ул. Лизюкова в центр)')
         self.assertTrue(result)
