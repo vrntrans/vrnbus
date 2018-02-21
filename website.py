@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -9,6 +10,10 @@ from tornado.concurrent import run_on_executor
 from data_types import UserLoc
 from helpers import parse_routes, natural_sort_key
 
+if 'DYNO' in os.environ:
+    debug = False
+else:
+    debug = True
 
 # noinspection PyAbstractClass
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
@@ -39,7 +44,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class BusSite(tornado.web.Application):
-    def __init__(self, cds, logger, debug):
+    def __init__(self, cds, logger):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),

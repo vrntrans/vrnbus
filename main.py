@@ -7,6 +7,7 @@ from pathlib import Path
 import tornado.web
 
 from cds import CdsRequest
+from data_providers import CdsTestDataProvider, CdsDBDataProvider
 from tgbot import BusBot
 from website import BusSite
 
@@ -24,16 +25,21 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s
 logger = logging.getLogger("vrnbus")
 
 logger.info([{k: os.environ[k]} for (k) in os.environ if 'PATH' not in k])
-if 'DYNO' in os.environ:
-    debug = False
-else:
-    debug = True
+
+LOAD_TEST_DATA = False
+
+try:
+    import settings
+    LOAD_TEST_DATA = settings.LOAD_TEST_DATA
+except ImportError:
+    settings = None
 
 user_settings = {}
 
 if __name__ == "__main__":
-    cds = CdsRequest(logger)
+    data_provider = CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
+    cds = CdsRequest(logger, data_provider)
     bot = BusBot(cds, user_settings, logger)
-    application = BusSite(cds, logger, debug)
+    application = BusSite(cds, logger)
     application.listen(os.environ.get('PORT', 8080))
     tornado.ioloop.IOLoop.instance().start()

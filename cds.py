@@ -1,21 +1,19 @@
 import codecs
 import heapq
 import json
-import os
-import time
 from collections import Counter, deque
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from itertools import groupby, product
 from logging import Logger
 from pathlib import Path
 from typing import Iterable, Dict, List, Container
 
 import cachetools.func
-import fdb
 import pytz
 import requests
 
+from data_providers import CdsBaseDataProvider
 from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CoddNextBus, CoddBus, CoddRouteBus, \
     CdsBusPosition, CdsRouteBus
 from helpers import fuzzy_search_advanced
@@ -25,23 +23,9 @@ LOAD_TEST_DATA = False
 
 try:
     import settings
-
-    CDS_HOST = settings.CDS_HOST
-    CDS_DB_PATH = settings.CDS_DB_PATH
-    CDS_USER = settings.CDS_USER
-    CDS_PASS = settings.CDS_PASS
     LOAD_TEST_DATA = settings.LOAD_TEST_DATA
 except ImportError:
-    env = os.environ
-    CDS_HOST = env['CDS_HOST']
-    CDS_DB_PATH = env['CDS_DB_PATH']
-    CDS_USER = env['CDS_USER']
-    CDS_PASS = env['CDS_PASS']
-
-if 'DYNO' in os.environ:
-    debug = False
-else:
-    debug = True
+    pass
 
 codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
 ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
@@ -69,21 +53,14 @@ def init_bus_routes():
 
 
 class CdsRequest:
-    def __init__(self, logger: Logger):
+    def __init__(self, logger: Logger, data_provider: CdsBaseDataProvider):
         self.logger = logger
         self.fake_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.bus_stops = [BusStop(**i) for i in init_bus_stops()]
         self.bus_routes = init_bus_routes()
-        if not LOAD_TEST_DATA:
-            self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
-                                      password=CDS_PASS, charset='WIN1251')
-            self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
-        else:
-            self.test_data_files = []
-            self.test_data_index = 0
-            self.mocked_now = datetime.now()
-            self.load_test_data()
+        self.data_provider = data_provider
+
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
@@ -99,15 +76,6 @@ class CdsRequest:
         if bus_data in value:
             return
         value.append(bus_data)
-
-    def load_test_data(self):
-        self.test_data_files = sorted(Path('./test_data/').glob('codd_data_db*.json'))
-        self.test_data_index = 0
-        if self.test_data_files:
-            path = self.test_data_files[0]
-            self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
-        else:
-            self.logger.error("Cannot load test data from ./test_data/")
 
     def load_codd_bus_routes(self) -> {}:
         routes_base_local = {}
@@ -304,72 +272,17 @@ class CdsRequest:
         return result
 
     def now(self):
-        if LOAD_TEST_DATA:
-            if self.test_data_files and self.test_data_index >= len(self.test_data_files):
-                self.test_data_index = 0
-            path = self.test_data_files[self.test_data_index]
-            self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
-            return self.mocked_now
-        return datetime.now()
-
-    def next_test_data(self):
-        if self.test_data_files and self.test_data_index >= len(self.test_data_files):
-            self.test_data_index = 0
-        path = self.test_data_files[self.test_data_index]
-        self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
-        with open(path, 'rb') as f:
-            long_bus_stops = [CdsRouteBus.make(*i) for i in json.load(f)]
-        self.test_data_index += 1
-        self.logger.info(f'Loaded {path.name}; {self.mocked_now:%H:%M:%S}')
-        return long_bus_stops
+        return self.data_provider.now()
 
     @cachetools.func.ttl_cache(ttl=ttl_db_sec)
-    @retry_multi()
     def load_all_cds_buses_from_db(self) -> Iterable[CdsRouteBus]:
         def update_last_bus_data(buses):
             for bus in buses:
                 self.add_last_bus_data(bus.name_, bus.get_bus_position())
 
-        def make_names_lower(x):
-            return {k.lower(): v for (k, v) in x.iteritems()}
-
-        if LOAD_TEST_DATA:
-            data = self.next_test_data()
-            update_last_bus_data(data)
-            return data
-
-        self.logger.info('Execute fetch all from DB')
-        start = time.time()
-        try:
-            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
-                cur = tr.cursor()
-                cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
-                    o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_
-                    FROM OBJECTS O JOIN BUS_STATIONS bs
-                    ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
-                    JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
-                    WHERE obj_output_=0''')
-                self.logger.info('Finish execution')
-                result = cur.fetchallmap()
-                tr.commit()
-                cur.close()
-                end = time.time()
-                self.logger.info(f"Finish fetch. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
-            self.logger.error(db_error)
-            try:
-                self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
-                                          password=CDS_PASS, charset='WIN1251')
-                self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
-            except Exception as general_error:
-                self.logger.error(general_error)
-            return []
-
-        result = [CdsRouteBus(**make_names_lower(x)) for x in result]
+        result = self.data_provider.load_all_cds_buses()
         update_last_bus_data(result)
         result.sort(key=lambda s: s.last_time_, reverse=True)
-        end = time.time()
-        self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)

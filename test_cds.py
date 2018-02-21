@@ -3,6 +3,7 @@ import logging
 import unittest
 
 from cds import CdsRequest
+from data_providers import CdsTestDataProvider, CdsDBDataProvider
 from data_types import CdsBusPosition
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
@@ -11,14 +12,18 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s
 
 logger = logging.getLogger("vrnbus")
 
-cds = CdsRequest(logger)
 
 
-class CdsTestCase(unittest.TestCase):
-    date_time = datetime.datetime(2018, 2, 15, 19, 56, 53)
+
+class CdsRouteTestCase(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(CdsRouteTestCase, self).__init__(*args, **kwargs)
+        self.cds = CdsRequest(logger, None)
+        self.date_time = datetime.datetime(2018, 2, 15, 19, 56, 53)
+
 
     def test_routes_on_bus_stop(self):
-        result = cds.get_routes_on_bus_stop('у-м Молодежный (ул. Лизюкова в центр)')
+        result = self.cds.get_routes_on_bus_stop('у-м Молодежный (ул. Лизюкова в центр)')
         self.assertTrue(result)
 
     def test_bus_stop_distance(self):
@@ -27,11 +32,11 @@ class CdsTestCase(unittest.TestCase):
         stop_2 = "ул. Лизюкова (ул. Жукова в центр)"
 
         with self.subTest('Normal bus station order'):
-            result = cds.get_dist(route_name, stop_1, stop_2)
+            result = self.cds.get_dist(route_name, stop_1, stop_2)
             self.assertTrue(result)
 
         with self.subTest('Reverse bus station order'):
-            result = cds.get_dist(route_name, stop_2, stop_1)
+            result = self.cds.get_dist(route_name, stop_2, stop_1)
             self.assertFalse(result)
 
     def test_closest_bus_stop_checked(self):
@@ -40,12 +45,12 @@ class CdsTestCase(unittest.TestCase):
         pos_2 = CdsBusPosition(51.705763, 39.155278, self.date_time)  # 60 лет ВЛКСМ
 
         with self.subTest('From city center '):
-            result = cds.get_closest_bus_stop_checked(route_name, (pos_2, pos_1))
+            result = self.cds.get_closest_bus_stop_checked(route_name, (pos_2, pos_1))
             self.assertTrue(result.NAME_ == 'у-м Молодежный (ул. Лизюкова из центра)')
             self.assertTrue(result.NUMBER_ == 61)
 
         with self.subTest('To city center '):
-            result = cds.get_closest_bus_stop_checked(route_name, (pos_1, pos_2))
+            result = self.cds.get_closest_bus_stop_checked(route_name, (pos_1, pos_2))
             self.assertTrue(result.NUMBER_ == 4)
 
     def test_closest_bus_stop_same_stations(self):
@@ -56,10 +61,30 @@ class CdsTestCase(unittest.TestCase):
                      CdsBusPosition(51.677922, 39.184953, self.date_time),
                      CdsBusPosition(51.680843, 39.184798, self.date_time)]
 
-        result = cds.get_closest_bus_stop_checked("90", positions)
+        result = self.cds.get_closest_bus_stop_checked("90", positions)
 
         self.assertTrue(result.NUMBER_ == 40)
         self.assertTrue(result.NAME_ == 'Проспект Труда (Московский проспект из центра)')
+
+
+class CdsDataGatheringTestCase(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(CdsDataGatheringTestCase, self).__init__(*args, **kwargs)
+        self.mock_provider = CdsTestDataProvider(logger)
+        self.db_provider = CdsDBDataProvider(logger)
+
+    def test_db(self):
+        cds = CdsRequest(logger, self.db_provider)
+        self.call_common_methods(cds)
+
+    def test_mock(self):
+        cds = CdsRequest(logger, self.mock_provider)
+        self.call_common_methods(cds)
+
+    def call_common_methods(self, cds):
+        all_data = cds.load_all_cds_buses_from_db()
+        cds.calc_avg_speed()
+
 
 
 if __name__ == '__main__':
