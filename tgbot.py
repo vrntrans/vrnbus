@@ -7,7 +7,7 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMa
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
 from tornado.httpclient import AsyncHTTPClient
 
-from cds import UserLoc
+from data_types import UserLoc
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult
 
 try:

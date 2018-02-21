@@ -2,7 +2,8 @@ import datetime
 import logging
 import unittest
 
-from cds import CdsRequest, CdsBusPosition
+from cds import CdsRequest
+from data_types import CdsBusPosition
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
                     level=logging.DEBUG,

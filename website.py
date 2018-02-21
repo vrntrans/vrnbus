@@ -6,7 +6,7 @@ from pathlib import Path
 import tornado.web
 from tornado.concurrent import run_on_executor
 
-from cds import UserLoc
+from data_types import UserLoc
 from helpers import parse_routes, natural_sort_key
 
 
