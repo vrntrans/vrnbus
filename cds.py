@@ -164,40 +164,41 @@ class CdsRequest:
         return curr_1
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=2048)
-    def get_closest_bus_stop(self, bus_info: CdsRouteBus, strict=False):
+    def get_closest_bus_stop(self, bus_info: CdsRouteBus):
+        threshold = 0.005
         bus_stop = next((x for x in self.bus_stops
                          if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
-        if bus_stop and bus_info.distance(bus_stop) < 0.015:
+        if bus_stop and bus_info.distance(bus_stop) < threshold:
             return bus_stop
 
-        if strict:
-            bus_positions = self.last_bus_data[bus_info.name_]
-            result = self.get_closest_bus_stop_checked(bus_info.route_name_, bus_positions)
-        else:
-            result = min(self.bus_stops, key=bus_info.distance)
+        bus_positions = self.last_bus_data[bus_info.name_]
+        if not bus_positions:
+            bus_positions.append(bus_info.get_bus_position())
+        closest_on_route = self.get_closest_bus_stop_checked(bus_info.route_name_, bus_positions)
+        closest_stop = min(self.bus_stops, key=bus_info.distance)
+
+        if closest_on_route and bus_info.distance(closest_on_route) < threshold:
+            return closest_on_route
+
+        if closest_stop and bus_info.distance(closest_stop) < threshold:
+            return closest_stop
+
+        result = min((bus_stop, closest_on_route, closest_stop), key=bus_info.distance)
+
         if not bus_info.bus_station_:
             self.logger.debug(f"Empty station: {bus_info.short()} {result}")
-            return result
-
-        if bus_stop:
-            d1 = bus_info.distance(bus_stop)
-            d2 = bus_info.distance(result)
-            if d2 > d1:
-                self.logger.debug(f"Original: {bus_info.short()}; "
-                                  "By name: {bus_stop}, Closests: {result}, {d1} {d2}")
-                return bus_stop
 
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def bus_station(self, bus_info: CdsRouteBus, strict=False):
-        result = self.get_closest_bus_stop(bus_info, strict)
+    def bus_station(self, bus_info: CdsRouteBus):
+        result = self.get_closest_bus_stop(bus_info)
         if not result.NAME_:
             self.logger.error(f"{result} {bus_info}")
         return result.NAME_
 
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
-        bus_station = self.bus_station(d, True)
+        bus_station = self.bus_station(d)
         dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
         route_name = f"{d.route_name_} " if show_route_name else ""
         day_info = ""
@@ -223,7 +224,7 @@ class CdsRequest:
 
         now = self.now()
         delta = timedelta(minutes=30)
-        stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d, True)))
+        stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d)))
                              for d in bus_list if filtered(d) and time_check(d)]
         return stations_filtered
 
@@ -394,7 +395,7 @@ class CdsRequest:
         for bus in all_buses:
             if bus_filter and bus_filter not in bus.name_:
                 continue
-            closest_stop = self.get_closest_bus_stop(bus, True)
+            closest_stop = self.get_closest_bus_stop(bus)
             bus_dist = bus.distance_km(closest_stop)
             same_station = bus.bus_station_ == bus_stop_name
             route_dist = self.get_dist(bus.route_name_, closest_stop.NAME_, bus_stop_name)
@@ -412,7 +413,7 @@ class CdsRequest:
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
             info = f'{bus.route_name_:>5} {arrival_time}'
             if search_result.full_info:
-                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {self.bus_station(bus, True)}'
+                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {self.bus_station(bus)}'
             return info
 
         result = [f'Время: {self.now():%H:%M:%S}']
