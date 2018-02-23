@@ -4,7 +4,7 @@ import unittest
 
 from cds import CdsRequest
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
-from data_types import CdsBusPosition
+from data_types import CdsBusPosition, CdsRouteBus
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
                     level=logging.DEBUG,
@@ -65,6 +65,25 @@ class CdsRouteTestCase(unittest.TestCase):
         self.assertTrue(result.NUMBER_ == 40)
         self.assertTrue(result.NAME_ == 'Проспект Труда (Московский проспект из центра)')
 
+    def test_closest_bus_stop(self):
+        route_bus = CdsRouteBus.make(*[
+            51.625537, 39.177478,
+            16,
+            "2018-02-15T19:57:47",
+            "М617АК136",
+            834,
+            20,
+            "80",
+            0,
+            "2018-02-15T19:54:56",
+            "Рабочий проспект (из центра)",
+            None
+        ])
+
+        station = self.cds.get_closest_bus_stop(route_bus)
+        logger.info(f"{station}; {route_bus.distance_km(station):.4f}  {route_bus.distance(station):.4f}")
+
+
 
 class CdsDataGatheringTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -72,6 +91,7 @@ class CdsDataGatheringTestCase(unittest.TestCase):
         self.mock_provider = CdsTestDataProvider(logger)
         self.db_provider = CdsDBDataProvider(logger)
 
+    @unittest.skip("testing skipping")
     def test_db(self):
         cds = CdsRequest(logger, self.db_provider)
         self.call_common_methods(cds)

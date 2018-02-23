@@ -1,3 +1,4 @@
 /logs/*
 /__pycache__/*
 /settings.py
+/test_data/*
