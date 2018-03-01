@@ -105,6 +105,5 @@ class CdsDataGatheringTestCase(unittest.TestCase):
         cds.calc_avg_speed()
 
 
-
 if __name__ == '__main__':
     unittest.main()
