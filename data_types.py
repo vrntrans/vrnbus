@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import NamedTuple
+from typing import NamedTuple, List
 
 from helpers import distance_km, distance, get_iso_time
 
@@ -139,3 +139,12 @@ class CdsRouteBus(NamedTuple):
     def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance_km(lat, lon, self.last_lat_, self.last_lon_)
+
+
+class CdsBaseDataProvider:
+    CACHE_TIMEOUT = 0
+    def now(self) -> datetime:
+        pass
+
+    def load_all_cds_buses(self) -> List[CdsRouteBus]:
+        pass

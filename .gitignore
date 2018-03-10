@@ -2,3 +2,4 @@
 /__pycache__/*
 /settings.py
 /test_data/*
+/.idea/*

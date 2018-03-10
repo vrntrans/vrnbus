@@ -1,4 +1,3 @@
-import codecs
 import heapq
 import json
 from collections import Counter, deque
@@ -7,15 +6,12 @@ from datetime import timedelta
 from itertools import groupby, product
 from logging import Logger
 from pathlib import Path
-from typing import Iterable, Dict, List, Container
+from typing import Iterable, Dict, Container
 
 import cachetools.func
 import pytz
-import requests
 
-from data_providers import CdsBaseDataProvider
-from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CoddNextBus, CoddBus, CoddRouteBus, \
-    CdsBusPosition, CdsRouteBus
+from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, CdsBaseDataProvider
 from helpers import fuzzy_search_advanced
 from helpers import get_time, natural_sort_key, distance, retry_multi, SearchResult
 
@@ -27,7 +23,6 @@ try:
 except ImportError:
     pass
 
-codd_base_usl = 'http://195.98.83.236:8080/CitizenCoddWebMaps/'
 ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
 ttl_db_sec = 30 if not LOAD_TEST_DATA else 0.001
 
@@ -77,32 +72,16 @@ class CdsRequest:
             return
         value.append(bus_data)
 
-    def load_codd_bus_routes(self) -> {}:
-        routes_base_local = {}
-        cds_buses = self.get_codd_buses()
-        for bus in cds_buses:
-            if bus.NAME_ and bus.ID_:
-                route = bus.NAME_
-                if route not in routes_base_local:
-                    routes_base_local[bus.NAME_] = bus.ID_
-        with open('bus_routes_codd.json', 'wb') as f:
-            json.dump(routes_base_local, codecs.getwriter('utf-8')(f), ensure_ascii=False, indent=4)
-        return routes_base_local
-
     def init_codd_routes(self) -> Dict:
         my_file = Path("bus_routes_codd.json")
-        if my_file.is_file():
-            with open(my_file, 'rb') as f:
-                return json.load(f)
-        else:
-            return self.load_codd_bus_routes()
+        with open(my_file, 'rb') as f:
+            return json.load(f)
 
     @staticmethod
     def init_cds_routes():
         my_file = Path("bus_routes_cds.json")
-        if my_file.is_file():
-            with open(my_file, 'rb') as f:
-                return json.load(f)
+        with open(my_file, 'rb') as f:
+            return json.load(f)
 
     @cachetools.func.ttl_cache()
     def matches_bus_stops(self, lat, lon, size=3):
@@ -114,15 +93,14 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_routes):
         def key_check(route: CdsRouteBus):
-            return route.name_ and route.last_time_ and (now - route.last_time_) < delta
+            return route.name_ and last_week < route.last_time_
 
         keys = set([x for x in self.cds_routes.keys() for r in bus_routes if x.upper() == r.upper()])
 
         routes = self.load_cds_buses_from_db(tuple(keys))
         self.logger.debug(routes)
         if routes:
-            now = self.now()
-            delta = timedelta(days=7)
+            last_week = self.now() - timedelta(days=7)
             short_result = sorted([d for d in routes if key_check(d)],
                                   key=lambda s: natural_sort_key(s.route_name_))
             return short_result
@@ -175,11 +153,12 @@ class CdsRequest:
         if not bus_positions:
             bus_positions.append(bus_info.get_bus_position())
         closest_on_route = self.get_closest_bus_stop_checked(bus_info.route_name_, bus_positions)
-        closest_stop = min(self.bus_stops, key=bus_info.distance)
+
 
         if closest_on_route and bus_info.distance(closest_on_route) < threshold:
             return closest_on_route
 
+        closest_stop = min(self.bus_stops, key=bus_info.distance)
         if closest_stop and bus_info.distance(closest_stop) < threshold:
             return closest_stop
 
@@ -257,21 +236,6 @@ class CdsRequest:
 
         return 'Ничего не нашлось', []
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec * 1.5)
-    @retry_multi()
-    def next_bus_for_lat_lon(self, lat, lon) -> List[CoddNextBus]:
-        url = f'{codd_base_usl}GetNextBus'
-        payload = {'lat': lat, 'lon': lon}
-        r = requests.post(url, data=payload, headers=self.fake_header)
-        self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)}")
-        text = r.text
-        if not text:
-            raise Exception(f"Should be result for next_bus_for_lat_lon {lat} {lon}")
-
-        self.logger.debug(f'Response: {text}')
-        result = [CoddNextBus(**i) for i in self.json_fix_and_load(text) if i]
-        return result
-
     def now(self):
         return self.data_provider.now()
 
@@ -321,7 +285,7 @@ class CdsRequest:
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def next_bus(self, bus_stop_query, search_result, alt=True) -> ArrivalInfo:
+    def next_bus(self, bus_stop_query, search_result) -> ArrivalInfo:
         bus_stop_matches = [x for x in self.bus_stops if fuzzy_search_advanced(bus_stop_query, x.NAME_)]
         if not bus_stop_matches:
             text = f'Остановки c именем "{bus_stop_query}" не найдены'
@@ -331,43 +295,7 @@ class CdsRequest:
             bus_stop_dict = {x.NAME_: '' for x in bus_stop_matches[:20]}
             return ArrivalInfo(f'Уточните остановку. Найденные варианты:\n{first_matches}',
                                'Уточните остановку. Найденные варианты:', bus_stop_dict)
-        method = self.next_bus_for_matches_alt if alt else self.next_bus_for_matches
-        return method(tuple(bus_stop_matches), search_result)
-
-    # @cachetools.func.ttl_cache(ttl=60)
-    def next_bus_for_matches(self, bus_stop_matches, search_result: SearchResult):
-        def show_arrival(info: CoddNextBus):
-            routes = search_result.bus_routes
-            return info.time_ > 0 and (not routes or info.rname_.strip() in routes)
-
-        result = [f'Время: {self.now():%H:%M} (Рассчёт ЦОДД)']
-        routes_set = set()
-        if search_result.bus_routes:
-            result.append(f"Фильтр по маршрутам: {' '.join(search_result.bus_routes)}")
-        bus_stop_dict = {}
-        headers = result[:]
-        for item in bus_stop_matches:
-            arrivals = self.next_bus_for_lat_lon(item.LAT_, item.LON_)
-            if arrivals:
-                header = arrivals[0]
-                items = [x for x in arrivals[1:] if
-                         show_arrival(x)]
-                routes_set.update([x.rname_.strip() for x in items])
-                self.logger.info(items)
-                items.sort(key=lambda s: natural_sort_key(s.rname_))
-                if not items:
-                    result.append(f'Остановка {header.rname_}: нет данных')
-                    bus_stop_dict[header.rname_] = ""
-                    continue
-                next_bus_info = f"Остановка {header.rname_}:\n"
-                bus_stop_value = '\n'.join((f"{x.rname_:>5} {x.time_:>2.0f} мин" for x in items))
-                next_bus_info += bus_stop_value
-                bus_stop_dict[header.rname_] = bus_stop_value
-                result.append(next_bus_info)
-        routes_list = list(routes_set)
-        routes_list.sort(key=natural_sort_key)
-        result.append(f'Ожидаемые маршруты (но это не точно, проверьте список): {" ".join(routes_list)}')
-        return ('\n'.join(result), "\n".join(headers), bus_stop_dict)
+        return self.next_bus_for_matches(tuple(bus_stop_matches), search_result)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
     def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
@@ -408,7 +336,7 @@ class CdsRequest:
         return result
 
     # @cachetools.func.ttl_cache(ttl=30)
-    def next_bus_for_matches_alt(self, bus_stop_matches, search_result: SearchResult) -> ArrivalInfo:
+    def next_bus_for_matches(self, bus_stop_matches, search_result: SearchResult) -> ArrivalInfo:
         def bus_info(bus: CdsRouteBus, distance, time_left):
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
             info = f'{bus.route_name_:>5} {arrival_time}'
@@ -458,16 +386,6 @@ class CdsRequest:
         result.append(f'Возможные маршруты: {" ".join(routes_list)}')
         return ArrivalInfo('\n'.join(result), "\n".join(headers), bus_stop_dict)
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
-    @retry_multi(max_retries=5)
-    def get_codd_buses(self) -> Iterable[CoddBus]:
-        r = requests.get(f'{codd_base_usl}GetBusesServlet', headers=self.fake_header)
-        self.logger.info(f"{r.url} {r.elapsed} {len(r.text)}")
-        if not r.text:
-            raise Exception("Should be results")
-        result: Iterable[CoddBus] = [CoddBus(**i) for i in self.json_fix_and_load(r.text)]
-        return result
-
     @cachetools.func.ttl_cache()
     def get_all_buses(self):
         def key_check(x: CdsRouteBus):
@@ -488,42 +406,6 @@ class CdsRequest:
             return buses
 
         return 'Ничего не нашлось'
-
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
-    @retry_multi()
-    def load_codd_buses(self, bus_routes) -> Iterable[CoddRouteBus]:
-        keys = set([x for x in self.codd_routes.keys() for r in bus_routes if x.upper() == r.upper()])
-        routes = [{'proj_ID': self.codd_routes.get(k), 'route': k} for k in keys]
-        if not routes:
-            return []
-        payload = {'routes': json.dumps(routes)}
-        self.logger.info(f"bus_request_as_list {routes}")
-        url = f'{codd_base_usl}GetRouteBuses'
-        r = requests.post(url, data=payload, headers=self.fake_header)
-        self.logger.info(f"{r.url} {payload} {r.elapsed} {len(r.text)/1024:.2} kB")
-        if len(r.text) == 0 or r.text == '[,]':
-            self.logger.warning(f'Empty or wrong result: {r}')
-            # raise Exception(f"Should be result for {keys}")
-            return []
-        if r.text:
-            return [CoddRouteBus(**i) for i in self.json_fix_and_load(r.text)]
-        return []
-
-    def json_fix_and_load(self, text: str):
-        if ',,' in text:
-            text = text.replace(',,', ',')
-        if '[,' in text:
-            text = text.replace('[,', '[')
-        if ',]' in text:
-            text = text.replace(',]', ']')
-
-        try:
-            json_object = json.loads(text)
-        except ValueError as e:
-            self.logger.warning(f'Exception {e}')
-            self.logger.warning(f'Wrong parse {text}')
-            return []
-        return json_object
 
     @cachetools.func.ttl_cache()
     def get_dist(self, route_name, bus_stop_start, bus_stop_stop):
@@ -564,7 +446,7 @@ class CdsRequest:
                 if i + 1 == size:
                     return v
                 return v
-        self.logger.error(f"Wrong params {route_name}, {bus_stop_name}")
+        self.logger.debug(f"Wrong params {route_name}, {bus_stop_name}")
         bus_stop = next((x for x in self.bus_stops if x.NAME_ == bus_stop_name), None)
         if bus_stop:
             return bus_stop

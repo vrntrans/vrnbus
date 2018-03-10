@@ -55,8 +55,8 @@
         }
     }
 
-    if (station_query){
-                station_query.onkeyup = function (event) {
+    if (station_query) {
+        station_query.onkeyup = function (event) {
             event.preventDefault()
             if (event.keyCode === 13) {
                 run_search_by_name()
@@ -257,7 +257,7 @@
 
                     bus.desc = [time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + " ( " + bus.name_ + " ) ",
-                    bus.last_lat_ + " " + bus.last_lon_].join('<br/>')
+                        bus.last_lat_ + " " + bus.last_lon_].join('<br/>')
 
                     return bus
                 })
@@ -292,44 +292,13 @@
 
                 select.onchange = function () {
                     var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
-                    if (text !== '-'){
+                    if (text !== '-') {
                         if (lastbusquery)
                             lastbusquery.value += ' ' + text
                         if (station_query)
                             station_query.value += ' ' + text
                     }
                 }
-            })
-    }
-
-    function get_bus_codd_positions(query) {
-        const lastbus_codd = document.getElementById('lastbus_codd')
-        waiting(lastbus_loading, lastbus_codd, true)
-        save_to_ls('bus_query', query)
-        var params = 'q=' + encodeURIComponent(query)
-        if (coords) {
-            params += '&lat=' + encodeURIComponent(coords.latitude)
-            params += '&lon=' + encodeURIComponent(coords.longitude)
-        }
-
-        return fetch('/coddbus?' + params,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-            })
-            .then(function (res) {
-                return res.json()
-            })
-            .then(function (data) {
-                waiting(lastbus_loading, lastbus_codd, false)
-
-                update_map(data.result, true)
-            }).catch(function (error) {
-                waiting(lastbus_loading, lastbus_codd, false)
-
-                businfo.innerHTML = 'Ошибка: ' + error
             })
     }
 
@@ -397,11 +366,6 @@
     }
 
     function ymap_show() {
-        document.getElementById('lastbus_codd').onclick = function () {
-            const bus_query = lastbusquery.value
-            get_bus_codd_positions(bus_query)
-        }
-
         my_map = new ymaps.Map('map', {
             center: [coords.latitude, coords.longitude],
             zoom: 14

@@ -7,7 +7,7 @@ from typing import List
 
 import fdb
 
-from data_types import CdsRouteBus
+from data_types import CdsRouteBus, CdsBaseDataProvider
 
 try:
     import settings
@@ -25,15 +25,9 @@ except ImportError:
     CDS_USER = env['CDS_USER']
     CDS_PASS = env['CDS_PASS']
 
-class CdsBaseDataProvider:
-    def now(self) -> datetime:
-        pass
-
-    def load_all_cds_buses(self) -> List[CdsRouteBus]:
-        pass
-
 
 class CdsDBDataProvider(CdsBaseDataProvider):
+    CACHE_TIMEOUT = 30
     def __init__(self, logger):
         self.logger = logger
         self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
@@ -82,6 +76,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
 
 class CdsTestDataProvider(CdsBaseDataProvider):
+    CACHE_TIMEOUT = 0.0001
     def __init__(self, logger):
         self.logger = logger
         self.test_data_files = []
@@ -96,7 +91,7 @@ class CdsTestDataProvider(CdsBaseDataProvider):
             path = self.test_data_files[0]
             self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
         else:
-            self.logger.error("Cannot load test data from ./test_data/")
+            raise Exception("Cannot load test data from ./test_data/")
 
     def now(self):
         if self.test_data_files and self.test_data_index >= len(self.test_data_files):

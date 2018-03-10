@@ -42,8 +42,7 @@ class BusBot:
         self.dp.add_handler(CommandHandler("last", self.last_buses, pass_args=True))
 
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
-        self.dp.add_handler(CommandHandler("nextbusold", self.next_bus_handler_old, pass_args=True))
-        #
+
         self.dp.add_handler(CommandHandler("stats", self.stats))
         #
         # # on noncommand i.e message - echo the message on Telegram
@@ -225,9 +224,6 @@ class BusBot:
         response = self.cds.next_bus(' '.join(args), search_result, alt)[0]
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
-    def next_bus_handler_old(self, _, update, args):
-        self.next_bus_general(update, args, False)
-
     def next_bus_handler(self, _, update, args):
         self.next_bus_general(update, args, True)
 
@@ -283,7 +279,7 @@ class BusBot:
         self.user_settings[user.id] = settings
         bus_routes = settings.get('route_settings')
         search_result = SearchResult(bus_routes=(bus_routes if bus_routes else tuple()))
-        result = self.cds.next_bus_for_matches_alt(tuple(matches), search_result)
+        result = self.cds.next_bus_for_matches(tuple(matches), search_result)
         self.logger.info(f"next_bus_for_matches {user} {result}")
         update.message.reply_text(f'```\n{result[0]}\n```',
                                   reply_markup=ReplyKeyboardRemove(),
