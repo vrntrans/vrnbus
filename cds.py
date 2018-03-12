@@ -298,7 +298,7 @@ class CdsRequest:
             return -1
         return self.bus_stops.index(bus_stop)
 
-    def get_bus_stop_from_id(self, id):
+    def get_bus_stop_from_id(self, id) -> BusStop:
         if id < 0 or id >= len(self.bus_stops):
             return None
         return self.bus_stops[id]
@@ -406,7 +406,7 @@ class CdsRequest:
         return ArrivalInfo('\n'.join(result), "\n".join(headers), bus_stop_dict)
 
     @cachetools.func.ttl_cache()
-    def get_all_buses(self):
+    def get_bus_statistics(self):
         def time_check(bus: CdsRouteBus, last_time):
             if not bus.last_time_ or bus.last_time_ < last_time:
                 return False
@@ -426,8 +426,8 @@ class CdsRequest:
         grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
         minutes_10 = count_buses(short_result, timedelta(minutes=10))
         minutes_30 = count_buses(short_result, timedelta(minutes=30))
-        bus_stats_text = f"1 h. {last_hour} / 30 min. {minutes_30} / 10 min. {minutes_10} from {len(cds_buses)}"
-        self.logger.info(bus_stats_text)
+        bus_stats_text = f"1 h. 30 min. 10 min.\n{last_hour:5d} {minutes_30:5d} {minutes_10:5d}\nTotal: {len(cds_buses)}"
+        self.logger.info("{last_hour:5d} {minutes_30:5d} {minutes_10:5d}")
         if short_result:
             buses = ' \n'.join((('{:10s} => {}'.format(i[0], i[1])) for i in grouped))
             buses += '\n' + bus_stats_text

@@ -2,6 +2,7 @@ import os
 import re
 
 import cachetools
+from numpy.ma import isin
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
     KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
@@ -65,8 +66,13 @@ class BusBot:
     def custom_command(self, bot, update):
         command = update.message.text
         if command.startswith('/nextbus_'):
-            bot.send_message(chat_id=update.message.chat_id, text=f"Will support later")
-            return
+            match = re.match(r'/nextbus_(\d*)$', command)
+            if match and match.group(1):
+                id = int(match.group(1))
+                bus_stop = self.cds.get_bus_stop_from_id(id)
+                if bus_stop:
+                    self.next_bus_general(update, bus_stop.NAME_)
+                    return
         bot.send_message(chat_id=update.message.chat_id, text=f"Sorry, I didn't understand that command. {update.message.text}")
 
     def error(self, _, update, error):
@@ -236,7 +242,8 @@ class BusBot:
 
         user_settings = self.user_settings.get(user.id, {})
         search_result = SearchResult(bus_routes=tuple(user_settings.get('route_settings', [])))
-        response = self.cds.next_bus(' '.join(args), search_result)
+        bus_stop_name = args if isinstance(args, str) else ' '.join(args)
+        response = self.cds.next_bus(bus_stop_name, search_result)
         next_bus_text = '\n'.join([text_for_bus_stop(k, v) for (k, v) in response.bus_stops.items()])
         update.message.reply_text(f'{response.header}\n{next_bus_text}', parse_mode='Markdown')
 
@@ -248,7 +255,7 @@ class BusBot:
         self.ping_prod()
         user = update.message.from_user
         self.logger.info(f"Stats. User: {user}")
-        response = self.cds.get_all_buses()
+        response = self.cds.get_bus_statistics()
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
     def user_input(self, bot, update):
