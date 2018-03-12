@@ -46,6 +46,8 @@ class BusBot:
         self.dp.add_handler(CommandHandler("stats", self.stats))
         #
         # # on noncommand i.e message - echo the message on Telegram
+
+        self.dp.add_handler(MessageHandler(Filters.command, self.custom_command))
         self.dp.add_handler(MessageHandler(Filters.text, self.user_input))
         self.dp.add_handler(MessageHandler(Filters.location, self.location))
         #
@@ -59,6 +61,13 @@ class BusBot:
         # SIGTERM or SIGABRT. This should be used most of the time, since
         # start_polling() is non-blocking and will stop the bot gracefully.
         # updater.idle()
+
+    def custom_command(self, bot, update):
+        command = update.message.text
+        if command.startswith('/nextbus_'):
+            bot.send_message(chat_id=update.message.chat_id, text=f"Will support later")
+            return
+        bot.send_message(chat_id=update.message.chat_id, text=f"Sorry, I didn't understand that command. {update.message.text}")
 
     def error(self, _, update, error):
         """Log Errors caused by Updates."""
@@ -209,7 +218,11 @@ class BusBot:
                               reply_markup=reply_markup)
 
     def next_bus_general(self, update, args):
-        """Send a message when the command /start is issued."""
+        def text_for_bus_stop(key, value):
+            s = (f'```{value}```' if value else '')
+            command = f'/nextbus_{self.cds.get_bus_stop_id(key)}'
+            return f"[{command}]({command}) {key}\n{s} "
+
         user = update.message.from_user
         self.logger.info(f"next_bus_handler. User: {user}; {args}")
         if not args:
@@ -223,8 +236,9 @@ class BusBot:
 
         user_settings = self.user_settings.get(user.id, {})
         search_result = SearchResult(bus_routes=tuple(user_settings.get('route_settings', [])))
-        response = self.cds.next_bus(' '.join(args), search_result)[0]
-        update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
+        response = self.cds.next_bus(' '.join(args), search_result)
+        next_bus_text = '\n'.join([text_for_bus_stop(k, v) for (k, v) in response.bus_stops.items()])
+        update.message.reply_text(f'{response.header}\n{next_bus_text}', parse_mode='Markdown')
 
     def next_bus_handler(self, _, update, args):
         self.next_bus_general(update, args)

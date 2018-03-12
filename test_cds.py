@@ -5,7 +5,7 @@ import time
 
 from cds import CdsRequest
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
-from data_types import CdsBusPosition, CdsRouteBus
+from data_types import CdsBusPosition, CdsRouteBus, BusStop
 from helpers import parse_routes
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
@@ -127,6 +127,37 @@ class CdsSpeedTestCase(unittest.TestCase):
         finish = datetime.datetime.now()
         logger.info(f"{finish - start}")
 
+class CdsBusStopIndexTestCase(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
+                            level=logging.INFO,
+                            handlers=[logging.StreamHandler()])
+
+        logger = logging.getLogger("vrnbus")
+        self.mock_provider = CdsTestDataProvider(logger)
+        self.cds = CdsRequest(logger, self.mock_provider)
+
+    def test_get_index_by_name(self):
+        result = self.cds.get_bus_stop_id("ул. Кирова (в центр)")
+        self.assertIsInstance(result, int)
+
+    def test_get_index_for_wrong_name(self):
+        result = self.cds.get_bus_stop_id("NOT A STATION")
+        self.assertIsInstance(result, int)
+        self.assertEqual(result, -1)
+
+    def test_get_index_by_name(self):
+        result = self.cds.get_bus_stop_id("ул. Кирова (в центр)")
+        self.assertIsInstance(result, int)
+
+    def test_get_bus_stop_for_index(self):
+        result = self.cds.get_bus_stop_from_id(42)
+        self.assertIsInstance(result, BusStop)
+
+    def test_get_busstop_for_outrange_indexes(self):
+        self.assertIsNone(self.cds.get_bus_stop_from_id(-1))
+        self.assertIsNone(self.cds.get_bus_stop_from_id(100500))
 
 if __name__ == '__main__':
     unittest.main()

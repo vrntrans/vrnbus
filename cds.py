@@ -292,6 +292,17 @@ class CdsRequest:
         result = [x for x in all_buses if x.route_name_ in keys]
         return result
 
+    def get_bus_stop_id(self, name):
+        bus_stop = next(filter(lambda x: x.NAME_ == name, self.bus_stops), None)
+        if not bus_stop:
+            return -1
+        return self.bus_stops.index(bus_stop)
+
+    def get_bus_stop_from_id(self, id):
+        if id < 0 or id >= len(self.bus_stops):
+            return None
+        return self.bus_stops[id]
+
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def next_bus(self, bus_stop_query, search_result) -> ArrivalInfo:
         bus_stop_matches = [x for x in self.bus_stops if fuzzy_search_advanced(bus_stop_query, x.NAME_)]
