@@ -298,7 +298,7 @@ class CdsRequest:
             return -1
         return self.bus_stops.index(bus_stop)
 
-    def get_bus_stop_from_id(self, id):
+    def get_bus_stop_from_id(self, id) -> BusStop:
         if id < 0 or id >= len(self.bus_stops):
             return None
         return self.bus_stops[id]
