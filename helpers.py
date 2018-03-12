@@ -67,6 +67,32 @@ def distance(lat1, lon1, lat2, lon2):
     return ((lat1 - lat2) ** 2 + (lon1 - lon2) ** 2) ** 0.5
 
 
+def azimuth(glon1, glat1, glon2, glat2):
+    lat1 = glat1 * math.pi / 180
+    lat2 = glat2 * math.pi / 180
+    long1 = glon1 * math.pi / 180
+    long2 = glon2 * math.pi / 180
+    cosl1 = math.cos(lat1)
+    cosl2 = math.cos(lat2)
+    sinl1 = math.sin(lat1)
+    sinl2 = math.sin(lat2)
+    delta = long2 - long1
+    cdelta = math.cos(delta)
+    sdelta = math.sin(delta)
+    x = (cosl1 * sinl2) - (sinl1 * cosl2 * cdelta)
+    y = sdelta * cosl2
+    z = (math.atan(-y / x)) / 0.017453293
+    if (x < 0):
+        z = z + 180
+    z2 = (z + 180) % 360 + 180
+    z2 = -(z2 * 0.017453293)
+    anglerad2 = z2 - ((2 * math.pi) * math.floor(z2 / (2 * math.pi)))
+    angledeg = (anglerad2 * 180) / math.pi
+    azmth = round(angledeg)
+
+    return azmth
+
+
 def distance_km(glat1, glon1, glat2, glon2):
     r = 6373.0
 

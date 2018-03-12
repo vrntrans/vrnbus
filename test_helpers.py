@@ -22,5 +22,19 @@ class TestFuzzySearch(unittest.TestCase):
                 self.assertEqual(f(needle, haystack), result)
 
 
+class TestGeoFunction(unittest.TestCase):
+    def test_azimuth(self):
+        f = helpers.azimuth
+        cases = [
+            ((24.323810, 1.368795, 39.169720, 51.652228), 12),
+            ((241.323810, 1.468795, 39.182616, 51.697372), 16),
+        ]
+
+        for (params, result) in cases:
+            with self.subTest(f'{params}, {result}'):
+                self.assertEqual(f(*params), result)
+
+
+
 if __name__ == '__main__':
     unittest.main()

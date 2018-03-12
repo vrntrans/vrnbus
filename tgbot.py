@@ -129,7 +129,7 @@ class BusBot:
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
         response = self.cds.bus_request(parse_routes(args), user_loc=user_loc)
         text = response[0]
-        self.logger.info(f"last_buses. User: {user}; Response {text}")
+        self.logger.info(f"last_buses. User: {user}; Response {' '.join(text.split())}")
         update.message.reply_text(text)
 
     def get_buttons_routes(self, user_routes):
@@ -241,7 +241,7 @@ class BusBot:
         user = message.from_user
         text = message.text
 
-        self.logger.info(f'"{text}" User: {user}; ')
+        self.logger.info(f'" User: {user}; {text[:30]}"')
 
         if not text or text == 'Отмена':
             message.reply_text(text=f"Попробуйте воспользоваться справкой /help",
@@ -260,7 +260,7 @@ class BusBot:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
             self.logger.info(f"{user} '{text}' {user_loc}")
             response = self.cds.bus_request(parse_routes(text), user_loc=user_loc)
-            self.logger.info(f'"{text}" User: {user}; Response: {response[:256]}')
+            self.logger.deebug(f'"{text}" User: {user}; Response: {response[:5]} from {len(response)}')
             reply_text = response[0]
             if len(reply_text) > 4000:
                 message.reply_text("Слишком длинный запрос, показаны первые 4000 символов:\n" +

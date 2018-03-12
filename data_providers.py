@@ -41,7 +41,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         def make_names_lower(x):
             return {k.lower(): v for (k, v) in x.iteritems()}
 
-        self.logger.info('Execute fetch all from DB')
+        self.logger.debug('Execute fetch all from DB')
         start = time.time()
         try:
             with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
@@ -52,12 +52,12 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                     ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
                     JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
                     WHERE obj_output_=0''')
-                self.logger.info('Finish execution')
+                self.logger.debug('Finish execution')
                 result = cur.fetchallmap()
                 tr.commit()
                 cur.close()
                 end = time.time()
-                self.logger.info(f"Finish fetch. Elapsed: {end - start:.2f}")
+                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
             try:
