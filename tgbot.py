@@ -7,7 +7,7 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMa
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
 from tornado.httpclient import AsyncHTTPClient
 
-from data_types import UserLoc
+from data_types import UserLoc, ArrivalInfo
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult
 
 try:
@@ -72,7 +72,8 @@ class BusBot:
                 if bus_stop:
                     self.next_bus_general(update, bus_stop.NAME_)
                     return
-        bot.send_message(chat_id=update.message.chat_id, text=f"Sorry, I didn't understand that command. {update.message.text}")
+        bot.send_message(chat_id=update.message.chat_id,
+                         text=f"Sorry, I didn't understand that command. {update.message.text}")
 
     def error(self, _, update, error):
         """Log Errors caused by Updates."""
@@ -222,6 +223,15 @@ class BusBot:
                               message_id=query.message.message_id,
                               reply_markup=reply_markup)
 
+    def get_text_from_arrival_info(self, arrival_info: ArrivalInfo):
+        def text_for_bus_stop(key, value):
+            s = (f'```{value}```' if value else '')
+            command = f'/nextbus_{self.cds.get_bus_stop_id(key)}'
+            return f"[{command}]({command}) {key}\n{s} "
+
+        next_bus_text = '\n'.join([text_for_bus_stop(k, v) for (k, v) in arrival_info.bus_stops.items()])
+        return f'{arrival_info.header}\n{next_bus_text}'
+
     def next_bus_general(self, update, args):
         def text_for_bus_stop(key, value):
             s = (f'```{value}```' if value else '')
@@ -243,8 +253,7 @@ class BusBot:
         search_result = SearchResult(bus_routes=tuple(user_settings.get('route_settings', [])))
         bus_stop_name = args if isinstance(args, str) else ' '.join(args)
         response = self.cds.next_bus(bus_stop_name, search_result)
-        next_bus_text = '\n'.join([text_for_bus_stop(k, v) for (k, v) in response.bus_stops.items()])
-        update.message.reply_text(f'{response.header}\n{next_bus_text}', parse_mode='Markdown')
+        update.message.reply_text(self.get_text_from_arrival_info(response), parse_mode='Markdown')
 
     def next_bus_handler(self, _, update, args):
         self.next_bus_general(update, args)
@@ -301,11 +310,10 @@ class BusBot:
         self.user_settings[user.id] = settings
         bus_routes = settings.get('route_settings')
         search_result = SearchResult(bus_routes=(bus_routes if bus_routes else tuple()))
-        result = self.cds.next_bus_for_matches(tuple(matches), search_result)
-        self.logger.debug(f"next_bus_for_matches {user} {result}")
-        update.message.reply_text(f'```\n{result[0]}\n```',
-                                  reply_markup=ReplyKeyboardRemove(),
-                                  parse_mode='Markdown')
+        arrival_info = self.cds.next_bus_for_matches(tuple(matches), search_result)
+        self.logger.debug(f"next_bus_for_matches {user} {arrival_info}")
+        update.message.reply_text(self.get_text_from_arrival_info(arrival_info), parse_mode='Markdown',
+                                  reply_markup=ReplyKeyboardRemove())
 
     def location(self, _, update):
         self.ping_prod()
