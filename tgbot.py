@@ -206,7 +206,7 @@ class BusBot:
                               message_id=query.message.message_id,
                               reply_markup=reply_markup)
 
-    def next_bus_general(self, update, args, alt):
+    def next_bus_general(self, update, args):
         """Send a message when the command /start is issued."""
         user = update.message.from_user
         self.logger.info(f"next_bus_handler. User: {user}; {args}")
@@ -221,11 +221,11 @@ class BusBot:
 
         user_settings = self.user_settings.get(user.id, {})
         search_result = SearchResult(bus_routes=tuple(user_settings.get('route_settings', [])))
-        response = self.cds.next_bus(' '.join(args), search_result, alt)[0]
+        response = self.cds.next_bus(' '.join(args), search_result)[0]
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
     def next_bus_handler(self, _, update, args):
-        self.next_bus_general(update, args, True)
+        self.next_bus_general(update, args)
 
     def stats(self, _, update):
         """Send a message when the command /stats is issued."""
