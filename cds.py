@@ -1,5 +1,6 @@
 import heapq
 import json
+import time
 from collections import Counter, deque
 from collections import defaultdict
 from datetime import timedelta
@@ -24,7 +25,7 @@ except ImportError:
     pass
 
 ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
-ttl_db_sec = 30 if not LOAD_TEST_DATA else 0.001
+ttl_db_sec = 60 if not LOAD_TEST_DATA else 0.001
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -59,6 +60,7 @@ class CdsRequest:
         self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
+        self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=10))
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
@@ -244,10 +246,16 @@ class CdsRequest:
         def update_last_bus_data(buses):
             for bus in buses:
                 self.add_last_bus_data(bus.name_, bus.get_bus_position())
-
-        result = self.data_provider.load_all_cds_buses()
-        update_last_bus_data(result)
-        result.sort(key=lambda s: s.last_time_, reverse=True)
+        while self.fetching_in_progress:
+            self.logger.info("Waiting for previous DB query")
+            time.sleep(1)
+        try:
+            self.fetching_in_progress = True
+            result = self.data_provider.load_all_cds_buses()
+            update_last_bus_data(result)
+            result.sort(key=lambda s: s.last_time_, reverse=True)
+        finally:
+            self.fetching_in_progress = False
         return result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
@@ -391,9 +399,22 @@ class CdsRequest:
         def key_check(x: CdsRouteBus):
             return x.name_ and x.last_time_ and (now - x.last_time_) < hour
 
+        def time_filter(bus: CdsRouteBus):
+            if not bus.last_time_ or bus.last_time_ < last_n_minutes:
+                return False
+            if bus.last_station_time_ and bus.last_station_time_ < last_n_minutes:
+                return False
+            return True
+
         cds_buses = self.load_all_cds_buses_from_db()
         if not cds_buses:
             return 'Ничего не нашлось'
+
+        now = self.now()
+        last_n_minutes = now - timedelta(minutes=15)
+        bus_list = list(filter(time_filter, cds_buses))
+
+        self.logger.info(f'Buses in last 15 munutes {len(bus_list)} from {len(cds_buses)}')
 
         now = self.now()
         hour = timedelta(hours=1)
@@ -401,8 +422,9 @@ class CdsRequest:
                         key_check(d)]
         short_result = sorted(short_result, key=lambda x: natural_sort_key(x[2]))
         grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: f'{x[2]} ({x[3]})')]
+        buses = f"Buses in last 15 munutes {len(bus_list)} from {len(cds_buses)}\n"
         if short_result:
-            buses = ' \n'.join((('{} => {}'.format(i[0], i[1])) for i in grouped))
+            buses += ' \n'.join((('{} => {}'.format(i[0], i[1])) for i in grouped))
             return buses
 
         return 'Ничего не нашлось'

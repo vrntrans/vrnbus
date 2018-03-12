@@ -178,7 +178,8 @@ class BusBot:
         query = update.callback_query
         self.logger.info(query)
         user_id = query.message.chat_id
-        settings = self.user_settings.get(user_id, {})
+        user_settings = self.user_settings.get(user_id, {})
+        settings = user_settings.get('route_settings', [])
         key = query.data
 
         if key == 'all':
@@ -197,7 +198,8 @@ class BusBot:
             else:
                 settings.append(key)
 
-        self.user_settings[user_id]['route_settings'] = settings
+        user_settings['route_settings'] = settings
+        self.user_settings[user_id] = user_settings
         keyboard = self.get_buttons_routes(settings)
         reply_markup = InlineKeyboardMarkup(keyboard)
         routes = ' '.join(settings) if settings else 'все доступные'
@@ -260,7 +262,7 @@ class BusBot:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
             self.logger.info(f"{user} '{text}' {user_loc}")
             response = self.cds.bus_request(parse_routes(text), user_loc=user_loc)
-            self.logger.deebug(f'"{text}" User: {user}; Response: {response[:5]} from {len(response)}')
+            self.logger.debug(f'"{text}" User: {user}; Response: {response[:5]} from {len(response)}')
             reply_text = response[0]
             if len(reply_text) > 4000:
                 message.reply_text("Слишком длинный запрос, показаны первые 4000 символов:\n" +
