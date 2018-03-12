@@ -2,7 +2,6 @@ import os
 import re
 
 import cachetools
-from numpy.ma import isin
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
     KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
