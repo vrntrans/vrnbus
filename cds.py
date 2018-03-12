@@ -139,7 +139,7 @@ class CdsRequest:
                 if n1 > n2 and ((n1 <= m_num and n2 <= m_num) or (n1 >= m_num and n2 >= m_num)):
                     return s1
 
-            self.logger.warning(f"Didn't find correct bus stop for {last_position}")
+            self.logger.warning(f"{last_position}")
 
         return curr_1
 
@@ -396,35 +396,30 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache()
     def get_all_buses(self):
-        def key_check(x: CdsRouteBus):
-            return x.name_ and x.last_time_ and (now - x.last_time_) < hour
-
-        def time_filter(bus: CdsRouteBus):
-            if not bus.last_time_ or bus.last_time_ < last_n_minutes:
-                return False
-            if bus.last_station_time_ and bus.last_station_time_ < last_n_minutes:
+        def time_check(bus: CdsRouteBus, last_time):
+            if not bus.last_time_ or bus.last_time_ < last_time:
                 return False
             return True
+
+        def count_buses(buses: Iterable[CdsRouteBus], time_interval):
+            return sum(1 for i in buses if time_check(i, now - time_interval))
 
         cds_buses = self.load_all_cds_buses_from_db()
         if not cds_buses:
             return 'Ничего не нашлось'
 
         now = self.now()
-        last_n_minutes = now - timedelta(minutes=15)
-        bus_list = list(filter(time_filter, cds_buses))
-
-        self.logger.info(f'Buses in last 15 munutes {len(bus_list)} from {len(cds_buses)}')
-
-        now = self.now()
-        hour = timedelta(hours=1)
-        short_result = [(d.name_, d.last_time_, d.route_name_, d.proj_id_) for d in cds_buses if
-                        key_check(d)]
-        short_result = sorted(short_result, key=lambda x: natural_sort_key(x[2]))
-        grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: f'{x[2]} ({x[3]})')]
-        buses = f"Buses in last 15 munutes {len(bus_list)} from {len(cds_buses)}\n"
+        short_result = [d for d in cds_buses if time_check(d, now - timedelta(hours=1))]
+        last_hour = len(short_result)
+        short_result = sorted(short_result, key=lambda x: natural_sort_key(x.route_name_))
+        grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
+        minutes_10 = count_buses(short_result, timedelta(minutes=10))
+        minutes_30 = count_buses(short_result, timedelta(minutes=30))
+        bus_stats_text = f"1 h. {last_hour} / 30 min. {minutes_30} / 10 min. {minutes_10} from {len(cds_buses)}"
+        self.logger.info(bus_stats_text)
         if short_result:
-            buses += ' \n'.join((('{} => {}'.format(i[0], i[1])) for i in grouped))
+            buses = ' \n'.join((('{:10s} => {}'.format(i[0], i[1])) for i in grouped))
+            buses += '\n' + bus_stats_text
             return buses
 
         return 'Ничего не нашлось'

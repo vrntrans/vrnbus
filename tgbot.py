@@ -235,7 +235,7 @@ class BusBot:
         user = update.message.from_user
         self.logger.info(f"Stats. User: {user}")
         response = self.cds.get_all_buses()
-        update.message.reply_text(response)
+        update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
     def user_input(self, bot, update):
         self.ping_prod()
@@ -282,7 +282,7 @@ class BusBot:
         bus_routes = settings.get('route_settings')
         search_result = SearchResult(bus_routes=(bus_routes if bus_routes else tuple()))
         result = self.cds.next_bus_for_matches(tuple(matches), search_result)
-        self.logger.info(f"next_bus_for_matches {user} {result}")
+        self.logger.debug(f"next_bus_for_matches {user} {result}")
         update.message.reply_text(f'```\n{result[0]}\n```',
                                   reply_markup=ReplyKeyboardRemove(),
                                   parse_mode='Markdown')
