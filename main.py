@@ -18,7 +18,8 @@ if not Path('logs').is_dir():
 file_handler = TimedRotatingFileHandler("logs/vrnbus.log", 'midnight', 1)
 file_handler.suffix = "%Y-%m-%d"
 # noinspection SpellCheckingInspection
-logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
+logging.basicConfig(format='%(asctime)s.%(msecs)03d - %(levelname)s [%(filename)s:%(lineno)s %(funcName)10s] %(message)s',
+                    datefmt="%H:%M:%S",
                     level=logging.INFO,
                     handlers=[logging.StreamHandler(), file_handler])
 
