@@ -105,7 +105,7 @@ class BusBot:
         """Send a message when the command /help is issued."""
         self.ping_prod()
         user = update.message.from_user
-        self.logger.info(user)
+        self.logger.info(f"User: {user}")
         update.message.reply_text("""
 /nextbus имя остановки - ожидаемое время прибытия
 
@@ -144,7 +144,7 @@ class BusBot:
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
         response = self.cds.bus_request(parse_routes(args), user_loc=user_loc)
         text = response[0]
-        self.logger.info(f"last_buses. User: {user}; Response {' '.join(text.split())}")
+        self.logger.debug(f"last_buses. User: {user}; Response {' '.join(text.split())}")
         update.message.reply_text(text)
 
     def get_buttons_routes(self, user_routes):
@@ -272,7 +272,7 @@ class BusBot:
         user = message.from_user
         text = message.text
 
-        self.logger.info(f'" User: {user}; {text[:30]}"')
+        self.logger.info(f'User: {user}; "{text[:30]}"')
 
         if not text or text == 'Отмена':
             message.reply_text(text=f"Попробуйте воспользоваться справкой /help",
@@ -289,7 +289,7 @@ class BusBot:
             self.show_arrival(update, float(lat), float(lon))
         else:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
-            self.logger.info(f"{user} '{text}' {user_loc}")
+            self.logger.info(f"User: {user} '{text}' {user_loc}")
             response = self.cds.bus_request(parse_routes(text), user_loc=user_loc)
             self.logger.debug(f'"{text}" User: {user}; Response: {response[:5]} from {len(response)}')
             reply_text = response[0]
@@ -302,7 +302,7 @@ class BusBot:
 
     def show_arrival(self, update, lat, lon):
         user = update.message.from_user
-        self.logger.info("Location of %s: %f / %f", user.first_name, lat, lon)
+        self.logger.info(f"User: {user} {lat}, {lon}", user.first_name, lat, lon)
         matches = self.cds.matches_bus_stops(lat, lon)
         user_loc = UserLoc(lat, lon)
         settings = self.user_settings.get(user.id, {})
