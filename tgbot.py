@@ -244,11 +244,6 @@ class BusBot:
         return f'{arrival_info.header}\n{next_bus_text}'
 
     def next_bus_general(self, update, args):
-        def text_for_bus_stop(key, value):
-            s = (f'```{value}```' if value else '')
-            command = f'/nextbus_{self.cds.get_bus_stop_id(key)}'
-            return f"[{command}]({command}) {key}\n{s} "
-
         user = update.message.from_user
 
         self.track(TgEvent.NEXT, update, args)
