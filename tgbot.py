@@ -9,6 +9,7 @@ from tornado.httpclient import AsyncHTTPClient
 
 from data_types import UserLoc, ArrivalInfo
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult
+from tracking import EventTracker, TgEvent
 
 try:
     import settings
@@ -22,11 +23,12 @@ except ImportError:
 
 
 class BusBot:
-    def __init__(self, cds, user_settings, logger):
+    def __init__(self, cds, user_settings, logger, tracker:EventTracker):
         """Start the bot."""
         self.cds = cds
         self.user_settings = user_settings
         self.logger = logger
+        self.tracker = tracker
         # Create the EventHandler and pass it your bot's token.
         self.updater = Updater(VRNBUSBOT_TOKEN)
 
@@ -63,6 +65,10 @@ class BusBot:
         # start_polling() is non-blocking and will stop the bot gracefully.
         # updater.idle()
 
+    def track(self, event:TgEvent, update, *params):
+        user = update.message.from_user
+        self.tracker.tg(event, user, *params)
+
     def custom_command(self, bot, update):
         command = update.message.text
         if command.startswith('/nextbus_'):
@@ -85,8 +91,7 @@ class BusBot:
     def start(self, _, update):
         """Send a message when the command /help is issued."""
         self.ping_prod()
-        user = update.message.from_user
-        self.logger.info(f"start. User: {user};")
+        self.track(TgEvent.START, update)
 
         location_keyboard = KeyboardButton(text="Местоположение", request_location=True)
         cancel_button = KeyboardButton(text="Отмена")
@@ -106,7 +111,7 @@ class BusBot:
         """Send a message when the command /help is issued."""
         self.ping_prod()
         user = update.message.from_user
-        self.logger.info(f"User: {user}")
+        self.track(TgEvent.HELP, update)
         update.message.reply_text("""
 /nextbus имя остановки - ожидаемое время прибытия
 
@@ -141,10 +146,12 @@ class BusBot:
         """Send a message when the command /last is issued."""
         self.ping_prod()
         user = update.message.from_user
-        self.logger.info(f"last_buses. User: {user}; {args}")
+
+        self.track(TgEvent.LAST, update, args)
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
         response = self.cds.bus_request(parse_routes(args), user_loc=user_loc)
         text = response[0]
+        self.track(TgEvent.LAST, update, args)
         self.logger.debug(f"last_buses. User: {user}; Response {' '.join(text.split())}")
         update.message.reply_text(text)
 
@@ -240,7 +247,8 @@ class BusBot:
             return f"[{command}]({command}) {key}\n{s} "
 
         user = update.message.from_user
-        self.logger.info(f"next_bus_handler. User: {user}; {args}")
+
+        self.track(TgEvent.NEXT, update, args)
         if not args:
             location_btn = KeyboardButton(text="Местоположение", request_location=True)
             cancel_btn = KeyboardButton(text="Отмена")
@@ -260,7 +268,8 @@ class BusBot:
         user = update.message.from_user
 
         search_params = parse_routes(params)
-        self.logger.info(f"User: {user}; {bus_stop} {params} => {search_params}")
+
+        self.track(TgEvent.NEXT, update, bus_stop, params)
 
         response = self.cds.next_bus_for_matches((bus_stop, ), search_params)
         update.message.reply_text(self.get_text_from_arrival_info(response), parse_mode='Markdown')
@@ -271,7 +280,8 @@ class BusBot:
     def send_stats(self, update, full_info):
         self.ping_prod()
         user = update.message.from_user
-        self.logger.info(f"Stats. User: {user}")
+
+        self.track(TgEvent.STATS, update, full_info)
         response = self.cds.get_bus_statistics(full_info)
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
@@ -289,8 +299,7 @@ class BusBot:
         user = message.from_user
         text = message.text
 
-        self.logger.info(f'User: {user}; "{text[:30]}"')
-
+        self.track(TgEvent.USER_INPUT, update, text[:30])
         if not text or text == 'Отмена':
             message.reply_text(text=f"Попробуйте воспользоваться справкой /help",
                                reply_markup=ReplyKeyboardRemove())
@@ -319,6 +328,8 @@ class BusBot:
 
     def show_arrival(self, update, lat, lon):
         user = update.message.from_user
+
+        self.track(TgEvent.NEXT, update, lat, lon)
         self.logger.info(f"User: {user} {lat}, {lon}")
         matches = self.cds.matches_bus_stops(lat, lon)
         user_loc = UserLoc(lat, lon)

@@ -7,8 +7,10 @@ from pathlib import Path
 import tornado.web
 
 from cds import CdsRequest
+from data_processors import WebDataProcessor
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
 from tgbot import BusBot
+from tracking import EventTracker
 from website import BusSite
 
 if not Path('logs').is_dir():
@@ -38,9 +40,11 @@ except ImportError:
 user_settings = {}
 
 if __name__ == "__main__":
+    tracker = EventTracker(logger)
     data_provider = CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
     cds = CdsRequest(logger, data_provider)
-    bot = BusBot(cds, user_settings, logger)
-    application = BusSite(cds, logger)
+    data_processor = WebDataProcessor(cds, logger)
+    bot = BusBot(cds, user_settings, logger, tracker)
+    application = BusSite(data_processor, logger, tracker)
     application.listen(os.environ.get('PORT', 8080))
     tornado.ioloop.IOLoop.instance().start()

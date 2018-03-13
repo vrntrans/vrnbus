@@ -8,6 +8,7 @@ from tornado.concurrent import run_on_executor
 
 import helpers
 from data_processors import WebDataProcessor
+from tracking import WebEvent, EventTracker
 
 if 'DYNO' in os.environ:
     debug = False
@@ -22,6 +23,10 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
 
 class BaseHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor()
+
+    def track(self, event:WebEvent, *params):
+        ip = self.request.remote_ip
+        self.tracker.web(event, ip, *params)
 
     def data_received(self, chunk):
         pass
@@ -41,9 +46,13 @@ class BaseHandler(tornado.web.RequestHandler):
     def logger(self):
         return self.application.logger
 
+    @property
+    def tracker(self) -> EventTracker:
+        return self.application.tracker
+
 
 class BusSite(tornado.web.Application):
-    def __init__(self, cds, logger):
+    def __init__(self, processor, logger, tracker:EventTracker):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
@@ -55,7 +64,8 @@ class BusSite(tornado.web.Application):
         ]
         tornado.web.Application.__init__(self, handlers)
         self.logger = logger
-        self.processor = WebDataProcessor(cds, logger)
+        self.processor = processor
+        self.tracker = tracker
 
 
 class PingHandler(BaseHandler):
@@ -68,7 +78,7 @@ class PingHandler(BaseHandler):
 
 class BusInfoHandler(BaseHandler):
     def bus_info_response(self, query, lat, lon):
-        self.logger.info(f'Bus info query: "{query}"')
+        self.track(WebEvent.BUSINFO, query, lat, lon)
         response = self.processor.get_bus_info(query, lat, lon)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
@@ -85,7 +95,7 @@ class ArrivalHandler(BaseHandler):
     def arrival_response(self):
         (lat, lon) = (float(self.get_argument(x)) for x in ('lat', 'lon'))
         query = self.get_argument('q')
-
+        self.track(WebEvent.ARRIVAL, query, lat, lon)
         response = self.processor.get_arrival(query, lat, lon)
         self.write(json.dumps(response))
         self.caching()
@@ -112,7 +122,7 @@ class BusStopSearchHandler(BaseHandler):
     def _response(self):
         query = self.get_argument('q')
         station_query = self.get_argument('station')
-
+        self.track(WebEvent.BUSSTOP, query, station_query)
         response = self.processor.get_arrival_by_name(query, station_query)
         self.write(json.dumps(response))
         self.caching()
