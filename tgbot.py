@@ -44,6 +44,7 @@ class BusBot:
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
 
         self.dp.add_handler(CommandHandler("stats", self.stats))
+        self.dp.add_handler(CommandHandler("statspro", self.stats_full))
         #
         # # on noncommand i.e message - echo the message on Telegram
 
@@ -263,7 +264,15 @@ class BusBot:
         self.ping_prod()
         user = update.message.from_user
         self.logger.info(f"Stats. User: {user}")
-        response = self.cds.get_bus_statistics()
+        response = self.cds.get_bus_statistics(False)
+        update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
+
+    def stats_full(self, _, update):
+        """Send a message when the command /stats is issued."""
+        self.ping_prod()
+        user = update.message.from_user
+        self.logger.info(f"Stats. User: {user}")
+        response = self.cds.get_bus_statistics(True)
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
 
     def user_input(self, bot, update):

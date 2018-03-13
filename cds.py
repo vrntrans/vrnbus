@@ -406,7 +406,7 @@ class CdsRequest:
         return ArrivalInfo('\n'.join(result), "\n".join(headers), bus_stop_dict)
 
     @cachetools.func.ttl_cache()
-    def get_bus_statistics(self):
+    def get_bus_statistics(self, full_info=False):
         def time_check(bus: CdsRouteBus, last_time):
             if not bus.last_time_ or bus.last_time_ < last_time:
                 return False
@@ -431,9 +431,11 @@ class CdsRequest:
         bus_stats_text = f"1 h. 30 min. 10 min.\n{last_hour:5d} {minutes_30:5d} {minutes_10:5d}\nTotal: {len(cds_buses)}"
         self.logger.info(f"{last_hour:5d} {minutes_30:5d} {minutes_10:5d}")
         if short_result:
-            buses = ' \n'.join((('{:10s} => {}'.format(i[0], i[1])) for i in grouped))
-            buses += '\n' + bus_stats_text
-            return buses
+            buses = []
+            if full_info:
+                buses += (('{:10s} => {}'.format(i[0], i[1])) for i in grouped)
+            buses.append(bus_stats_text)
+            return '\n'.join(buses)
 
         return 'Ничего не нашлось'
 
