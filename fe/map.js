@@ -2,22 +2,22 @@
     "use strict";
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
-    const lastbusquery = document.getElementById('lastbusquery')
-    const station_query = document.getElementById('station_query')
-    const station_name = document.getElementById('station_name')
+    var lastbusquery = document.getElementById('lastbusquery')
+    var station_query = document.getElementById('station_query')
+    var station_name = document.getElementById('station_name')
     var my_map
     var BusIconContentLayout
     var timer_id = 0
     var timer_stop_id = 0
 
-    const info = document.getElementById('info')
-    const businfo = document.getElementById('businfo')
-    const lastbus = document.getElementById('lastbus')
-    const nextbus_loading = document.getElementById('nextbus_loading')
-    const lastbus_loading = document.getElementById('lastbus_loading')
-    const cb_refresh = document.getElementById('cb_refresh')
-    const cb_show_info = document.getElementById('cb_show_info')
-    const btn_station_search = document.getElementById('btn_station_search')
+    var info = document.getElementById('info')
+    var businfo = document.getElementById('businfo')
+    var lastbus = document.getElementById('lastbus')
+    var nextbus_loading = document.getElementById('nextbus_loading')
+    var lastbus_loading = document.getElementById('lastbus_loading')
+    var cb_refresh = document.getElementById('cb_refresh')
+    var cb_show_info = document.getElementById('cb_show_info')
+    var btn_station_search = document.getElementById('btn_station_search')
 
     if (lastbus)
         lastbus.onclick = function () {
@@ -36,7 +36,7 @@
 
     if (cb_show_info) {
         cb_show_info.onclick = function () {
-            const show = cb_show_info.checked
+            var show = cb_show_info.checked
             businfo.className = show ? "" : "hide_info"
         }
     }
@@ -100,13 +100,13 @@
     function get_cds_bus() {
         run_timer(get_cds_bus)
 
-        const bus_query = lastbusquery.value
+        var bus_query = lastbusquery.value
         save_to_ls('bus_query', bus_query)
         return get_bus_positions(bus_query)
     }
 
     if ("geolocation" in navigator) {
-        const nextbus = document.getElementById('nextbus')
+        var nextbus = document.getElementById('nextbus')
 
         if (nextbus)
             nextbus.onclick = function (event) {
@@ -116,8 +116,8 @@
     }
 
     function get_current_pos(func) {
-        const query = station_query.value
-        const station = station_name.value
+        var query = station_query.value
+        var station = station_name.value
 
         save_to_ls('station_query', query)
         save_to_ls('station', station)
@@ -143,16 +143,16 @@
     }
 
     function get_bus_arrival_by_name() {
-        const btn_station_search = document.getElementById('btn_station_search')
+        var btn_station_search = document.getElementById('btn_station_search')
         waiting(nextbus_loading, btn_station_search, true)
 
-        const bus_query = station_query.value
-        const station = station_name.value
+        var bus_query = station_query.value
+        var station = station_name.value
 
         save_to_ls('bus_query', bus_query)
         save_to_ls('station', station)
 
-        const params = 'q=' + encodeURIComponent(bus_query) +
+        var params = 'q=' + encodeURIComponent(bus_query) +
             '&station=' + encodeURIComponent(station)
 
         return fetch('/bus_stop_search?' + params,
@@ -176,13 +176,13 @@
     }
 
     function get_bus_arrival(position) {
-        const nextbus = document.getElementById('nextbus')
+        var nextbus = document.getElementById('nextbus')
         waiting(nextbus_loading, nextbus, true)
 
         coords = position.coords
-        const bus_query = station_query.value
+        var bus_query = station_query.value
 
-        const params = 'q=' + encodeURIComponent(bus_query) +
+        var params = 'q=' + encodeURIComponent(bus_query) +
             '&lat=' + encodeURIComponent(coords.latitude) +
             '&lon=' + encodeURIComponent(coords.longitude)
 
@@ -233,14 +233,14 @@
             })
             .then(function (data) {
                 waiting(lastbus_loading, lastbus, false)
-                const q = data.q
-                const text = data.text
+                var q = data.q
+                var text = data.text
                 businfo.innerHTML = 'Маршруты: ' + q + '\nКоличество результатов: ' + data.buses.length + '\n' + text
 
                 if (!my_map)
                     return
 
-                const bus_with_azimuth = data.buses.map(function (data) {
+                var bus_with_azimuth = data.buses.map(function (data) {
                     var bus = data[0]
                     var next_bus_stop = data[1]
                     if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
@@ -249,11 +249,11 @@
 
                     bus.hint = next_bus_stop.NAME_
 
-                    const x = next_bus_stop.LAT_ - bus.last_lat_
-                    const y = next_bus_stop.LON_ - bus.last_lon_
+                    var x = next_bus_stop.LAT_ - bus.last_lat_
+                    var y = next_bus_stop.LON_ - bus.last_lon_
 
                     bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
-                    const time = bus.last_time_.substring(bus.last_time_.length - 8)
+                    var time = bus.last_time_.substring(bus.last_time_.length - 8)
 
                     bus.desc = [time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + " ( " + bus.name_ + " ) ",
@@ -281,7 +281,7 @@
                 return res.json()
             })
             .then(function (data) {
-                const bus_list = data.result
+                var bus_list = data.result
 
                 var select = document.getElementById('buslist')
                 select.appendChild(new Option('Маршруты', '-'))
@@ -307,7 +307,7 @@
             return
         }
 
-        const objectManager = new ymaps.ObjectManager()
+        var objectManager = new ymaps.ObjectManager()
 
         objectManager.objects.options.set({
             iconLayout: 'default#imageWithContent',
@@ -318,7 +318,7 @@
             iconContentLayout: BusIconContentLayout,
         })
 
-        const features = []
+        var features = []
 
         buses.forEach(function (bus, index) {
             features.push(add_bus(bus, index))
@@ -340,12 +340,12 @@
         if (!bus) {
             return
         }
-        const hint_content = bus.hint ? bus.hint : bus.last_time_ + '; ' + bus.azimuth
-        const balloon_content = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
-        const lat = bus.lat2 || bus.last_lat_
-        const lon = bus.lon2 || bus.last_lon_
-        const icon_content = bus.route_name_.trim()
-        const rotation = bus.azimuth
+        var hint_content = bus.hint ? bus.hint : bus.last_time_ + '; ' + bus.azimuth
+        var balloon_content = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
+        var lat = bus.lat2 || bus.last_lat_
+        var lon = bus.lon2 || bus.last_lon_
+        var icon_content = bus.route_name_.trim()
+        var rotation = bus.azimuth
 
         return {
             "type": "Feature",
