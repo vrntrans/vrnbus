@@ -410,6 +410,8 @@ class CdsRequest:
         def time_check(bus: CdsRouteBus, last_time):
             if not bus.last_time_ or bus.last_time_ < last_time:
                 return False
+            # if bus.last_station_time_ and bus.last_station_time_ < last_time:
+            #     return False
             return True
 
         def count_buses(buses: Iterable[CdsRouteBus], time_interval):
@@ -427,7 +429,7 @@ class CdsRequest:
         minutes_10 = count_buses(short_result, timedelta(minutes=10))
         minutes_30 = count_buses(short_result, timedelta(minutes=30))
         bus_stats_text = f"1 h. 30 min. 10 min.\n{last_hour:5d} {minutes_30:5d} {minutes_10:5d}\nTotal: {len(cds_buses)}"
-        self.logger.info("{last_hour:5d} {minutes_30:5d} {minutes_10:5d}")
+        self.logger.info(f"{last_hour:5d} {minutes_30:5d} {minutes_10:5d}")
         if short_result:
             buses = ' \n'.join((('{:10s} => {}'.format(i[0], i[1])) for i in grouped))
             buses += '\n' + bus_stats_text
