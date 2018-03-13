@@ -9,6 +9,7 @@ class TgEvent(Enum):
     STATS = auto()
     LOCATION = auto()
     USER_INPUT = auto()
+    CUSTOM_COMMAND = auto()
 
 
 class WebEvent(Enum):
