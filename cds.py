@@ -405,7 +405,7 @@ class CdsRequest:
         result.append(f'Возможные маршруты: {" ".join(routes_list)}')
         return ArrivalInfo('\n'.join(result), "\n".join(headers), bus_stop_dict)
 
-    @cachetools.func.ttl_cache()
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     def get_bus_statistics(self, full_info=False):
         def time_check(bus: CdsRouteBus, last_time):
             if not bus.last_time_ or bus.last_time_ < last_time:
