@@ -66,12 +66,12 @@ class BusBot:
     def custom_command(self, bot, update):
         command = update.message.text
         if command.startswith('/nextbus_'):
-            match = re.match(r'/nextbus_(\d*)$', command)
+            match = re.match(r'/nextbus_(\d*)[ ]*(.*)', command)
             if match and match.group(1):
                 id = int(match.group(1))
                 bus_stop = self.cds.get_bus_stop_from_id(id)
                 if bus_stop:
-                    self.next_bus_general(update, bus_stop.NAME_)
+                    self.next_bus_for_bus_stop(update, bus_stop, match.group(2))
                     return
         bot.send_message(chat_id=update.message.chat_id,
                          text=f"Sorry, I didn't understand that command. {update.message.text}")
@@ -254,6 +254,15 @@ class BusBot:
         search_result = SearchResult(bus_routes=tuple(user_settings.get('route_settings', [])))
         bus_stop_name = args if isinstance(args, str) else ' '.join(args)
         response = self.cds.next_bus(bus_stop_name, search_result)
+        update.message.reply_text(self.get_text_from_arrival_info(response), parse_mode='Markdown')
+
+    def next_bus_for_bus_stop(self, update, bus_stop, params):
+        user = update.message.from_user
+
+        search_params = parse_routes(params)
+        self.logger.info(f"User: {user}; {bus_stop} {params} => {search_params}")
+
+        response = self.cds.next_bus_for_matches((bus_stop, ), search_params)
         update.message.reply_text(self.get_text_from_arrival_info(response), parse_mode='Markdown')
 
     def next_bus_handler(self, _, update, args):
