@@ -259,21 +259,20 @@ class BusBot:
     def next_bus_handler(self, _, update, args):
         self.next_bus_general(update, args)
 
-    def stats(self, _, update):
-        """Send a message when the command /stats is issued."""
+    def send_stats(self, update, full_info):
         self.ping_prod()
         user = update.message.from_user
         self.logger.info(f"Stats. User: {user}")
-        response = self.cds.get_bus_statistics(False)
+        response = self.cds.get_bus_statistics(full_info)
         update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
+
+    def stats(self, _, update):
+        """Send a message when the command /stats is issued."""
+        self.send_stats(update, False)
 
     def stats_full(self, _, update):
         """Send a message when the command /stats is issued."""
-        self.ping_prod()
-        user = update.message.from_user
-        self.logger.info(f"Stats. User: {user}")
-        response = self.cds.get_bus_statistics(True)
-        update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
+        self.send_stats(update, True)
 
     def user_input(self, bot, update):
         self.ping_prod()
