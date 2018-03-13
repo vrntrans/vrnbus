@@ -302,7 +302,7 @@ class BusBot:
 
     def show_arrival(self, update, lat, lon):
         user = update.message.from_user
-        self.logger.info(f"User: {user} {lat}, {lon}", user.first_name, lat, lon)
+        self.logger.info(f"User: {user} {lat}, {lon}")
         matches = self.cds.matches_bus_stops(lat, lon)
         user_loc = UserLoc(lat, lon)
         settings = self.user_settings.get(user.id, {})
