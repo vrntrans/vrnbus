@@ -127,7 +127,7 @@
 
     function format_bus_stops(header, bus_stops) {
         var bus_stop_info = header + '\n'
-        for (const prop in bus_stops) {
+        for (var prop in bus_stops) {
             bus_stop_info += '<a class="bus_linked" href="">' + prop + '</a>' + '\n' + bus_stops[prop] + '\n'
         }
 
