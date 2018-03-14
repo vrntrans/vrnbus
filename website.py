@@ -7,13 +7,13 @@ import tornado.web
 from tornado.concurrent import run_on_executor
 
 import helpers
-from data_processors import WebDataProcessor
 from tracking import WebEvent, EventTracker
 
 if 'DYNO' in os.environ:
     debug = False
 else:
     debug = True
+
 
 # noinspection PyAbstractClass
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
@@ -24,9 +24,10 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
 class BaseHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor()
 
-    def track(self, event:WebEvent, *params):
-        ip = self.request.remote_ip
-        self.tracker.web(event, ip, *params)
+    def track(self, event: WebEvent, *params):
+        remote_ip = self.request.headers.get('X-Forwarded-For',
+                                             self.request.headers.get('X-Real-Ip', self.request.remote_ip))
+        self.tracker.web(event, remote_ip, *params)
 
     def data_received(self, chunk):
         pass
@@ -52,7 +53,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class BusSite(tornado.web.Application):
-    def __init__(self, processor, logger, tracker:EventTracker):
+    def __init__(self, processor, logger, tracker: EventTracker):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
