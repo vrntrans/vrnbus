@@ -1,9 +1,14 @@
 import json
 import os
+import socket
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from urllib.parse import urlparse
 
 import tornado.web
+import tornado.iostream
+import tornado.httpclient
+import tornado.httputil
 from tornado.concurrent import run_on_executor
 
 import helpers
@@ -61,6 +66,7 @@ class BusSite(tornado.web.Application):
             (r"/buslist", BusListHandler),
             (r"/bus_stop_search", BusStopSearchHandler),
             (r"/ping", PingHandler),
+            (r"/CitizenCoddWebMaps/(GetBusesServlet|GetRouteBuses|GetInfoOfBus|GetNextBus)", StubHandler),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
         ]
         tornado.web.Application.__init__(self, handlers)
@@ -68,6 +74,63 @@ class BusSite(tornado.web.Application):
         self.processor = processor
         self.tracker = tracker
 
+
+def fetch_request(url, callback, **kwargs):
+    req = tornado.httpclient.HTTPRequest(url, **kwargs)
+    client = tornado.httpclient.HTTPClient()
+    response = client.fetch(req, raise_error=False)
+    callback(response)
+
+class StubHandler(BaseHandler):
+    def get_data_from_codd(self):
+        def handle_response(response):
+            self.logger.info(response)
+            if (response.error and not
+            isinstance(response.error, tornado.httpclient.HTTPError)):
+                self.set_status(500)
+                self.logger.error(response.error)
+            else:
+                self.set_status(response.code, response.reason)
+                self._headers = tornado.httputil.HTTPHeaders()  # clear tornado default header
+
+                for header, v in response.headers.get_all():
+                    if header not in ('Content-Length', 'Transfer-Encoding', 'Content-Encoding', 'Connection'):
+                        self.add_header(header, v)  # some header appear multiple times, eg 'Set-Cookie'
+
+                if response.body:
+                    self.set_header('Content-Length', len(response.body))
+                    self.write(response.body)
+        base_uri = 'http://195.98.83.236:8080/'
+        body = self.request.body
+        if not body:
+            body = None
+        try:
+            if 'Proxy-Connection' in self.request.headers:
+                del self.request.headers['Proxy-Connection']
+            self.logger.info(f'{base_uri}{self.request.uri}')
+            fetch_request(
+                f'{base_uri}{self.request.uri}', handle_response,
+                method=self.request.method, body=body,
+                headers=self.request.headers, follow_redirects=False,
+                allow_nonstandard_methods=True)
+        except tornado.httpclient.HTTPError as e:
+            self.logger.error(e)
+            if hasattr(e, 'response') and e.response:
+                handle_response(e.response)
+            else:
+                self.set_status(500)
+                self.write('Internal server error:\n' + str(e))
+
+    def f(self, *args, **kwargs):
+        self.logger.info(f"{self.request.method} {args} {kwargs}")
+        self.get_data_from_codd()
+        self.caching(max_age=600)
+
+    def post(self, *args, **kwargs):
+        self.f(*args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        self.f(*args, **kwargs)
 
 class PingHandler(BaseHandler):
     @run_on_executor
