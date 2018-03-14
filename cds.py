@@ -428,8 +428,8 @@ class CdsRequest:
         grouped = [(k, len(list(g))) for k, g in groupby(short_result, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
         minutes_10 = count_buses(short_result, timedelta(minutes=10))
         minutes_30 = count_buses(short_result, timedelta(minutes=30))
-        bus_stats_text = f"1 h. 30 min. 10 min.\n{last_hour:5d} {minutes_30:5d} {minutes_10:5d}\nTotal: {len(cds_buses)}"
-        self.logger.info(f"{last_hour:5d} {minutes_30:5d} {minutes_10:5d}")
+        bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{last_hour:<5} {minutes_30:^5} {minutes_10:5}\nВсего: {len(cds_buses)}"
+        self.logger.info(f"{last_hour: <5} {minutes_30:5} {minutes_10:5}")
         if short_result:
             buses = []
             if full_info:
