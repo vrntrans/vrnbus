@@ -1,5 +1,10 @@
 (function () {
     "use strict";
+
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
+    }
+
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
     var lastbusquery = document.getElementById('lastbusquery')
