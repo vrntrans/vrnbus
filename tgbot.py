@@ -1,5 +1,6 @@
 import os
 import re
+import textwrap
 
 import cachetools
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
@@ -30,7 +31,7 @@ class BusBot:
         self.logger = logger
         self.tracker = tracker
         # Create the EventHandler and pass it your bot's token.
-        self.updater = Updater(VRNBUSBOT_TOKEN)
+        self.updater = Updater(VRNBUSBOT_TOKEN, request_kwargs={'read_timeout':10})
 
         # Get the dispatcher to register handlers
         self.dp = self.updater.dispatcher
@@ -77,11 +78,11 @@ class BusBot:
                 id = int(match.group(1))
                 bus_stop = self.cds.get_bus_stop_from_id(id)
                 if bus_stop:
-                    self.track(TgEvent.CUSTOM_COMMAND, command)
+                    self.track(TgEvent.CUSTOM_COMMAND, update, command)
                     self.next_bus_for_bus_stop(update, bus_stop, match.group(2))
                     return
 
-        self.track(TgEvent.CUSTOM_COMMAND, command, "Didn't find")
+        self.track(TgEvent.CUSTOM_COMMAND, update, command, "Didn't find")
         bot.send_message(chat_id=update.message.chat_id,
                          text=f"Sorry, I didn't understand that command. {update.message.text}")
 
@@ -117,6 +118,8 @@ class BusBot:
         self.track(TgEvent.HELP, update)
         update.message.reply_text("""
 /nextbus имя остановки - ожидаемое время прибытия
+
+/stats - короткая статистика по автобусам онлайн
 
 /last номера маршрутов через пробел - последние остановки
 
@@ -156,7 +159,8 @@ class BusBot:
         text = response[0]
         self.track(TgEvent.LAST, update, args)
         self.logger.debug(f"last_buses. User: {user}; Response {' '.join(text.split())}")
-        update.message.reply_text(text)
+        for part in textwrap.wrap(text, 4000, replace_whitespace=False):
+            update.message.reply_text(part)
 
     def get_buttons_routes(self, user_routes):
         # TODO: too many buttons
