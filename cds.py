@@ -431,11 +431,11 @@ class CdsRequest:
         bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{last_hour:<5} {minutes_30:^5} {minutes_10:5}\nВсего: {len(cds_buses)}"
         self.logger.info(f"{last_hour: <5} {minutes_30:5} {minutes_10:5}")
         if short_result:
-            buses = []
+            buses_list = []
             if full_info:
-                buses += (('{:10s} => {}'.format(i[0], i[1])) for i in grouped)
-            buses.append(bus_stats_text)
-            return '\n'.join(buses)
+                buses_list += (('{:10s} => {}'.format(i[0], i[1])) for i in grouped)
+            buses_list.append(bus_stats_text)
+            return '\n'.join(buses_list)
 
         return 'Ничего не нашлось'
 

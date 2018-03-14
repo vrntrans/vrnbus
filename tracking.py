@@ -27,4 +27,4 @@ class EventTracker:
         self.logger.info(f"TRACK: {event} {user_info} {params if params else ''}")
 
     def web(self, event: WebEvent, ip, *params):
-        self.logger.info(f"TRACK: {event}  {ip} {params if params else ''}")
+        self.logger.info(f"TRACK: {event} ip:{ip} {params if params else ''}")
