@@ -422,17 +422,17 @@ class CdsRequest:
             return 'Ничего не нашлось'
 
         now = self.now()
-        short_result = [d for d in cds_buses if time_check(d, now - timedelta(hours=1))]
-        last_hour = len(short_result)
-        short_result = sorted(short_result, key=lambda x: natural_sort_key(x.route_name_))
-        minutes_10 = count_buses(short_result, timedelta(minutes=10))
-        minutes_30 = count_buses(short_result, timedelta(minutes=30))
-        bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{last_hour:<5} {minutes_30:^5} {minutes_10:5}\nВсего: {len(cds_buses)}"
-        self.logger.info(f"{last_hour: <5} {minutes_30:5} {minutes_10:5}")
-        if short_result:
-            buses_list = []
+        hour_1 = count_buses(cds_buses, timedelta(hours=1))
+        minutes_10 = count_buses(cds_buses, timedelta(minutes=10))
+        minutes_30 = count_buses(cds_buses, timedelta(minutes=30))
+        bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{hour_1:<5} {minutes_30:^5} {minutes_10:5}\nВсего: {len(cds_buses)}"
+        self.logger.info(f"{hour_1: <5} {minutes_30:5} {minutes_10:5}")
+        if hour_1 > 0:
+            buses_list = [f'Время: {self.now():%H:%M:%S}']
             if full_info:
-                grouped = [(k, len(list(g))) for k, g in groupby(minutes_10, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
+                short_result = [d for d in cds_buses if time_check(d, now - timedelta(minutes=10))]
+                sort_routes = sorted(short_result, key=lambda x: natural_sort_key(x.route_name_))
+                grouped = [(k, len(list(g))) for k, g in groupby(sort_routes, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
                 buses_list += (('{:10s} => {}'.format(i[0], i[1])) for i in grouped)
             buses_list.append(bus_stats_text)
             return '\n'.join(buses_list)
