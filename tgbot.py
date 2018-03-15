@@ -94,7 +94,7 @@ class BusBot:
         if update:
             update.message.reply_text(f"Update caused error {error}")
         if "Conflict: terminated by other getUpdates request;" in error.message:
-            self.logger.error("Duplicate Telegram bot, that copy will stopped")
+            self.logger.error("Duplicated Telegram bot, that copy will stopped")
             self.updater.stop()
 
     def start(self, _, update):
@@ -324,6 +324,11 @@ class BusBot:
             message.reply_text('Тогда срочно сюда @deeprefactoring!')
             return
 
+        if text.lower().startswith("ост"):
+            args = text.lower().split(' ')[1:]
+            self.next_bus_general(update, args)
+            return
+
         match = re.search('https://maps\.google\.com/maps\?.*&ll=(?P<lat>[-?\d.]*),(?P<lon>[-?\d.]*)', text)
         if match:
             (lat, lon) = (match.group('lat'), match.group('lon'))
@@ -334,12 +339,8 @@ class BusBot:
             response = self.cds.bus_request(parse_routes(text), user_loc=user_loc)
             self.logger.debug(f'"{text}" User: {user}; Response: {response[:5]} from {len(response)}')
             reply_text = response[0]
-            if len(reply_text) > 4000:
-                message.reply_text("Слишком длинный запрос, показаны первые 4000 символов:\n" +
-                                   response[0][:4000],
-                                   reply_markup=ReplyKeyboardRemove())
-            else:
-                message.reply_text(reply_text, reply_markup=ReplyKeyboardRemove())
+            for part in textwrap.wrap(reply_text, 4000, replace_whitespace=False):
+                update.message.reply_text(part, reply_markup=ReplyKeyboardRemove())
 
     def show_arrival(self, update, lat, lon):
         user = update.message.from_user
