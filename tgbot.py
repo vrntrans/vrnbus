@@ -313,6 +313,7 @@ class BusBot:
         message = update.message
         user = message.from_user
         text = message.text
+        l_text = text.lower()
 
         self.track(TgEvent.USER_INPUT, update, text[:30])
         if not text or text == 'Отмена':
@@ -320,11 +321,12 @@ class BusBot:
                                reply_markup=ReplyKeyboardRemove())
             return
 
-        if text.lower() == 'на рефакторинг!':
+        if l_text == 'на рефакторинг!':
             message.reply_text('Тогда срочно сюда @deeprefactoring!')
             return
 
-        if text.lower().startswith("ост"):
+
+        if l_text.startswith("ост") or l_text.startswith("аст"):
             args = text.lower().split(' ')[1:]
             self.next_bus_general(update, args)
             return
