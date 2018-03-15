@@ -21,7 +21,7 @@ class TrackingTest(unittest.TestCase):
         stats = tracker.stats()
         logger.info(stats)
 
-        self.assertEqual(stats[TgEvent.START], 1)
-        self.assertEqual(stats[WebEvent.ARRIVAL], 1)
-
-        logger.info("\n".join([f'{k} => {v}' for k, v in stats.items()]))
+        self.assertEqual(tracker.events[TgEvent.START], 1)
+        self.assertEqual(tracker.events[WebEvent.ARRIVAL], 1)
+        self.assertEqual(len(tracker.web_users), 1)
+        self.assertEqual(len(tracker.tg_users), 1)

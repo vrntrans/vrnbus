@@ -304,8 +304,8 @@ class BusBot:
         self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
         stats = self.tracker.stats()
-        user_stats = "\n".join([f'{k} => {v}' for k, v in stats.items()])
-        update.message.reply_text(f'```\nСобытий с {self.tracker.start:%Y.%m.%d %H:%M:%S}\n{user_stats}\n```',
+        self.logger.debug(stats)
+        update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')
 
     def user_input(self, bot, update):
