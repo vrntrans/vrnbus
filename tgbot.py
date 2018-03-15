@@ -46,6 +46,8 @@ class BusBot:
 
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
 
+        self.dp.add_handler(CommandHandler("userstats", self.user_stats))
+
         self.dp.add_handler(CommandHandler("stats", self.stats))
         self.dp.add_handler(CommandHandler("statspro", self.stats_full))
         #
@@ -78,11 +80,11 @@ class BusBot:
                 id = int(match.group(1))
                 bus_stop = self.cds.get_bus_stop_from_id(id)
                 if bus_stop:
-                    self.track(TgEvent.CUSTOM_COMMAND, update, command)
+                    self.track(TgEvent.CUSTOM_CMD, update, command)
                     self.next_bus_for_bus_stop(update, bus_stop, match.group(2))
                     return
 
-        self.track(TgEvent.CUSTOM_COMMAND, update, command, "Didn't find")
+        self.track(TgEvent.WRONG_CMD, update, command, "Didn't find")
         bot.send_message(chat_id=update.message.chat_id,
                          text=f"Sorry, I didn't understand that command. {update.message.text}")
 
@@ -297,6 +299,14 @@ class BusBot:
     def stats_full(self, _, update):
         """Send a message when the command /stats is issued."""
         self.send_stats(update, True)
+
+    def user_stats(self, _, update):
+        self.ping_prod()
+        self.track(TgEvent.USER_STATS, update)
+        stats = self.tracker.stats()
+        user_stats = "\n".join([f'{k} => {v}' for k, v in stats.items()])
+        update.message.reply_text(f'```\nСобытий с {self.tracker.start:%Y.%m.%d %H:%M:%S}\n{user_stats}\n```',
+                                  parse_mode='Markdown')
 
     def user_input(self, bot, update):
         self.ping_prod()
