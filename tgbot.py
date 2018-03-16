@@ -93,9 +93,6 @@ class BusBot:
         self.logger.warning('Update "%s" caused error "%s"', update, error)
         if update:
             update.message.reply_text(f"Update caused error {error}")
-        if "Conflict: terminated by other getUpdates request;" in error.message:
-            self.logger.error("Duplicated Telegram bot, that copy will stopped")
-            self.updater.stop()
 
     def start(self, _, update):
         """Send a message when the command /help is issued."""
