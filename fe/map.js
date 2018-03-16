@@ -141,8 +141,10 @@
         for (var i = 0; i < elements.length; i++) {
             elements[i].onclick = function (e) {
                 e.preventDefault()
-                if (e.srcElement && e.srcElement.text)
+                if (e.srcElement && e.srcElement.text) {
                     station_name.value = e.srcElement.text
+                    get_bus_arrival_by_name()
+                }
             }
         }
     }
