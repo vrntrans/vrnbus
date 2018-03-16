@@ -299,16 +299,18 @@
                 bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
                     return bus_stop.NAME_
                 })
-                bus_stop_auto_complete = new autoComplete({
-                    selector: station_name,
-                    source: function (term, suggest) {
-                        term = term.toLowerCase();
-                        var matches = [];
-                        for (var i = 0; i < bus_stop_names.length; i++)
-                            if (~bus_stop_names[i].toLowerCase().indexOf(term)) matches.push(bus_stop_names[i]);
-                        suggest(matches);
-                    }
-                })
+                if (station_name) {
+                    bus_stop_auto_complete = new autoComplete({
+                        selector: station_name,
+                        source: function (term, suggest) {
+                            term = term.toLowerCase();
+                            var matches = [];
+                            for (var i = 0; i < bus_stop_names.length; i++)
+                                if (~bus_stop_names[i].toLowerCase().indexOf(term)) matches.push(bus_stop_names[i]);
+                            suggest(matches);
+                        }
+                    })
+                }
 
             })
     }
@@ -381,6 +383,28 @@
         my_map.geoObjects.add(objectManager)
     }
 
+    function add_stop(stop, id) {
+        if (!stop) {
+            return
+        }
+        var hint_content = stop.NAME_
+        var balloon_content = stop.NAME_
+        var lat = stop.LAT_
+        var lon = stop.LON_
+
+        return {
+            "type": "Feature",
+            "id": id,
+            "geometry": {"type": "Point", "coordinates": [lat, lon]},
+            "properties": {
+                "balloonContent": balloon_content,
+                "hintContent": hint_content,
+                "clusterCaption": hint_content
+            }
+        }
+    }
+
+
     function add_bus(bus, id) {
         if (!bus) {
             return
@@ -410,6 +434,36 @@
         ymaps.ready(ymap_show);
     }
 
+    function add_bus_stops(stops) {
+        var objectManager = new ymaps.ObjectManager({
+            clusterize: true,
+            gridSize: 80,
+            clusterDisableClickZoom: true
+        })
+
+        objectManager.objects.options.set({
+            preset: 'islands#darkGreenCircleDotIcon'
+        })
+
+        var features = []
+
+        stops.forEach(function (stop, index) {
+            features.push(add_stop(stop, index))
+        })
+
+        objectManager.add({
+            "type": "FeatureCollection",
+            "features": features
+        })
+
+        my_map.events.add('click', function (e) {
+            my_map.balloon.open(e.get('coords'), 'Щелк!');
+            e.stopPropagation()
+            e.preventDefault();
+        });
+        my_map.geoObjects.add(objectManager)
+    }
+
     function ymap_show() {
         my_map = new ymaps.Map('map', {
             center: [coords.latitude, coords.longitude],
@@ -423,6 +477,8 @@
             '<ymaps class="bus-title" style="z-index: -2;"> $[properties.iconContent] </ymaps>'
         )
 
+        // TODO: Check with buses
+        // add_bus_stops(bus_stop_list)
         if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
         }
     }
@@ -456,8 +512,11 @@
     }
 
     function init() {
+        if (station_name) {
+            get_bus_stop_list()
+        }
         get_bus_list()
-        get_bus_stop_list()
+
 
         if (lastbusquery)
             lastbusquery.value = load_from_ls('bus_query') || ''
