@@ -39,14 +39,14 @@ class EventTracker:
     def stats(self):
         def replace_event_name(event):
             return str(event).replace("Event.", ".")
+
         events = [f'{replace_event_name(k):13} {v}' for k, v in self.events.items()]
         events.sort()
         user_stats = "\n".join(events)
         tg_count = len(self.tg_users)
         web_count = len(self.web_users)
-        user_types = f"Tg:  {tg_count}\nWeb: {web_count}"
+        user_types = f"Tg users:  {tg_count}\nWeb users: {web_count}"
         return f'{self.start:%Y.%m.%d %H:%M}\n{user_stats}\n{user_types}'
-
 
     def tg(self, event: TgEvent, user, *params):
         user_info = f"user:{user.id}"
