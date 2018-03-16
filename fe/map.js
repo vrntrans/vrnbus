@@ -124,12 +124,16 @@
             }
     }
 
-    function get_current_pos(func) {
+    function save_station_params() {
         var query = station_query.value
         var station = station_name.value
 
         save_to_ls('station_query', query)
         save_to_ls('station', station)
+    }
+
+    function get_current_pos(func) {
+        save_station_params()
 
         navigator.geolocation.getCurrentPosition(func)
     }
@@ -160,8 +164,7 @@
         var bus_query = station_query.value
         var station = station_name.value
 
-        save_to_ls('bus_query', bus_query)
-        save_to_ls('station', station)
+        save_station_params()
 
         var params = 'q=' + encodeURIComponent(bus_query) +
             '&station=' + encodeURIComponent(station)
@@ -294,7 +297,7 @@
             .then(function (data) {
                 bus_stop_list = data
                 bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
-                    return  bus_stop.NAME_
+                    return bus_stop.NAME_
                 })
                 bus_stop_auto_complete = new autoComplete({
                     selector: station_name,
