@@ -61,6 +61,7 @@ class BusSite(tornado.web.Application):
             (r"/buslist", BusListHandler),
             (r"/bus_stop_search", BusStopSearchHandler),
             (r"/ping", PingHandler),
+            (r"/(.*.json)", static_handler, {"path": Path("./")}),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
         ]
         tornado.web.Application.__init__(self, handlers)

@@ -24,6 +24,10 @@
     var cb_show_info = document.getElementById('cb_show_info')
     var btn_station_search = document.getElementById('btn_station_search')
 
+    var bus_stop_list = []
+    var bus_stop_names = []
+    var bus_stop_auto_complete
+
     if (lastbus)
         lastbus.onclick = function () {
             get_cds_bus()
@@ -276,6 +280,37 @@
             })
     }
 
+    function get_bus_stop_list() {
+        return fetch('/bus_stops.json',
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
+                bus_stop_list = data
+                bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
+                    return  bus_stop.NAME_
+                })
+                bus_stop_auto_complete = new autoComplete({
+                    selector: station_name,
+                    source: function (term, suggest) {
+                        term = term.toLowerCase();
+                        var matches = [];
+                        for (var i = 0; i < bus_stop_names.length; i++)
+                            if (~bus_stop_names[i].toLowerCase().indexOf(term)) matches.push(bus_stop_names[i]);
+                        suggest(matches);
+                    }
+                })
+
+            })
+    }
+
+
     function get_bus_list() {
         return fetch('/buslist',
             {
@@ -419,6 +454,7 @@
 
     function init() {
         get_bus_list()
+        get_bus_stop_list()
 
         if (lastbusquery)
             lastbusquery.value = load_from_ls('bus_query') || ''
