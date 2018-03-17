@@ -1,0 +1,89 @@
+* {
+    margin: 0px;
+    padding: 0px;
+}
+
+body {
+    font-family: Geneva, Arial, Helvetica, sans-serif;
+    line-height: 15px;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.cls {
+    font-weight: bold
+}
+
+.activeBusCount {
+    font-style: oblique;
+    color: #39d;
+    font-weight: bold;
+}
+
+table#report_content {
+    border-collapse: collapse;
+    border: 0px solid black;
+    width: 830px;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+tr#table_header {
+    background-color: #cccccc;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+td#obj_num {
+    width: 50px;
+    background-color: #cccccc;
+}
+
+td#obj_name {
+    width: 80px;
+}
+
+td#obj_cbname {
+    width: 140px;
+}
+
+td#obj_pvname {
+    width: 140px;
+}
+
+td#obj_rname {
+    width: 100px;
+}
+
+td#obj_lastStationTime {
+    width: 100px;
+}
+
+td#obj_lastTime {
+    width: 100px;
+}
+
+div#report_header {
+    background-color: inherit;
+    text-align: center;
+
+    font-family: Arial;
+    font-size: 20px;
+    font-weight: normal;
+    color: #000000;
+    margin: 15px 0px 20px 0px;
+}
+
+#report_content {
+    width: 100%;
+    height: 100%;
+    text-align: center;
+}
+
+#mapid {
+    height: 100%;
+}

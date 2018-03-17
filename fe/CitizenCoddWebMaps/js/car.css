@@ -1,0 +1,39 @@
+.b-car { width: 40px; height: 40px; margin-left:-20px; margin-top:-20px; }
+.b-car.b-car_blue {background: url(/CitizenCoddWebMaps/images/bus0.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-w {background: url(/CitizenCoddWebMaps/images/bus27.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-nw {background: url(/CitizenCoddWebMaps/images/bus31.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-n {background: url(/CitizenCoddWebMaps/images/bus0.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-ne {background: url(/CitizenCoddWebMaps/images/bus45.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-e {background: url(/CitizenCoddWebMaps/images/bus9.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-se {background: url(/CitizenCoddWebMaps/images/bus13.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-s {background: url(/CitizenCoddWebMaps/images/bus18.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-sw {background: url(/CitizenCoddWebMaps/images/bus22.png)  no-repeat 0 0;background-size: 40px 40px;}
+
+.b-car.b-car-direction-see {background: url(/CitizenCoddWebMaps/images/bus11.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-sse {background: url(/CitizenCoddWebMaps/images/bus16.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-ssw {background: url(/CitizenCoddWebMaps/images/bus20.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-sww {background: url(/CitizenCoddWebMaps/images/bus25.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-nww {background: url(/CitizenCoddWebMaps/images/bus30.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-nnw {background: url(/CitizenCoddWebMaps/images/bus34.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-nne {background: url(/CitizenCoddWebMaps/images/bus2.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car.b-car-direction-nee {background: url(/CitizenCoddWebMaps/images/bus7.png)  no-repeat 0 0;background-size: 40px 40px;}
+
+.b-car1 { width: 40px; height: 40px; margin-left:-20px; margin-top:-20px; }
+.b-car1.b-car_blue { background: url(/CitizenCoddWebMaps/images/bus00.png)  no-repeat 0 0;background-size: 40px 40px; }
+.b-car1.b-car-direction-w {background: url(/CitizenCoddWebMaps/images/bus027.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-nw {background: url(/CitizenCoddWebMaps/images/bus031.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-n {background: url(/CitizenCoddWebMaps/images/bus00.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-ne {background: url(/CitizenCoddWebMaps/images/bus045.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-e {background: url(/CitizenCoddWebMaps/images/bus09.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-se {background: url(/CitizenCoddWebMaps/images/bus013.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-s {background: url(/CitizenCoddWebMaps/images/bus018.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-sw {background: url(/CitizenCoddWebMaps/images/bus022.png)  no-repeat 0 0;background-size: 40px 40px;}
+
+.b-car1.b-car-direction-see {background: url(/CitizenCoddWebMaps/images/bus011.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-sse {background: url(/CitizenCoddWebMaps/images/bus016.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-ssw {background: url(/CitizenCoddWebMaps/images/bus020.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-sww {background: url(/CitizenCoddWebMaps/images/bus025.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-nww {background: url(/CitizenCoddWebMaps/images/bus030.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-nnw {background: url(/CitizenCoddWebMaps/images/bus034.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-nne {background: url(/CitizenCoddWebMaps/images/bus02.png)  no-repeat 0 0;background-size: 40px 40px;}
+.b-car1.b-car-direction-nee {background: url(/CitizenCoddWebMaps/images/bus07.png)  no-repeat 0 0;background-size: 40px 40px;}
