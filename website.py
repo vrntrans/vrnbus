@@ -58,7 +58,8 @@ class BusSite(tornado.web.Application):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
-            (r"/businfo", BusInfoHandler),
+            (r"/busmap", BusInfoHandler),
+            (r"/businfolist", BusInfoHandler),
             (r"/buslist", BusListHandler),
             (r"/bus_stop_search", BusStopSearchHandler),
             (r"/ping", PingHandler),

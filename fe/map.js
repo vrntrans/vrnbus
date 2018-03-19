@@ -235,7 +235,7 @@
             params += '&lon=' + encodeURIComponent(coords.longitude)
         }
 
-        return fetch('/businfo?' + params,
+        return fetch('/busmap?' + params,
             {
                 method: 'GET',
                 headers: {
