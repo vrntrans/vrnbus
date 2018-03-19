@@ -10,14 +10,13 @@
     var lastbusquery = document.getElementById('lastbusquery')
     var station_query = document.getElementById('station_query')
     var station_name = document.getElementById('station_name')
-    var my_map
-    var BusIconContentLayout
+
     var timer_id = 0
     var timer_stop_id = 0
 
     var info = document.getElementById('info')
     var businfo = document.getElementById('businfo')
-    var lastbus_map_update = document.getElementById('lastbus_map_update')
+    var lastbus = document.getElementById('lastbus')
     var nextbus_loading = document.getElementById('nextbus_loading')
     var lastbus_loading = document.getElementById('lastbus_loading')
     var cb_refresh = document.getElementById('cb_refresh')
@@ -28,9 +27,9 @@
     var bus_stop_names = []
     var bus_stop_auto_complete
 
-    if (lastbus_map_update)
-        lastbus_map_update.onclick = function () {
-            update_bus_map()
+    if (lastbus)
+        lastbus.onclick = function () {
+            get_cds_bus()
         }
 
     if (cb_refresh)
@@ -59,7 +58,7 @@
         lastbusquery.onkeyup = function (event) {
             event.preventDefault()
             if (event.keyCode === 13) {
-                update_bus_map()
+                get_cds_bus()
             }
         }
     }
@@ -106,8 +105,8 @@
         return get_bus_arrival_by_name()
     }
 
-    function update_bus_map() {
-        run_timer(update_bus_map)
+    function get_cds_bus() {
+        run_timer(get_cds_bus)
 
         var bus_query = lastbusquery.value
         save_to_ls('bus_query', bus_query)
@@ -227,9 +226,9 @@
     }
 
     function get_bus_positions(query) {
-        waiting(lastbus_loading, lastbus_map_update, true)
+        waiting(lastbus_loading, lastbus, true)
 
-        var params = 'src=map&q=' + encodeURIComponent(query)
+        var params = 'q=' + encodeURIComponent(query)
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
             params += '&lon=' + encodeURIComponent(coords.longitude)
@@ -246,38 +245,12 @@
                 return res.json()
             })
             .then(function (data) {
-                waiting(lastbus_loading, lastbus_map_update, false)
+                waiting(lastbus_loading, lastbus, false)
                 var q = data.q
                 var text = data.text
                 businfo.innerHTML = 'Маршруты: ' + q + '\nКоличество результатов: ' + data.buses.length + '\n' + text
-
-                if (!my_map)
-                    return
-
-                var bus_with_azimuth = data.buses.map(function (data) {
-                    var bus = data[0]
-                    var next_bus_stop = data[1]
-                    if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
-                        return bus
-                    }
-
-                    bus.hint = next_bus_stop.NAME_
-
-                    var x = next_bus_stop.LAT_ - bus.last_lat_
-                    var y = next_bus_stop.LON_ - bus.last_lon_
-
-                    bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
-                    var time = bus.last_time_.substring(bus.last_time_.length - 8)
-
-                    bus.desc = [time + " " + next_bus_stop.NAME_,
-                        bus.route_name_.trim() + " ( " + bus.name_ + " ) ",
-                        bus.last_lat_ + " " + bus.last_lon_].join('<br/>')
-
-                    return bus
-                })
-                update_map(bus_with_azimuth, true)
             }).catch(function (error) {
-                waiting(lastbus_loading, lastbus_map_update, false)
+                waiting(lastbus_loading, lastbus, false)
 
                 businfo.innerHTML = 'Ошибка: ' + error
             })
@@ -311,7 +284,6 @@
                         }
                     })
                 }
-
             })
     }
 
@@ -349,140 +321,6 @@
             })
     }
 
-    function update_map(buses, clear) {
-        if (!my_map) {
-            return
-        }
-
-        var objectManager = new ymaps.ObjectManager()
-
-        objectManager.objects.options.set({
-            iconLayout: 'default#imageWithContent',
-            iconImageHref: 'bus_round.png',
-            iconImageSize: [32, 32],
-            iconImageOffset: [-16, -16],
-            iconContentOffset: [0, 0],
-            iconContentLayout: BusIconContentLayout,
-        })
-
-        var features = []
-
-        buses.forEach(function (bus, index) {
-            features.push(add_bus(bus, index))
-        })
-
-        objectManager.add({
-            "type": "FeatureCollection",
-            "features": features
-        })
-
-        if (clear) {
-            my_map.geoObjects.removeAll()
-        }
-
-        my_map.geoObjects.add(objectManager)
-    }
-
-    function add_stop(stop, id) {
-        if (!stop) {
-            return
-        }
-        var hint_content = stop.NAME_
-        var balloon_content = stop.NAME_
-        var lat = stop.LAT_
-        var lon = stop.LON_
-
-        return {
-            "type": "Feature",
-            "id": id,
-            "geometry": {"type": "Point", "coordinates": [lat, lon]},
-            "properties": {
-                "balloonContent": balloon_content,
-                "hintContent": hint_content,
-                "clusterCaption": hint_content
-            }
-        }
-    }
-
-
-    function add_bus(bus, id) {
-        if (!bus) {
-            return
-        }
-        var hint_content = bus.hint ? bus.hint : bus.last_time_ + '; ' + bus.azimuth
-        var balloon_content = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
-        var lat = bus.lat2 || bus.last_lat_
-        var lon = bus.lon2 || bus.last_lon_
-        var icon_content = bus.route_name_.trim()
-        var rotation = bus.azimuth
-
-        return {
-            "type": "Feature",
-            "id": id,
-            "geometry": {"type": "Point", "coordinates": [lat, lon]},
-            "properties": {
-                "balloonContent": balloon_content,
-                "hintContent": hint_content,
-                "iconContent": icon_content,
-                "rotation": rotation,
-                "clusterCaption": icon_content + ' ' + hint_content
-            }
-        }
-    }
-
-    if ('ymaps' in window) {
-        ymaps.ready(ymap_show);
-    }
-
-    function add_bus_stops(stops) {
-        var objectManager = new ymaps.ObjectManager({
-            clusterize: true,
-            gridSize: 80,
-            clusterDisableClickZoom: true
-        })
-
-        objectManager.objects.options.set({
-            preset: 'islands#darkGreenCircleDotIcon'
-        })
-
-        var features = []
-
-        stops.forEach(function (stop, index) {
-            features.push(add_stop(stop, index))
-        })
-
-        objectManager.add({
-            "type": "FeatureCollection",
-            "features": features
-        })
-
-        my_map.events.add('click', function (e) {
-            my_map.balloon.open(e.get('coords'), 'Щелк!');
-            e.stopPropagation()
-            e.preventDefault();
-        });
-        my_map.geoObjects.add(objectManager)
-    }
-
-    function ymap_show() {
-        my_map = new ymaps.Map('map', {
-            center: [coords.latitude, coords.longitude],
-            zoom: 14
-        }, {
-            searchControlProvider: 'yandex#search'
-        })
-
-        BusIconContentLayout = ymaps.templateLayoutFactory.createClass(
-            '<img class="bus-icon" style=" z-index: -1; transform: rotate({{properties.rotation}}deg);" src="arrow.png">' +
-            '<ymaps class="bus-title" style="z-index: -2;"> $[properties.iconContent] </ymaps>'
-        )
-
-        // TODO: Check with buses
-        // add_bus_stops(bus_stop_list)
-        if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
-        }
-    }
-
     function save_to_ls(key, value) {
         if (!ls_test()) {
             return
@@ -516,7 +354,6 @@
             get_bus_stop_list()
         }
         get_bus_list()
-
 
         if (lastbusquery)
             lastbusquery.value = load_from_ls('bus_query') || ''

@@ -15,6 +15,7 @@ else:
     debug = True
 
 
+
 # noinspection PyAbstractClass
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
@@ -79,8 +80,11 @@ class PingHandler(BaseHandler):
 
 
 class BusInfoHandler(BaseHandler):
-    def bus_info_response(self, query, lat, lon):
-        self.track(WebEvent.BUSINFO, query, lat, lon)
+    def bus_info_response(self, src, query, lat, lon):
+        if src == 'map':
+            self.track(WebEvent.BUSMAP, src, query, lat, lon)
+        else:
+            self.track(WebEvent.BUSINFO, src, query, lat, lon)
         response = self.processor.get_bus_info(query, lat, lon)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
@@ -88,9 +92,10 @@ class BusInfoHandler(BaseHandler):
     @run_on_executor
     def get(self):
         q = self.get_argument('q')
+        src = self.get_argument('src', None)
         lat = self.get_argument('lat', None)
         lon = self.get_argument('lon', None)
-        self.bus_info_response(q, lat, lon)
+        self.bus_info_response(src, q, lat, lon)
 
 
 class ArrivalHandler(BaseHandler):

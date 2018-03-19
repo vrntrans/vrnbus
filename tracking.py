@@ -19,6 +19,7 @@ class TgEvent(Enum):
 class WebEvent(Enum):
     ARRIVAL = auto()
     BUSINFO = auto()
+    BUSMAP = auto()
     BUSSTOP = auto()
 
 
