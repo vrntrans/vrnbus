@@ -28,7 +28,7 @@ class BaseHandler(tornado.web.RequestHandler):
     def track(self, event: WebEvent, *params):
         remote_ip = self.request.headers.get('X-Forwarded-For',
                                              self.request.headers.get('X-Real-Ip', self.request.remote_ip))
-        self.tracker.web(event, remote_ip, *params)
+        self.tracker.web(event, remote_ip, *params, self.user_agent)
 
     def data_received(self, chunk):
         pass
@@ -39,6 +39,10 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def caching(self, max_age=30):
         self.set_header("Cache-Control", f"max-age={max_age}")
+
+    @property
+    def user_agent(self):
+        return self.request.headers["User-Agent"]
 
     @property
     def processor(self):
@@ -82,10 +86,8 @@ class PingHandler(BaseHandler):
 
 class BusInfoHandler(BaseHandler):
     def bus_info_response(self, src, query, lat, lon):
-        if src == 'map':
-            self.track(WebEvent.BUSMAP, src, query, lat, lon)
-        else:
-            self.track(WebEvent.BUSINFO, src, query, lat, lon)
+        event =  WebEvent.BUSMAP if src=='map' else WebEvent.BUSINFO
+        self.track(event, src, query, lat, lon)
         response = self.processor.get_bus_info(query, lat, lon)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
