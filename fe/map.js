@@ -103,6 +103,8 @@
 
     function run_search_by_name() {
         run_timer(run_search_by_name)
+
+        update_user_position()
         return get_bus_arrival_by_name()
     }
 
@@ -111,6 +113,7 @@
 
         var bus_query = lastbusquery.value
         save_to_ls('bus_query', bus_query)
+        update_user_position()
         return get_bus_positions(bus_query)
     }
 
@@ -122,6 +125,14 @@
                 event.preventDefault()
                 get_current_pos(get_bus_arrival)
             }
+    }
+    
+    function update_user_position() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                coords = position.coords
+            })
+        }
     }
 
     function save_station_params() {
@@ -135,7 +146,7 @@
     function get_current_pos(func) {
         save_station_params()
 
-        navigator.geolocation.getCurrentPosition(func)
+        update_user_position()
     }
 
     function format_bus_stops(header, bus_stops) {

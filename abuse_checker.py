@@ -23,7 +23,5 @@ class AbuseChecker:
         return False
 
     def add_user_event(self, user_id):
-        if not self.check_user(user_id):
-            raise Exception("Please retry again later")
-
         self.events[user_id].append(datetime.datetime.now())
+        return self.check_user(user_id)

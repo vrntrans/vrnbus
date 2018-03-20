@@ -95,11 +95,9 @@ class PingHandler(BaseHandler):
 class BusInfoHandler(BaseHandler):
     def bus_info_response(self, src, query, lat, lon):
         is_map = src=='map'
-        if is_map:
-            if not self.anti_abuser.check_user(self.remote_ip):
-                self.track(WebEvent.ABUSE)
-                return self.send_error(500)
-            self.anti_abuser.add_user_event(self.remote_ip)
+        if is_map and not self.anti_abuser.add_user_event(self.remote_ip):
+            self.track(WebEvent.ABUSE, query, lat, lon)
+            return self.send_error(500)
         event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
         self.track(event, src, query, lat, lon)
         response = self.processor.get_bus_info(query, lat, lon)

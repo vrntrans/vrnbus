@@ -113,6 +113,14 @@
         return get_bus_positions(bus_query)
     }
 
+    function update_user_position() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                coords = position.coords
+            })
+        }
+    }
+
     if ("geolocation" in navigator) {
         var nextbus = document.getElementById('nextbus')
 
