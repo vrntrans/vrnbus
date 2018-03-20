@@ -4,6 +4,7 @@ from enum import Enum, auto
 
 
 class TgEvent(Enum):
+    ABUSE = auto()
     START = auto()
     HELP = auto()
     LAST = auto()
@@ -17,6 +18,7 @@ class TgEvent(Enum):
 
 
 class WebEvent(Enum):
+    ABUSE = auto()
     ARRIVAL = auto()
     BUSINFO = auto()
     BUSMAP = auto()

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import tornado.web
 
+from abuse_checker import AbuseChecker
 from cds import CdsRequest
 from data_processors import WebDataProcessor
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
@@ -41,10 +42,11 @@ user_settings = {}
 
 if __name__ == "__main__":
     tracker = EventTracker(logger)
+    anti_abuser = AbuseChecker(logger)
     data_provider = CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
     cds = CdsRequest(logger, data_provider)
     data_processor = WebDataProcessor(cds, logger)
     bot = BusBot(cds, user_settings, logger, tracker)
-    application = BusSite(data_processor, logger, tracker)
+    application = BusSite(data_processor, logger, tracker, anti_abuser)
     application.listen(os.environ.get('PORT', 8080))
     tornado.ioloop.IOLoop.instance().start()

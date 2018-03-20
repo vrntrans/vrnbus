@@ -7,6 +7,7 @@ import tornado.web
 from tornado.concurrent import run_on_executor
 
 import helpers
+from abuse_checker import AbuseChecker
 from tracking import WebEvent, EventTracker
 
 if 'DYNO' in os.environ:
@@ -26,9 +27,7 @@ class BaseHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor()
 
     def track(self, event: WebEvent, *params):
-        remote_ip = self.request.headers.get('X-Forwarded-For',
-                                             self.request.headers.get('X-Real-Ip', self.request.remote_ip))
-        self.tracker.web(event, remote_ip, *params, self.user_agent)
+        self.tracker.web(event, self.remote_ip, *params, self.user_agent)
 
     def data_received(self, chunk):
         pass
@@ -39,6 +38,14 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def caching(self, max_age=30):
         self.set_header("Cache-Control", f"max-age={max_age}")
+
+    @property
+    def remote_ip(self):
+        return self.request.headers.get('X-Forwarded-For',
+                                             self.request.headers.get('X-Real-Ip', self.request.remote_ip))
+    @property
+    def anti_abuser(self):
+        return self.application.anti_abuser
 
     @property
     def user_agent(self):
@@ -58,7 +65,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class BusSite(tornado.web.Application):
-    def __init__(self, processor, logger, tracker: EventTracker):
+    def __init__(self, processor, logger, tracker: EventTracker, anti_abuser:AbuseChecker):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
@@ -74,6 +81,7 @@ class BusSite(tornado.web.Application):
         self.logger = logger
         self.processor = processor
         self.tracker = tracker
+        self.anti_abuser = anti_abuser
 
 
 class PingHandler(BaseHandler):
@@ -86,7 +94,13 @@ class PingHandler(BaseHandler):
 
 class BusInfoHandler(BaseHandler):
     def bus_info_response(self, src, query, lat, lon):
-        event =  WebEvent.BUSMAP if src=='map' else WebEvent.BUSINFO
+        is_map = src=='map'
+        if is_map:
+            if not self.anti_abuser.check_user(self.remote_ip):
+                self.track(WebEvent.ABUSE)
+                return self.send_error(500)
+            self.anti_abuser.add_user_event(self.remote_ip)
+        event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
         self.track(event, src, query, lat, lon)
         response = self.processor.get_bus_info(query, lat, lon)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
