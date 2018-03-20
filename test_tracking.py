@@ -9,7 +9,8 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s
 
 logger = logging.getLogger("vrnbus")
 class FakeUser():
-    id = 42
+    def __init__(self, id=None):
+        self.id = id if id else 42
 
 class TrackingTest(unittest.TestCase):
     def test_something(self):
@@ -29,14 +30,17 @@ class TrackingTest(unittest.TestCase):
         self.assertEqual(len(tracker.tg_users), 1)
 
     def test_detailed_stats(self):
+        logger.setLevel(logging.WARNING)
         tracker = EventTracker(logger)
         user = FakeUser()
 
         tracker.tg(TgEvent.START, user)
-        for i in range(50):
+        for i in range(500):
+            tracker.tg(TgEvent(i%8 + 1), FakeUser(100500 + i%7))
             tracker.web(WebEvent(i%3 + 1), f'127.0.0.{i%3}')
         stats = tracker.stats()
         detailed_stats = tracker.stats(True)
+
+        logger.setLevel(logging.INFO)
         logger.info(detailed_stats)
         self.assertNotEqual(stats, detailed_stats)
-

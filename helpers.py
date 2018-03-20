@@ -93,6 +93,12 @@ def azimuth(glon1, glat1, glon2, glat2):
     return azmth
 
 
+def parse_int(s, default=0):
+    try:
+        return int(s)
+    except:
+        return default
+
 def distance_km(glat1, glon1, glat2, glon2):
     r = 6373.0
 

@@ -9,7 +9,7 @@ from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageH
 from tornado.httpclient import AsyncHTTPClient
 
 from data_types import UserLoc, ArrivalInfo
-from helpers import parse_routes, natural_sort_key, grouper, SearchResult
+from helpers import parse_routes, natural_sort_key, grouper, SearchResult, parse_int
 from tracking import EventTracker, TgEvent
 
 try:
@@ -47,7 +47,7 @@ class BusBot:
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
 
         self.dp.add_handler(CommandHandler("userstats", self.user_stats))
-        self.dp.add_handler(CommandHandler("userstatspro", self.user_stats_pro))
+        self.dp.add_handler(CommandHandler("userstatspro", self.user_stats_pro, pass_args=True))
 
         self.dp.add_handler(CommandHandler("stats", self.stats))
         self.dp.add_handler(CommandHandler("statspro", self.stats_full))
@@ -306,10 +306,11 @@ class BusBot:
         update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')
 
-    def user_stats_pro(self, _, update):
+    def user_stats_pro(self, _, update, args):
         self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
-        stats = self.tracker.stats(True)
+        treshold = parse_int(''.join(args), 10)
+        stats = self.tracker.stats(True, treshold)
         self.logger.debug(stats)
         update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')
