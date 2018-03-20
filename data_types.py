@@ -1,4 +1,5 @@
-from datetime import datetime
+import datetime
+from enum import Enum
 from typing import NamedTuple, List
 
 from helpers import distance_km, distance, get_iso_time
@@ -88,7 +89,7 @@ class CoddRouteBus(NamedTuple):
 class CdsBusPosition(NamedTuple):
     last_lat: float
     last_lon: float
-    last_time: datetime
+    last_time: datetime.datetime
 
     def distance(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         if not bus_stop and not user_loc:
@@ -106,13 +107,13 @@ class CdsRouteBus(NamedTuple):
     last_lat_: float
     last_lon_: float
     last_speed_: float
-    last_time_: datetime
+    last_time_: datetime.datetime
     name_: str
     obj_id_: int
     proj_id_: int
     route_name_: str
     type_proj: int = 0
-    last_station_time_: datetime = None
+    last_station_time_: datetime.datetime = None
     bus_station_: str = None
     address: str = None
 
@@ -143,8 +144,15 @@ class CdsRouteBus(NamedTuple):
 
 class CdsBaseDataProvider:
     CACHE_TIMEOUT = 0
-    def now(self) -> datetime:
+
+    def now(self) -> datetime.datetime:
         pass
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         pass
+
+
+class AbuseRule(NamedTuple):
+    event: Enum
+    count: int = 10
+    delta: datetime.timedelta = datetime.timedelta(minutes=60)

@@ -16,7 +16,6 @@ else:
     debug = True
 
 
-
 # noinspection PyAbstractClass
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
     def set_extra_headers(self, path):
@@ -42,7 +41,8 @@ class BaseHandler(tornado.web.RequestHandler):
     @property
     def remote_ip(self):
         return self.request.headers.get('X-Forwarded-For',
-                                             self.request.headers.get('X-Real-Ip', self.request.remote_ip))
+                                        self.request.headers.get('X-Real-Ip', self.request.remote_ip))
+
     @property
     def anti_abuser(self):
         return self.application.anti_abuser
@@ -65,7 +65,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class BusSite(tornado.web.Application):
-    def __init__(self, processor, logger, tracker: EventTracker, anti_abuser:AbuseChecker):
+    def __init__(self, processor, logger, tracker: EventTracker, anti_abuser: AbuseChecker):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
@@ -94,11 +94,11 @@ class PingHandler(BaseHandler):
 
 class BusInfoHandler(BaseHandler):
     def bus_info_response(self, src, query, lat, lon):
-        is_map = src=='map'
-        if is_map and not self.anti_abuser.add_user_event(self.remote_ip):
+        is_map = src == 'map'
+        event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
+        if not self.anti_abuser.add_user_event(event, self.remote_ip):
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
-        event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
         self.track(event, src, query, lat, lon)
         response = self.processor.get_bus_info(query, lat, lon)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))

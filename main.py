@@ -1,4 +1,5 @@
 # #!/usr/bin/env python3.6
+import datetime
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
@@ -10,8 +11,9 @@ from abuse_checker import AbuseChecker
 from cds import CdsRequest
 from data_processors import WebDataProcessor
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
+from data_types import AbuseRule
 from tgbot import BusBot
-from tracking import EventTracker
+from tracking import EventTracker, WebEvent
 from website import BusSite
 
 if not Path('logs').is_dir():
@@ -42,7 +44,12 @@ user_settings = {}
 
 if __name__ == "__main__":
     tracker = EventTracker(logger)
-    anti_abuser = AbuseChecker(logger)
+    abuse_rules = [
+        AbuseRule(WebEvent.BUSMAP, 10, datetime.timedelta(minutes=90)),
+        AbuseRule(WebEvent.BUSINFO, 10, datetime.timedelta(minutes=15)),
+    ]
+
+    anti_abuser = AbuseChecker(logger, abuse_rules)
     data_provider = CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
     cds = CdsRequest(logger, data_provider)
     data_processor = WebDataProcessor(cds, logger)
