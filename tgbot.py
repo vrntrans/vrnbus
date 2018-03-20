@@ -47,6 +47,7 @@ class BusBot:
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
 
         self.dp.add_handler(CommandHandler("userstats", self.user_stats))
+        self.dp.add_handler(CommandHandler("userstatspro", self.user_stats_pro))
 
         self.dp.add_handler(CommandHandler("stats", self.stats))
         self.dp.add_handler(CommandHandler("statspro", self.stats_full))
@@ -301,6 +302,14 @@ class BusBot:
         self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
         stats = self.tracker.stats()
+        self.logger.debug(stats)
+        update.message.reply_text(f'```\n{stats}\n```',
+                                  parse_mode='Markdown')
+
+    def user_stats_pro(self, _, update):
+        self.ping_prod()
+        self.track(TgEvent.USER_STATS, update)
+        stats = self.tracker.stats(True)
         self.logger.debug(stats)
         update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')

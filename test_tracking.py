@@ -17,11 +17,26 @@ class TrackingTest(unittest.TestCase):
         user = FakeUser()
 
         tracker.tg(TgEvent.START, user)
-        tracker.web(WebEvent.ARRIVAL, '')
+        tracker.web(WebEvent.ARRIVAL, '127.0.0.1')
         stats = tracker.stats()
+        detailed_stats = tracker.stats(True)
         logger.info(stats)
+        logger.info(detailed_stats)
 
         self.assertEqual(tracker.events[TgEvent.START], 1)
         self.assertEqual(tracker.events[WebEvent.ARRIVAL], 1)
         self.assertEqual(len(tracker.web_users), 1)
         self.assertEqual(len(tracker.tg_users), 1)
+
+    def test_detailed_stats(self):
+        tracker = EventTracker(logger)
+        user = FakeUser()
+
+        tracker.tg(TgEvent.START, user)
+        for i in range(50):
+            tracker.web(WebEvent(i%3 + 1), f'127.0.0.{i%3}')
+        stats = tracker.stats()
+        detailed_stats = tracker.stats(True)
+        logger.info(detailed_stats)
+        self.assertNotEqual(stats, detailed_stats)
+
