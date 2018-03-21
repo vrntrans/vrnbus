@@ -154,5 +154,5 @@ class CdsBaseDataProvider:
 
 class AbuseRule(NamedTuple):
     event: Enum
-    count: int = 10
-    delta: datetime.timedelta = datetime.timedelta(minutes=60)
+    count: int
+    delta: datetime.timedelta

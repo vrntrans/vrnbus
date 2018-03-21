@@ -1,6 +1,7 @@
 import logging
 import unittest
 
+from abuse_checker import AbuseChecker
 from tracking import EventTracker, TgEvent, WebEvent
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
@@ -44,3 +45,9 @@ class TrackingTest(unittest.TestCase):
         logger.setLevel(logging.INFO)
         logger.info(detailed_stats)
         self.assertNotEqual(stats, detailed_stats)
+
+
+class AbuseCheckerTest(unittest.TestCase):
+    def test_wo_rules(self):
+        checker = AbuseChecker(logger, [])
+        checker.add_user_event(WebEvent.BUSMAP, '127.0.0.1')
