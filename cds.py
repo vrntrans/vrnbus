@@ -139,7 +139,7 @@ class CdsRequest:
                 if n1 > n2 and ((n1 <= m_num and n2 <= m_num) or (n1 >= m_num and n2 >= m_num)):
                     return s1
 
-            self.logger.warning(f"{last_position}")
+            self.logger.warning(f"Bus stop for ({last_position.last_lat}, {last_position.last_lon})")
 
         return curr_1
 
