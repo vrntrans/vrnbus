@@ -1,11 +1,12 @@
 import os
 import re
 import textwrap
+import time
 
 import cachetools
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
     KeyboardButton, ReplyKeyboardMarkup
-from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater
+from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater, run_async
 from tornado.httpclient import AsyncHTTPClient
 
 from data_types import UserLoc, ArrivalInfo
@@ -73,6 +74,7 @@ class BusBot:
         user = update.message.from_user
         self.tracker.tg(event, user, *params)
 
+    @run_async
     def custom_command(self, bot, update):
         command = update.message.text
         if command.startswith('/nextbus_'):
@@ -95,8 +97,8 @@ class BusBot:
         if update:
             update.message.reply_text(f"Update caused error {error}")
 
+    @run_async
     def start(self, _, update):
-        """Send a message when the command /help is issued."""
         self.ping_prod()
         self.track(TgEvent.START, update)
 
@@ -114,6 +116,7 @@ class BusBot:
             "(если отправляли местоположение)",
             reply_markup=reply_markup)
 
+    @run_async
     def helpcmd(self, _, update):
         """Send a message when the command /help is issued."""
         self.ping_prod()
@@ -151,6 +154,11 @@ class BusBot:
 """,
                                   reply_markup=ReplyKeyboardRemove())
 
+    def send_text(self, text, update):
+        for part in textwrap.wrap(text, 4000, replace_whitespace=False):
+            update.message.reply_text(part)
+
+    @run_async
     def last_buses(self, _, update, args):
         """Send a message when the command /last is issued."""
         self.ping_prod()
@@ -162,8 +170,7 @@ class BusBot:
         text = response[0]
         self.track(TgEvent.LAST, update, args)
         self.logger.debug(f"last_buses. User: {user}; Response {' '.join(text.split())}")
-        for part in textwrap.wrap(text, 4000, replace_whitespace=False):
-            update.message.reply_text(part)
+        self.send_text(text, update)
 
     def get_buttons_routes(self, user_routes):
         # TODO: too many buttons
@@ -180,6 +187,7 @@ class BusBot:
         ]
         return keyboard
 
+    @run_async
     def settings(self, _, update, args):
         user_id = update.message.from_user.id
         settings = self.user_settings.get(user_id, {})
@@ -207,6 +215,7 @@ class BusBot:
 
         update.message.reply_text('Укажите маршруты для вывода:', reply_markup=reply_markup)
 
+    @run_async
     def settings_button(self, bot, update):
         query = update.callback_query
         self.logger.info(query)
@@ -250,6 +259,7 @@ class BusBot:
         next_bus_text = '\n'.join([text_for_bus_stop(k, v) for (k, v) in arrival_info.bus_stops.items()])
         return f'{arrival_info.header}\n{next_bus_text}'
 
+    @run_async
     def next_bus_general(self, update, args):
         user = update.message.from_user
 
@@ -282,7 +292,9 @@ class BusBot:
     def next_bus_handler(self, _, update, args):
         self.next_bus_general(update, args)
 
+    @run_async
     def send_stats(self, update, full_info):
+        time.sleep(5)
         self.ping_prod()
         user = update.message.from_user
 
@@ -298,6 +310,7 @@ class BusBot:
         """Send a message when the command /stats is issued."""
         self.send_stats(update, True)
 
+    @run_async
     def user_stats(self, _, update):
         self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
@@ -306,6 +319,7 @@ class BusBot:
         update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')
 
+    @run_async
     def user_stats_pro(self, _, update, args):
         self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
@@ -315,6 +329,7 @@ class BusBot:
         update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')
 
+    @run_async
     def user_input(self, bot, update):
         self.ping_prod()
         message = update.message
@@ -368,6 +383,7 @@ class BusBot:
         update.message.reply_text(self.get_text_from_arrival_info(arrival_info), parse_mode='Markdown',
                                   reply_markup=ReplyKeyboardRemove())
 
+    @run_async
     def location(self, _, update):
         self.ping_prod()
         loc = update.message.location
