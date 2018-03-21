@@ -102,7 +102,7 @@ class BusInfoHandler(BaseHandler):
         self.track(event, src, query, lat, lon)
         response = self.processor.get_bus_info(query, lat, lon)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
-        self.caching(5 if is_map else 30)
+        self.caching(1 if is_map else 30)
 
     @run_on_executor
     def get(self):
