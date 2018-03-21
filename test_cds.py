@@ -1,7 +1,6 @@
 import datetime
 import logging
 import unittest
-import time
 
 from cds import CdsRequest
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
@@ -122,7 +121,6 @@ class CdsSpeedTestCase(unittest.TestCase):
         search_request = parse_routes(query)
         start = datetime.datetime.now()
         result = self.cds.bus_request(search_request, short_format=True)
-        time.sleep(0.05)
         logger.info("PING")
         finish = datetime.datetime.now()
         logger.info(f"{finish - start}")

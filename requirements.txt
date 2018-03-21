@@ -4,3 +4,5 @@ cachetools==2.0.1
 tornado==4.5.3
 pytz==2017.3
 fdb==1.8
+freezegun==0.3.10
+python-dateutil==2.7.0

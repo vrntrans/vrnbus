@@ -33,7 +33,14 @@ class AbuseChecker:
         self.logger.error(f"There is no rule for {event}")
         self.events[event] = defaultdict(lambda: deque(maxlen=self.default_rule.count))
 
+    def check_time(self):
+        now = datetime.datetime.now()
+        return now.hour > 20 or now.hour < 7
+
     def check_user(self, event, user_id):
+        if self.check_time():
+            return True
+
         self.prepare_dict(event)
         user_events = self.events[event][user_id]
         rule = self.rules.get(event, self.default_rule)

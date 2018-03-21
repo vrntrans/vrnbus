@@ -2,6 +2,8 @@ import datetime
 import logging
 import unittest
 
+from freezegun import freeze_time
+
 from abuse_checker import AbuseChecker
 from data_types import AbuseRule
 from tracking import EventTracker, TgEvent, WebEvent
@@ -54,7 +56,19 @@ class AbuseCheckerTest(unittest.TestCase):
         checker = AbuseChecker(logger, [])
         checker.add_user_event(WebEvent.BUSMAP, '127.0.0.1')
 
-    def test_with_rules(self):
+    @freeze_time("12:00", tick=True)
+    def test_with_rules_day(self):
+        self.run_rules_check(False)
+
+    @freeze_time("22:00", tick=True)
+    def test_with_rules_evening(self):
+        self.run_rules_check(True)
+
+    @freeze_time("6:00", tick=True)
+    def test_with_rules_morning(self):
+        self.run_rules_check(True)
+
+    def run_rules_check(self, check_result):
         abuse_rules = [
             AbuseRule(WebEvent.BUSINFO, 10, datetime.timedelta(minutes=60)),
             AbuseRule(WebEvent.BUSMAP, 10, datetime.timedelta(minutes=90)),
@@ -63,9 +77,8 @@ class AbuseCheckerTest(unittest.TestCase):
         self.assertTrue(len(checker.rules) == 2)
         user_id = '127.0.0.1'
         for _ in range(50):
-            map_info = checker.add_user_event(WebEvent.BUSMAP, user_id)
-            bus_info = checker.add_user_event(WebEvent.BUSINFO, user_id)
-            logger.info(f'{map_info} {bus_info}')
+            checker.add_user_event(WebEvent.BUSMAP, user_id)
+            checker.add_user_event(WebEvent.BUSINFO, user_id)
 
-        self.assertFalse(checker.check_user(WebEvent.BUSMAP, user_id))
-        self.assertFalse(checker.check_user(WebEvent.BUSINFO, user_id))
+        self.assertEqual(checker.check_user(WebEvent.BUSMAP, user_id), check_result)
+        self.assertEqual(checker.check_user(WebEvent.BUSINFO, user_id), check_result)
