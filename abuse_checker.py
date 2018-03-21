@@ -21,9 +21,16 @@ class AbuseChecker:
         self.events[user_id].clear()
 
     def prepare_dict(self, event):
-        if not event in self.events:
-            self.logger.warning(f"There is no rule for {event}")
-            self.events[event] = defaultdict(lambda: deque(maxlen=self.default_rule.count))
+        if event in self.events:
+            return
+        rule = self.rules.get(event)
+        if rule:
+            self.logger.warning(f"There is no prepared dict for {event}")
+            self.events[event] = defaultdict(lambda: deque(maxlen=rule.count))
+            return
+
+        self.logger.warning(f"There is no rule for {event}")
+        self.events[event] = defaultdict(lambda: deque(maxlen=self.default_rule.count))
 
     def check_user(self, event, user_id):
         self.prepare_dict(event)

@@ -46,7 +46,7 @@ if __name__ == "__main__":
     tracker = EventTracker(logger)
     abuse_rules = [
         AbuseRule(WebEvent.BUSMAP, 5, datetime.timedelta(minutes=90)),
-        AbuseRule(WebEvent.BUSINFO, 10, datetime.timedelta(minutes=15)),
+        AbuseRule(WebEvent.BUSINFO, 10, datetime.timedelta(minutes=60)),
     ]
 
     anti_abuser = AbuseChecker(logger, abuse_rules)

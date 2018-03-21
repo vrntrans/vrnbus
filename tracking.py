@@ -58,7 +58,7 @@ class EventTracker:
         if detailed:
             info_list = [f"{replace_event_name(event_name)}: {k} {v}"
                            for event_name, event_dict in self.detailed_events.items()
-                           for k, v in event_dict.items() if v > details_treshold]
+                           for k, v in event_dict.items() if v >= details_treshold]
             full_info = "\nDetails\n" + "\n".join(sorted(info_list))
 
 
