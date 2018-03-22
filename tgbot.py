@@ -20,8 +20,8 @@ try:
     PING_HOST = settings.PING_HOST
 except ImportError:
     env = os.environ
-    VRNBUSBOT_TOKEN = env['VRNBUSBOT_TOKEN']
-    PING_HOST = env['PING_HOST']
+    VRNBUSBOT_TOKEN = env.get('VRNBUSBOT_TOKEN')
+    PING_HOST = env.get('PING_HOST', 'http://localhost:8080')
 
 
 class BusBot:
@@ -32,6 +32,9 @@ class BusBot:
         self.logger = logger
         self.tracker = tracker
         # Create the EventHandler and pass it your bot's token.
+        if not VRNBUSBOT_TOKEN:
+            self.logger.error("The Telegram bot token is empty. Use @BotFather to get your token")
+            return
         self.updater = Updater(VRNBUSBOT_TOKEN, request_kwargs={'read_timeout':10})
 
         # Get the dispatcher to register handlers

@@ -1,5 +1,6 @@
 import heapq
 import json
+import os
 import time
 from collections import Counter, deque
 from collections import defaultdict
@@ -22,7 +23,7 @@ try:
     import settings
     LOAD_TEST_DATA = settings.LOAD_TEST_DATA
 except ImportError:
-    pass
+    LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
 
 ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
 ttl_db_sec = 60 if not LOAD_TEST_DATA else 0.001

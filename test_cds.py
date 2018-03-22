@@ -90,10 +90,10 @@ class CdsDataGatheringTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(CdsDataGatheringTestCase, self).__init__(*args, **kwargs)
         self.mock_provider = CdsTestDataProvider(logger)
-        self.db_provider = CdsDBDataProvider(logger)
 
     @unittest.skip("testing skipping")
     def test_db(self):
+        self.db_provider = CdsDBDataProvider(logger)
         cds = CdsRequest(logger, self.db_provider)
         self.call_common_methods(cds)
 

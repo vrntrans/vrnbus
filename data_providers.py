@@ -9,6 +9,8 @@ import fdb
 
 from data_types import CdsRouteBus, CdsBaseDataProvider
 
+LOAD_TEST_DATA = False
+
 try:
     import settings
 
@@ -20,10 +22,13 @@ try:
 except ImportError:
     settings = None
     env = os.environ
-    CDS_HOST = env['CDS_HOST']
-    CDS_DB_PATH = env['CDS_DB_PATH']
-    CDS_USER = env['CDS_USER']
-    CDS_PASS = env['CDS_PASS']
+    if all((x in env for x in ("CDS_HOST", "CDS_DB_PATH", "CDS_USER", "CDS_PASS", ))):
+        CDS_HOST = env['CDS_HOST']
+        CDS_DB_PATH = env['CDS_DB_PATH']
+        CDS_USER = env['CDS_USER']
+        CDS_PASS = env['CDS_PASS']
+    else:
+        LOAD_TEST_DATA = True
 
 
 class CdsDBDataProvider(CdsBaseDataProvider):
@@ -113,3 +118,8 @@ class CdsTestDataProvider(CdsBaseDataProvider):
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         return self.next_test_data()
+
+
+def get_data_provider(logger):
+    return CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
+

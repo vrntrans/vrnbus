@@ -10,7 +10,7 @@ import tornado.web
 from abuse_checker import AbuseChecker
 from cds import CdsRequest
 from data_processors import WebDataProcessor
-from data_providers import CdsTestDataProvider, CdsDBDataProvider
+from data_providers import get_data_provider
 from data_types import AbuseRule
 from tgbot import BusBot
 from tracking import EventTracker, WebEvent
@@ -32,14 +32,6 @@ logger = logging.getLogger("vrnbus")
 
 logger.info([{k: os.environ[k]} for (k) in os.environ if 'PATH' not in k])
 
-LOAD_TEST_DATA = False
-
-try:
-    import settings
-    LOAD_TEST_DATA = settings.LOAD_TEST_DATA
-except ImportError:
-    settings = None
-
 user_settings = {}
 
 if __name__ == "__main__":
@@ -50,7 +42,7 @@ if __name__ == "__main__":
     ]
 
     anti_abuser = AbuseChecker(logger, abuse_rules)
-    data_provider = CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
+    data_provider = get_data_provider(logger)
     cds = CdsRequest(logger, data_provider)
     data_processor = WebDataProcessor(cds, logger)
     bot = BusBot(cds, user_settings, logger, tracker)
