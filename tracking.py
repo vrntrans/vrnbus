@@ -44,7 +44,7 @@ class EventTracker:
         self.tg_users = set()
         self.web_users = set()
 
-    def stats(self, detailed=False, details_treshold=10):
+    def stats(self, detailed=False, details_treshold=50, user_filter=''):
         def replace_event_name(event):
             return str(event).replace("Event.", ".")
 
@@ -57,16 +57,16 @@ class EventTracker:
         full_info = ''
         if detailed:
             info_list = [f"{replace_event_name(event_name)}: {k} {v}"
-                           for event_name, event_dict in self.detailed_events.items()
-                           for k, v in event_dict.items() if v >= details_treshold]
+                         for event_name, event_dict in self.detailed_events.items()
+                         for k, v in event_dict.items()
+                         if v >= details_treshold or (user_filter and user_filter in k)]
             full_info = "\nDetails\n" + "\n".join(sorted(info_list))
-
 
         return f'{self.start:%Y.%m.%d %H:%M}\n{user_stats}\n{user_types} {full_info}'
 
     def tg(self, event: TgEvent, user, *params):
         user_info = f"user:{user.id}"
-        self.add_event(event, user.id)
+        self.add_event(event, str(user.id))
         self.tg_users.add(user.id)
         self.logger.info(f"TRACK: {event} {user_info} {params if params else ''}")
 

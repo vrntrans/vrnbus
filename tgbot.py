@@ -327,8 +327,9 @@ class BusBot:
             return
         self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
-        treshold = parse_int(''.join(args), 10)
-        stats = self.tracker.stats(True, treshold)
+        treshold = parse_int(args[:1], 50)
+        user_filter = ''.join(args)
+        stats = self.tracker.stats(True, treshold, user_filter)
         self.logger.debug(stats)
         update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')
