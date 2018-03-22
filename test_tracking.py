@@ -60,11 +60,11 @@ class AbuseCheckerTest(unittest.TestCase):
     def test_with_rules_day(self):
         self.run_rules_check(False)
 
-    @freeze_time("22:00", tick=True)
+    @freeze_time("20:00", tick=True)
     def test_with_rules_evening(self):
         self.run_rules_check(True)
 
-    @freeze_time("6:00", tick=True)
+    @freeze_time("7:59", tick=True)
     def test_with_rules_morning(self):
         self.run_rules_check(True)
 

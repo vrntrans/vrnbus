@@ -35,7 +35,7 @@ class AbuseChecker:
 
     def check_time(self):
         now = datetime.datetime.now()
-        return now.hour > 20 or now.hour < 7
+        return now.hour >= 20 or now.hour <= 7
 
     def check_user(self, event, user_id):
         if self.check_time():
