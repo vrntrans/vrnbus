@@ -321,6 +321,10 @@ class BusBot:
 
     @run_async
     def user_stats_pro(self, _, update, args):
+        # TODO: Add user checking as a module (white/black lists and so on)
+        if update.message.from_user.id != 26943105:
+            self.logger.error(f"Unknown user {update.message.from_user}")
+            return
         self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
         treshold = parse_int(''.join(args), 10)
