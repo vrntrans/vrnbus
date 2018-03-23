@@ -1,7 +1,6 @@
 import os
 import re
 import textwrap
-import time
 
 import cachetools
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
@@ -297,7 +296,6 @@ class BusBot:
 
     @run_async
     def send_stats(self, update, full_info):
-        time.sleep(5)
         self.ping_prod()
         user = update.message.from_user
 
@@ -332,6 +330,7 @@ class BusBot:
         self.track(TgEvent.USER_STATS, update)
         threshold, valid_threshold = parse_int(args[:1], 50)
         user_filter = ''.join(args if not valid_threshold else args[1:])
+        # event_filter =
         stats = self.tracker.stats(True, threshold, user_filter)
         self.logger.debug(stats)
         update.message.reply_text(f'```\n{stats}\n```',
