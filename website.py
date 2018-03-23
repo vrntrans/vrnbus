@@ -15,6 +15,8 @@ if 'DYNO' in os.environ:
 else:
     debug = True
 
+FULL_ACCESS_KEY = os.environ.get('FULL_ACCESS_KEY', '?key=42')
+
 
 # noinspection PyAbstractClass
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
@@ -46,6 +48,10 @@ class BaseHandler(tornado.web.RequestHandler):
     @property
     def anti_abuser(self):
         return self.application.anti_abuser
+
+    @property
+    def full_access(self):
+        return FULL_ACCESS_KEY in self.request.headers["Referer"]
 
     @property
     def user_agent(self):
@@ -96,7 +102,7 @@ class BusInfoHandler(BaseHandler):
     def bus_info_response(self, src, query, lat, lon):
         is_map = src == 'map'
         event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
-        if not self.anti_abuser.add_user_event(event, self.remote_ip):
+        if not self.anti_abuser.add_user_event(event, self.remote_ip) and not self.full_access:
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
         self.track(event, src, query, lat, lon)
