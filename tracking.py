@@ -1,6 +1,7 @@
 import datetime
 from collections import defaultdict
 from enum import Enum, auto
+from typing import List
 
 
 class TgEvent(Enum):
@@ -16,6 +17,10 @@ class TgEvent(Enum):
     CUSTOM_CMD = auto()
     WRONG_CMD = auto()
 
+    @staticmethod
+    def from_str(label):
+        return TgEvent.__dict__.get(label)
+
 
 class WebEvent(Enum):
     ABUSE = auto()
@@ -23,6 +28,44 @@ class WebEvent(Enum):
     BUSINFO = auto()
     BUSMAP = auto()
     BUSSTOP = auto()
+
+    @staticmethod
+    def from_str(label):
+        return WebEvent.__dict__.get(label)
+
+
+def get_event_by_name(name: str):
+    if not name or not isinstance(name, str):
+        return
+    if '.' in name:
+        parts = name.split('.')
+        if len(parts) > 2:
+            return
+        (event_type, event_name) = (i.upper() for i in parts)
+        if event_type == 'TG':
+            return TgEvent.from_str(event_name)
+        if event_type == 'WEB':
+            return WebEvent.from_str(event_name)
+
+    event_name = name.upper()
+    web_event = WebEvent.from_str(event_name)
+    if web_event:
+        return web_event
+    tg_event = TgEvent.from_str(event_name)
+    if tg_event:
+        return tg_event
+
+
+def get_events_by_names(str_events: List[str]):
+    result = []
+    for item in str_events:
+        event_name = item.upper()
+        web_event = WebEvent.get(event_name)
+        if web_event:
+            result.append(web_event)
+        tg_event = TgEvent.get(event_name)
+        if tg_event:
+            result.append(tg_event)
 
 
 class EventTracker:
@@ -44,7 +87,7 @@ class EventTracker:
         self.tg_users = set()
         self.web_users = set()
 
-    def stats(self, detailed=False, details_treshold=50, user_filter=''):
+    def stats(self, detailed=False, details_treshold=50, user_filter='', event_filter=None):
         def replace_event_name(event):
             return str(event).replace("Event.", ".")
 
@@ -59,7 +102,10 @@ class EventTracker:
             info_list = [f"{replace_event_name(event_name)}: {k} {v}"
                          for event_name, event_dict in self.detailed_events.items()
                          for k, v in event_dict.items()
-                         if v >= details_treshold or (user_filter and user_filter in k)]
+                         if v >= details_treshold
+                         or (user_filter and user_filter in k)
+                         or (event_filter and event_name in event_filter)
+                         ]
             full_info = "\nDetails\n" + "\n".join(sorted(info_list))
 
         return f'{self.start:%Y.%m.%d %H:%M}\n{user_stats}\n{user_types} {full_info}'

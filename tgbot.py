@@ -10,7 +10,7 @@ from tornado.httpclient import AsyncHTTPClient
 
 from data_types import UserLoc, ArrivalInfo
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult, parse_int
-from tracking import EventTracker, TgEvent
+from tracking import EventTracker, TgEvent, get_event_by_name
 
 try:
     import settings
@@ -330,8 +330,8 @@ class BusBot:
         self.track(TgEvent.USER_STATS, update)
         threshold, valid_threshold = parse_int(args[:1], 50)
         user_filter = ''.join(args if not valid_threshold else args[1:])
-        # event_filter =
-        stats = self.tracker.stats(True, threshold, user_filter)
+        event_filter = [get_event_by_name(i) for i in args if get_event_by_name(i)]
+        stats = self.tracker.stats(True, threshold, user_filter, event_filter)
         self.logger.debug(stats)
         update.message.reply_text(f'```\n{stats}\n```',
                                   parse_mode='Markdown')

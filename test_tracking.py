@@ -6,7 +6,7 @@ from freezegun import freeze_time
 
 from abuse_checker import AbuseChecker
 from data_types import AbuseRule
-from tracking import EventTracker, TgEvent, WebEvent
+from tracking import EventTracker, TgEvent, WebEvent, get_event_by_name
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
                     level=logging.INFO,
@@ -16,6 +16,28 @@ logger = logging.getLogger("vrnbus")
 class FakeUser():
     def __init__(self, id=None):
         self.id = id if id else 42
+
+class TrackingEventTest(unittest.TestCase):
+    def test_event_parsing(self):
+        f = get_event_by_name
+        cases = [
+            (None, None),
+            (123, None),
+            ([], None),
+            ([1, 2, 3], None),
+            ('', None),
+            ('Unknown_event', None),
+            ('ARRIVAL', WebEvent.ARRIVAL),
+            ('arrival', WebEvent.ARRIVAL),
+            ('LaSt', TgEvent.LAST),
+            ('Tg.last', TgEvent.LAST),
+            ('Tg.abuse', TgEvent.ABUSE),
+            ('web.abuse', WebEvent.ABUSE),
+        ]
+
+        for (event_name, result) in cases:
+            with self.subTest(f'{event_name}, {result}'):
+                self.assertEqual(f(event_name), result)
 
 class TrackingTest(unittest.TestCase):
     def test_something(self):
