@@ -103,7 +103,7 @@ class BusInfoHandler(BaseHandler):
         is_map = src == 'map'
         event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
         if self.full_access:
-            self.track(WebEvent.FULL_INFO, query, lat, lon)
+            self.track(WebEvent.FULL_INFO, self.request.headers["Referer"], query, lat, lon)
         if not self.anti_abuser.add_user_event(event, self.remote_ip) and not self.full_access:
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
