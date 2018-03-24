@@ -197,11 +197,10 @@ def fuzzy_search_advanced(needle: str, haystack: str) -> bool:
     skip_chars = (' ', ',', '(', ')', '.')
     if position > 0 and nch not in skip_chars:
         while True:
-            if haystack[position - 1] not in skip_chars:
-                position = haystack.find(nch, position) + 1
-                if position == 0:
-                    return False
-            else:
+            position = haystack.find(nch, position) + 1
+            if position == 0:
+                return False
+            if haystack[position - 2] in skip_chars:
                 break
 
     i = 1
