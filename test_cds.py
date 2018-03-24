@@ -145,10 +145,6 @@ class CdsBusStopIndexTestCase(unittest.TestCase):
         self.assertIsInstance(result, int)
         self.assertEqual(result, -1)
 
-    def test_get_index_by_name(self):
-        result = self.cds.get_bus_stop_id("ул. Кирова (в центр)")
-        self.assertIsInstance(result, int)
-
     def test_get_bus_stop_for_index(self):
         result = self.cds.get_bus_stop_from_id(42)
         self.assertIsInstance(result, BusStop)
@@ -156,6 +152,12 @@ class CdsBusStopIndexTestCase(unittest.TestCase):
     def test_get_busstop_for_outrange_indexes(self):
         self.assertIsNone(self.cds.get_bus_stop_from_id(-1))
         self.assertIsNone(self.cds.get_bus_stop_from_id(100500))
+
+    def test_routes_on_near_stations(self):
+        # TODO: Find the test case for 49A
+        routes_1 = self.cds.get_routes_on_bus_stop("Политехнический институт (из центра)")
+        routes_2 = self.cds.get_routes_on_bus_stop("Рабочий проспект (из центра)")
+        self.assertListEqual(routes_1, routes_2)
 
 if __name__ == '__main__':
     unittest.main()
