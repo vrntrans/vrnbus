@@ -9,7 +9,7 @@ from data_providers import CdsDBDataProvider
 from helpers import CustomJsonEncoder
 
 
-def save_test_data(file_numbers=200, sleep_time=30):
+def save_test_data(file_numbers=500, sleep_time=30):
     logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
                         level=logging.INFO,
                         handlers=[logging.StreamHandler()])
