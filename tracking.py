@@ -28,6 +28,7 @@ class WebEvent(Enum):
     BUSINFO = auto()
     BUSMAP = auto()
     BUSSTOP = auto()
+    FULL_INFO = auto()
 
     @staticmethod
     def from_str(label):
