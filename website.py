@@ -27,6 +27,10 @@ class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
 class BaseHandler(tornado.web.RequestHandler):
     executor = ThreadPoolExecutor()
 
+    def prepare(self):
+        if not self.get_cookie("user_ip"):
+            self.set_cookie("user_ip", self.remote_ip, expires_days=30)
+
     def track(self, event: WebEvent, *params):
         self.tracker.web(event, self.remote_ip, *params, self.user_agent)
 
@@ -39,6 +43,10 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def caching(self, max_age=30):
         self.set_header("Cache-Control", f"max-age={max_age}")
+
+    @property
+    def user_ip(self):
+        return self.get_cookie("user_ip", self.remote_ip)
 
     @property
     def remote_ip(self):
@@ -107,9 +115,11 @@ class BusInfoHandler(BaseHandler):
         is_map = src == 'map'
         event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
         referer = self.request.headers.get("Referer")
+        if self.user_ip != self.remote_ip:
+            self.track(WebEvent.IPCHANGE, f'{self.user_ip} != {self.remote_ip}')
         if self.full_access:
             self.track(WebEvent.FULLINFO, referer, query, lat, lon)
-        if not self.anti_abuser.add_user_event(event, self.remote_ip) and not self.full_access:
+        if not self.anti_abuser.add_user_event(event, self.user_ip) and not self.full_access:
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
         self.track(event, src, query, lat, lon)

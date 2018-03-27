@@ -126,7 +126,7 @@
                 get_current_pos(get_bus_arrival)
             }
     }
-    
+
     function update_user_position() {
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(function (position) {
@@ -186,11 +186,13 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
             })
             .then(function (res) {
                 return res.json()
             })
             .then(function (data) {
+                update_cookies()
                 waiting(nextbus_loading, btn_station_search, false)
                 format_bus_stops(data.header, data.bus_stops)
             })
@@ -217,11 +219,13 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
             })
             .then(function (res) {
                 return res.json()
             })
             .then(function (data) {
+                update_cookies()
                 waiting(nextbus_loading, nextbus, false)
                 format_bus_stops(data.header, data.bus_stops)
             })
@@ -252,11 +256,13 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
             })
             .then(function (res) {
                 return res.json()
             })
             .then(function (data) {
+                update_cookies()
                 waiting(lastbus_loading, lastbus_map_update, false)
                 var q = data.q
                 var text = data.text
@@ -301,11 +307,13 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
             })
             .then(function (res) {
                 return res.json()
             })
             .then(function (data) {
+                update_cookies()
                 bus_stop_list = data
                 bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
                     return bus_stop.NAME_
@@ -334,11 +342,13 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
             })
             .then(function (res) {
                 return res.json()
             })
             .then(function (data) {
+                update_cookies()
                 var bus_list = data.result
 
                 var select = document.getElementById('buslist')
@@ -522,7 +532,57 @@
         }
     }
 
+        function setCookie(name, value, options) {
+        options = options || {};
+
+        var expires = options.expires;
+
+        if (typeof expires == "number" && expires) {
+            var d = new Date();
+            d.setTime(d.getTime() + expires * 1000);
+            expires = options.expires = d;
+        }
+        if (expires && expires.toUTCString) {
+            options.expires = expires.toUTCString();
+        }
+
+        value = encodeURIComponent(value);
+
+        var updatedCookie = name + "=" + value;
+
+        for (var propName in options) {
+            updatedCookie += "; " + propName;
+            var propValue = options[propName];
+            if (propValue !== true) {
+                updatedCookie += "=" + propValue;
+            }
+        }
+
+        document.cookie = updatedCookie;
+    }
+
+    function getCookie(name) {
+        var matches = document.cookie.match(new RegExp(
+            "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+        ));
+        return matches ? decodeURIComponent(matches[1]) : undefined;
+    }
+
+
+    function update_cookies() {
+        var user_ip = getCookie("user_ip")
+        if (user_ip) {
+            save_to_ls("user_ip", user_ip)
+        }
+
+        var ls_user_ip = load_from_ls('user_ip')
+        if (!user_ip && ls_user_ip) {
+            setCookie("user_ip", ls_user_ip, {expires: 3600 * 24 * 7})
+        }
+    }
+
     function init() {
+        update_cookies()
         if (station_name) {
             get_bus_stop_list()
         }
