@@ -347,6 +347,8 @@ class CdsRequest:
             bus_dist = bus.distance_km(closest_stop)
             same_station = bus.bus_station_ == bus_stop_name
             route_dist = self.get_dist(bus.route_name_, closest_stop.NAME_, bus_stop_name)
+            if route_dist == 0 and not same_station:
+                continue
             if bus.bus_station_ != closest_stop.NAME_:
                 route_dist += self.get_dist(bus.route_name_, bus.bus_station_, bus_stop_name)
             dist = bus_dist + route_dist

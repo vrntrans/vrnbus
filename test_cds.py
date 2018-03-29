@@ -3,6 +3,7 @@ import logging
 import unittest
 
 from cds import CdsRequest
+from data_processors import WebDataProcessor
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
 from data_types import CdsBusPosition, CdsRouteBus, BusStop
 from helpers import parse_routes
@@ -158,6 +159,33 @@ class CdsBusStopIndexTestCase(unittest.TestCase):
         routes_1 = self.cds.get_routes_on_bus_stop("Политехнический институт (из центра)")
         routes_2 = self.cds.get_routes_on_bus_stop("Рабочий проспект (из центра)")
         self.assertListEqual(routes_1, routes_2)
+
+class CdsBusArrivalTestCases(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
+                            level=logging.INFO,
+                            handlers=[logging.StreamHandler()])
+
+        self.logger = logging.getLogger("vrnbus")
+        self.mock_provider = CdsTestDataProvider(logger)
+        self.cds = CdsRequest(logger, self.mock_provider)
+        self.processor = WebDataProcessor(self.cds, self.logger)
+
+    def test_arrival(self):
+        result = self.processor.get_arrival("про", 51.692727, 39.18297)
+        stops = result['bus_stops']
+        counts = 0
+        for k,v in stops.items():
+            self.logger.info(k)
+            self.logger.info(v)
+            counts += len(v.split('\n'))
+            break
+        self.logger.info(counts)
+
+    def test_arrival_distance(self):
+        result = self.cds.get_dist("27", 'Площадь Застава (в центр)', 'Центральный автовокзал (в центр)')
+        self.logger.info(result)
 
 if __name__ == '__main__':
     unittest.main()
