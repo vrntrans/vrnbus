@@ -156,3 +156,11 @@ class AbuseRule(NamedTuple):
     event: Enum
     count: int
     delta: datetime.timedelta
+
+
+class StatsData(NamedTuple):
+    min10: int
+    min30: int
+    min60: int
+    total: int
+    text: str

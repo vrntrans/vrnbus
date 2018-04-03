@@ -3,6 +3,7 @@ import re
 import textwrap
 
 import cachetools
+from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
     KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater, run_async
@@ -24,7 +25,7 @@ except ImportError:
 
 
 class BusBot:
-    def __init__(self, cds, user_settings, logger, tracker:EventTracker):
+    def __init__(self, cds, user_settings, logger, tracker: EventTracker):
         """Start the bot."""
         self.cds = cds
         self.user_settings = user_settings
@@ -34,8 +35,8 @@ class BusBot:
         if not VRNBUSBOT_TOKEN:
             self.logger.error("The Telegram bot token is empty. Use @BotFather to get your token")
             return
-        self.updater = Updater(VRNBUSBOT_TOKEN, request_kwargs={'read_timeout':10})
-
+        self.updater = Updater(VRNBUSBOT_TOKEN, request_kwargs={'read_timeout': 10})
+        self.bot = self.updater.bot
         # Get the dispatcher to register handlers
         self.dp = self.updater.dispatcher
 
@@ -64,6 +65,9 @@ class BusBot:
         # # log all errors
         self.dp.add_error_handler(self.error)
 
+        self.scheduler = BackgroundScheduler()
+        self.scheduler.start()
+        self.scheduler.add_job(self.stats_checking, 'interval', minutes=10)
         # Start the Bot
         self.updater.start_polling(timeout=30)
 
@@ -72,9 +76,17 @@ class BusBot:
         # start_polling() is non-blocking and will stop the bot gracefully.
         # updater.idle()
 
-    def track(self, event:TgEvent, update, *params):
+    def track(self, event: TgEvent, update, *params):
         user = update.message.from_user
         self.tracker.tg(event, user, *params)
+
+    def stats_checking(self):
+        response = self.cds.get_bus_statistics()
+        if not response:
+            self.bot.send_message(chat_id=26943105, text=f'Нет данных')
+        elif response.min10 / response.min60 < 0.5:
+            self.bot.send_message(chat_id=26943105, text=f'```\nПроверьте актуальность данных\n{response.text}\n```',
+                                  parse_mode='Markdown')
 
     @run_async
     def custom_command(self, bot, update):
@@ -288,7 +300,7 @@ class BusBot:
 
         self.track(TgEvent.NEXT, update, bus_stop, params)
 
-        response = self.cds.next_bus_for_matches((bus_stop, ), search_params)
+        response = self.cds.next_bus_for_matches((bus_stop,), search_params)
         update.message.reply_text(self.get_text_from_arrival_info(response), parse_mode='Markdown')
 
     def next_bus_handler(self, _, update, args):
@@ -300,8 +312,8 @@ class BusBot:
         user = update.message.from_user
 
         self.track(TgEvent.STATS, update, full_info)
-        response = self.cds.get_bus_statistics(full_info)
-        update.message.reply_text(f'```\n{response}\n```', parse_mode='Markdown')
+        response = self.cds.get_bus_statistics(full_info) or "Нет данных"
+        update.message.reply_text(f'```\n{response.text}\n```', parse_mode='Markdown')
 
     def stats(self, _, update):
         """Send a message when the command /stats is issued."""
@@ -321,7 +333,7 @@ class BusBot:
                                   parse_mode='Markdown')
 
     @run_async
-    def user_stats_pro(self, _, update, args):
+    def user_stats_pro(self, bot, update, args):
         # TODO: Add user checking as a module (white/black lists and so on)
         if update.message.from_user.id != 26943105:
             self.logger.error(f"Unknown user {update.message.from_user}")
@@ -353,7 +365,6 @@ class BusBot:
         if l_text == 'на рефакторинг!':
             message.reply_text('Тогда срочно сюда @deeprefactoring!')
             return
-
 
         if l_text.startswith("ост") or l_text.startswith("аст"):
             args = text.lower().split(' ')[1:]
