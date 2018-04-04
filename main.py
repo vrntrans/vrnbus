@@ -37,7 +37,7 @@ user_settings = {}
 if __name__ == "__main__":
     tracker = EventTracker(logger)
     abuse_rules = [
-        AbuseRule(WebEvent.BUSMAP, 5, datetime.timedelta(minutes=90)),
+        AbuseRule(WebEvent.BUSMAP, 0, datetime.timedelta(minutes=460)),
         AbuseRule(WebEvent.BUSINFO, 10, datetime.timedelta(minutes=60)),
     ]
 
