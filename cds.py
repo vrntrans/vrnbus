@@ -8,12 +8,13 @@ from datetime import timedelta
 from itertools import groupby, product
 from logging import Logger
 from pathlib import Path
-from typing import Iterable, Dict, Container
+from typing import Iterable, Dict, Container, List, Optional
 
 import cachetools.func
 import pytz
 
-from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, CdsBaseDataProvider
+from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, \
+    CdsBaseDataProvider, StatsData
 from helpers import fuzzy_search_advanced
 from helpers import get_time, natural_sort_key, distance, retry_multi, SearchResult
 
@@ -243,7 +244,7 @@ class CdsRequest:
         return self.data_provider.now()
 
     @cachetools.func.ttl_cache(ttl=ttl_db_sec)
-    def load_all_cds_buses_from_db(self) -> Iterable[CdsRouteBus]:
+    def load_all_cds_buses_from_db(self) -> List[CdsRouteBus]:
         def update_last_bus_data(buses):
             for bus in buses:
                 self.add_last_bus_data(bus.name_, bus.get_bus_position())
@@ -409,7 +410,7 @@ class CdsRequest:
         return ArrivalInfo('\n'.join(result), "\n".join(headers), bus_stop_dict)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    def get_bus_statistics(self, full_info=False):
+    def get_bus_statistics(self, full_info=False) -> Optional[StatsData]:
         def time_check(bus: CdsRouteBus, last_time):
             if not bus.last_time_ or bus.last_time_ < last_time:
                 return False
@@ -422,7 +423,7 @@ class CdsRequest:
 
         cds_buses = self.load_all_cds_buses_from_db()
         if not cds_buses:
-            return 'Ничего не нашлось'
+            return
 
         now = self.now()
         hour_1 = count_buses(cds_buses, timedelta(hours=1))
@@ -438,9 +439,8 @@ class CdsRequest:
                 grouped = [(k, len(list(g))) for k, g in groupby(sort_routes, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
                 buses_list += (('{:10s} => {}'.format(i[0], i[1])) for i in grouped)
             buses_list.append(bus_stats_text)
-            return '\n'.join(buses_list)
-
-        return 'Ничего не нашлось'
+            text = '\n'.join(buses_list)
+            return StatsData(minutes_10, minutes_30, hour_1, len(cds_buses), text)
 
     @cachetools.func.ttl_cache()
     def get_dist(self, route_name, bus_stop_start, bus_stop_stop):

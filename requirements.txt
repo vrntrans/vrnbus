@@ -5,3 +5,4 @@ pytz==2017.3
 fdb==1.8
 freezegun==0.3.10
 python-dateutil==2.7.0
+APScheduler==3.5.1
