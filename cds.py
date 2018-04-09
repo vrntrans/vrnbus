@@ -388,6 +388,7 @@ class CdsRequest:
         for item in bus_stop_matches:
             arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
             arrival_buses = [x for x in arrival_buses if not routes_filter or x in routes_filter]
+            bus_stop_dict[item.NAME_] = ''
             if not arrival_buses:
                 continue
             if routes_filter:
@@ -488,3 +489,10 @@ class CdsRequest:
         else:
             self.logger.error(f"Cannot found {bus_stop_name}, will return first bus_stop")
             return self.bus_stops[0]
+
+    def is_bus_stop_name(self, s):
+        if not s or not isinstance(s, str):
+            return False
+        if s in self.cds_routes:
+            return False
+        return any((x for x in self.bus_stops if fuzzy_search_advanced(s, x.NAME_)))

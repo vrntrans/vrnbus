@@ -366,6 +366,10 @@ class BusBot:
             message.reply_text('Тогда срочно сюда @deeprefactoring!')
             return
 
+        if self.cds.is_bus_stop_name(text):
+            self.next_bus_general(update, text.split(' '))
+            return
+
         if l_text.startswith("ост") or l_text.startswith("аст"):
             args = text.lower().split(' ')[1:]
             self.next_bus_general(update, args)
