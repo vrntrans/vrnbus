@@ -1,3 +1,4 @@
+import datetime
 import os
 import re
 import textwrap
@@ -70,6 +71,7 @@ class BusBot:
         self.scheduler.add_job(self.stats_checking, 'interval', minutes=10)
         # Start the Bot
         self.updater.start_polling(timeout=30)
+        self.stats_checking()
 
         # Run the bot until you press Ctrl-C or the process receives SIGINT,
         # SIGTERM or SIGABRT. This should be used most of the time, since
@@ -81,6 +83,9 @@ class BusBot:
         self.tracker.tg(event, user, *params)
 
     def stats_checking(self):
+        now = datetime.datetime.now()
+        if not (6 <= now.hour < 23):
+            return
         response = self.cds.get_bus_statistics()
         if not response:
             self.bot.send_message(chat_id=26943105, text=f'Нет данных')
