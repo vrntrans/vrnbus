@@ -1,4 +1,4 @@
-python-telegram-bot==9.0.0
+python-telegram-bot==10.0.2
 cachetools==2.0.1
 tornado==4.5.3
 pytz==2017.3
