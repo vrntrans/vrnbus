@@ -488,7 +488,7 @@
     function ymap_show() {
         my_map = new ymaps.Map('map', {
             center: [coords.latitude, coords.longitude],
-            zoom: 14
+            zoom: 13
         }, {
             searchControlProvider: 'yandex#search'
         })
