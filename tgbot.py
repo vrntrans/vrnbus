@@ -10,7 +10,7 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMa
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater, run_async
 from tornado.httpclient import AsyncHTTPClient
 
-from data_types import UserLoc, ArrivalInfo
+from data_types import UserLoc, ArrivalInfo, StatsData
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult, parse_int
 from tracking import EventTracker, TgEvent, get_event_by_name
 
@@ -19,9 +19,11 @@ try:
 
     VRNBUSBOT_TOKEN = settings.VRNBUSBOT_TOKEN
     PING_HOST = settings.PING_HOST
+    USERS_TO_INFORM = settings.USERS_TO_INFORM
 except ImportError:
     env = os.environ
     VRNBUSBOT_TOKEN = env.get('VRNBUSBOT_TOKEN')
+    USERS_TO_INFORM = env.get('USERS_TO_INFORM', "")
     PING_HOST = env.get('PING_HOST', 'http://localhost:8080')
 
 
@@ -36,6 +38,9 @@ class BusBot:
         if not VRNBUSBOT_TOKEN:
             self.logger.error("The Telegram bot token is empty. Use @BotFather to get your token")
             return
+        self.stats_fail_start = None
+        self.users_to_inform = [int(x.strip()) for x in USERS_TO_INFORM.split(",")]
+        self.logger.info(f"User to inform in Tg: {self.users_to_inform}")
         self.updater = Updater(VRNBUSBOT_TOKEN, request_kwargs={'read_timeout': 10})
         self.bot = self.updater.bot
         # Get the dispatcher to register handlers
@@ -83,15 +88,27 @@ class BusBot:
         self.tracker.tg(event, user, *params)
 
     def stats_checking(self):
+        def send_msg(text):
+            for user_id in self.users_to_inform:
+                self.bot.send_message(chat_id=user_id,
+                                      text=text,
+                                      parse_mode='Markdown')
+
         now = datetime.datetime.now()
         if not (6 <= now.hour < 23):
             return
         response = self.cds.get_bus_statistics()
         if not response:
-            self.bot.send_message(chat_id=26943105, text=f'Нет данных')
+            if not self.stats_fail_start:
+                self.stats_fail_start = now
+            send_msg(text=f'Проверка статистики. Нет данных')
         elif response.min10 / response.min60 < 0.5:
-            self.bot.send_message(chat_id=26943105, text=f'```\nПроверьте актуальность данных\n{response.text}\n```',
-                                  parse_mode='Markdown')
+            if not self.stats_fail_start:
+                self.stats_fail_start = now
+                send_msg(f'```\nПроверьте актуальность данных\n{response.text}\n```')
+        elif self.stats_fail_start:
+            send_msg(f'```\nДанные актуальны (self.stats_fail_start:%H:%M:%S) \n{response.text}\n```')
+            self.stats_fail_start = None
 
     @run_async
     def custom_command(self, bot, update):
@@ -317,7 +334,7 @@ class BusBot:
         user = update.message.from_user
 
         self.track(TgEvent.STATS, update, full_info)
-        response = self.cds.get_bus_statistics(full_info) or "Нет данных"
+        response = self.cds.get_bus_statistics(full_info) or StatsData(0, 0, 0, 0, "Нет данных")
         update.message.reply_text(f'```\n{response.text}\n```', parse_mode='Markdown')
 
     def stats(self, _, update):
