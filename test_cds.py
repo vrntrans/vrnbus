@@ -15,8 +15,6 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s
 logger = logging.getLogger("vrnbus")
 
 
-
-
 class CdsRouteTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(CdsRouteTestCase, self).__init__(*args, **kwargs)
@@ -86,7 +84,6 @@ class CdsRouteTestCase(unittest.TestCase):
         logger.info(f"{station}; {route_bus.distance_km(station):.4f}  {route_bus.distance(station):.4f}")
 
 
-
 class CdsDataGatheringTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(CdsDataGatheringTestCase, self).__init__(*args, **kwargs)
@@ -105,6 +102,7 @@ class CdsDataGatheringTestCase(unittest.TestCase):
     def call_common_methods(self, cds):
         all_data = cds.load_all_cds_buses_from_db()
         cds.calc_avg_speed()
+
 
 class CdsSpeedTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -125,6 +123,7 @@ class CdsSpeedTestCase(unittest.TestCase):
         logger.info("PING")
         finish = datetime.datetime.now()
         logger.info(f"{finish - start}")
+
 
 class CdsBusStopIndexTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
@@ -160,6 +159,7 @@ class CdsBusStopIndexTestCase(unittest.TestCase):
         routes_2 = self.cds.get_routes_on_bus_stop("Рабочий проспект (из центра)")
         self.assertListEqual(routes_1, routes_2)
 
+
 class CdsBusArrivalTestCases(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -176,7 +176,7 @@ class CdsBusArrivalTestCases(unittest.TestCase):
         result = self.processor.get_arrival("про", 51.692727, 39.18297)
         stops = result['bus_stops']
         counts = 0
-        for k,v in stops.items():
+        for k, v in stops.items():
             self.logger.info(k)
             self.logger.info(v)
             counts += len(v.split('\n'))
@@ -186,6 +186,7 @@ class CdsBusArrivalTestCases(unittest.TestCase):
     def test_arrival_distance(self):
         result = self.cds.get_dist("27", 'Площадь Застава (в центр)', 'Центральный автовокзал (в центр)')
         self.logger.info(result)
+
 
 if __name__ == '__main__':
     unittest.main()

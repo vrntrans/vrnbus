@@ -22,6 +22,7 @@ LOAD_TEST_DATA = False
 
 try:
     import settings
+
     LOAD_TEST_DATA = settings.LOAD_TEST_DATA
 except ImportError:
     LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
@@ -158,7 +159,6 @@ class CdsRequest:
             bus_positions.append(bus_info.get_bus_position())
         closest_on_route = self.get_closest_bus_stop_checked(bus_info.route_name_, bus_positions)
 
-
         if closest_on_route and bus_info.distance(closest_on_route) < threshold:
             return closest_on_route
 
@@ -248,6 +248,7 @@ class CdsRequest:
         def update_last_bus_data(buses):
             for bus in buses:
                 self.add_last_bus_data(bus.name_, bus.get_bus_position())
+
         while self.fetching_in_progress:
             self.logger.info("Waiting for previous DB query")
             time.sleep(1)
@@ -437,7 +438,8 @@ class CdsRequest:
             if full_info:
                 short_result = [d for d in cds_buses if time_check(d, now - timedelta(minutes=10))]
                 sort_routes = sorted(short_result, key=lambda x: natural_sort_key(x.route_name_))
-                grouped = [(k, len(list(g))) for k, g in groupby(sort_routes, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
+                grouped = [(k, len(list(g))) for k, g in
+                           groupby(sort_routes, lambda x: f'{x.route_name_:5s} ({x.proj_id_:3d})')]
                 buses_list += (('{:10s} => {}'.format(i[0], i[1])) for i in grouped)
             buses_list.append(bus_stats_text)
             text = '\n'.join(buses_list)

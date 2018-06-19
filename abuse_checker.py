@@ -5,7 +5,7 @@ from typing import List
 from data_types import AbuseRule
 
 
-def last_time(delta:datetime.timedelta):
+def last_time(delta: datetime.timedelta):
     return datetime.datetime.now() - delta
 
 

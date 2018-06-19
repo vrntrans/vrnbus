@@ -37,6 +37,5 @@ class TestGeoFunction(unittest.TestCase):
                 self.assertEqual(f(*params), result)
 
 
-
 if __name__ == '__main__':
     unittest.main()

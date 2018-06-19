@@ -22,7 +22,7 @@ try:
 except ImportError:
     settings = None
     env = os.environ
-    if all((x in env for x in ("CDS_HOST", "CDS_DB_PATH", "CDS_USER", "CDS_PASS", ))):
+    if all((x in env for x in ("CDS_HOST", "CDS_DB_PATH", "CDS_USER", "CDS_PASS",))):
         CDS_HOST = env['CDS_HOST']
         CDS_DB_PATH = env['CDS_DB_PATH']
         CDS_USER = env['CDS_USER']
@@ -33,6 +33,7 @@ except ImportError:
 
 class CdsDBDataProvider(CdsBaseDataProvider):
     CACHE_TIMEOUT = 30
+
     def __init__(self, logger):
         self.logger = logger
         self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
@@ -82,6 +83,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
 class CdsTestDataProvider(CdsBaseDataProvider):
     CACHE_TIMEOUT = 0.0001
+
     def __init__(self, logger):
         self.logger = logger
         self.test_data_files = []
@@ -122,4 +124,3 @@ class CdsTestDataProvider(CdsBaseDataProvider):
 
 def get_data_provider(logger):
     return CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
-

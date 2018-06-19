@@ -96,8 +96,9 @@ def azimuth(glon1, glat1, glon2, glat2):
 def parse_int(s, default=0):
     try:
         return int(s), True
-    except:
+    except Exception:
         return default, False
+
 
 def distance_km(glat1, glon1, glat2, glon2):
     r = 6373.0
