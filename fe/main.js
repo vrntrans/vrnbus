@@ -307,7 +307,7 @@
     }
 
     function get_bus_stop_list() {
-        return fetch('/bus_stops.json',
+        return fetch('/bus_stops',
             {
                 method: 'GET',
                 headers: {
@@ -319,7 +319,7 @@
             })
             .then(function (data) {
                 update_cookies()
-                bus_stop_list = data
+                bus_stop_list = data.result
                 bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
                     return bus_stop.NAME_
                 })

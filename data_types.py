@@ -20,6 +20,7 @@ class BusStop(NamedTuple):
     NAME_: str
     LAT_: float
     LON_: float
+    ID: int = 0
 
     def __str__(self):
         return f'(BusStop: {self.NAME_} {self.LAT_} {self.LON_}  )'
@@ -155,6 +156,9 @@ class CdsBaseDataProvider:
         pass
 
     def load_bus_stations_routes(self) -> Dict:
+        pass
+
+    def load_bus_stops(self) -> List[BusStop]:
         pass
 
 

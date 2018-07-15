@@ -1,5 +1,4 @@
 import heapq
-import json
 import os
 import time
 from collections import Counter, deque
@@ -7,7 +6,6 @@ from collections import defaultdict
 from datetime import timedelta
 from itertools import groupby, product
 from logging import Logger
-from pathlib import Path
 from typing import Iterable, Container, List, Optional
 
 import cachetools.func
@@ -33,33 +31,15 @@ ttl_db_sec = 60 if not LOAD_TEST_DATA else 0.001
 tz = pytz.timezone('Europe/Moscow')
 
 
-def init_bus_stops():
-    with open('bus_stops.json', 'rb') as f:
-        return json.load(f)
-
-
-def init_bus_routes():
-    with open(Path("bus_stations.json"), 'rb') as f:
-        bus_stations = json.load(f)
-
-    result = {}
-    for k, v in bus_stations.items():
-        route = [LongBusRouteStop(*i) for i in v]
-        route.sort(key=lambda tup: tup.NUMBER_)
-        result[k] = route
-
-    return result
-
-
 class CdsRequest:
     def __init__(self, logger: Logger, data_provider: CdsBaseDataProvider):
         self.logger = logger
         self.fake_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
-        self.bus_stops = [BusStop(**i) for i in init_bus_stops()]
         self.data_provider = data_provider
-        self.codd_routes = self.data_provider.load_codd_route_names()
-        self.bus_routes = self.data_provider.load_bus_stations_routes()
+        self.codd_routes = data_provider.load_codd_route_names()
+        self.bus_routes = data_provider.load_bus_stations_routes()
+        self.bus_stops = data_provider.load_bus_stops()
 
         self.avg_speed = 18.0
         self.fetching_in_progress = False
@@ -287,9 +267,12 @@ class CdsRequest:
         bus_stop = next(filter(lambda x: x.NAME_ == name, self.bus_stops), None)
         if not bus_stop:
             return -1
-        return self.bus_stops.index(bus_stop)
+        return bus_stop.ID or self.bus_stops.index(bus_stop)
 
     def get_bus_stop_from_id(self, id) -> BusStop:
+        bus_stop = next(filter(lambda x: x.ID == id, self.bus_stops), None)
+        if bus_stop:
+            return bus_stop
         if id < 0 or id >= len(self.bus_stops):
             return None
         return self.bus_stops[id]

@@ -7,7 +7,7 @@ from typing import List, Dict
 
 import fdb
 
-from data_types import CdsRouteBus, CdsBaseDataProvider, CoddBus, LongBusRouteStop
+from data_types import CdsRouteBus, CdsBaseDataProvider, CoddBus, LongBusRouteStop, BusStop
 
 LOAD_TEST_DATA = False
 
@@ -140,6 +140,26 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
         return result
 
+    def load_bus_stops(self) -> List[BusStop]:
+        self.logger.debug('Execute load_bus_stops from DB')
+        start = time.time()
+        try:
+            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                cur = tr.cursor()
+                cur.execute('''select distinct  ID, NAME as NAME_, LAT as LAT_, LON as LON_
+                            from bs
+                            order by NAME_''')
+                self.logger.debug('Finish execution')
+                result = cur.fetchallmap()
+                tr.commit()
+                cur.close()
+                end = time.time()
+                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
+        except fdb.fbcore.DatabaseError as db_error:
+            self.logger.error(db_error)
+            return []
+
+        return [BusStop(**x) for x in result]
 
 class CdsTestDataProvider(CdsBaseDataProvider):
     CACHE_TIMEOUT = 0.0001
@@ -197,6 +217,10 @@ class CdsTestDataProvider(CdsBaseDataProvider):
             result[k] = route
 
         return result
+
+    def load_bus_stops(self) -> List[BusStop]:
+        with open('bus_stops.json', 'rb') as f:
+            return [BusStop(**i) for i in json.load(f)]
 
 
 def get_data_provider(logger):

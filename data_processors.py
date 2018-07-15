@@ -41,6 +41,10 @@ class WebDataProcessor(BaseDataProcessor):
         response = {'result': codd_buses}
         return response
 
+    def get_bus_stops(self):
+        response = {'result': [x._asdict() for x in self.cds.bus_stops]}
+        return response
+
 
 class TelegramDataProcessor(BaseDataProcessor):
     def __init__(self, cds: CdsRequest, logger: Logger):
