@@ -60,7 +60,6 @@ class CdsRequest:
         self.bus_routes = init_bus_routes()
         self.data_provider = data_provider
 
-        self.cds_routes = self.init_cds_routes()
         self.codd_routes = self.init_codd_routes()
         self.avg_speed = 18.0
         self.fetching_in_progress = False
@@ -82,12 +81,6 @@ class CdsRequest:
         with open(my_file, 'rb') as f:
             return json.load(f)
 
-    @staticmethod
-    def init_cds_routes():
-        my_file = Path("bus_routes_cds.json")
-        with open(my_file, 'rb') as f:
-            return json.load(f)
-
     @cachetools.func.ttl_cache()
     def matches_bus_stops(self, lat, lon, size=3):
         def distance_key(item):
@@ -100,7 +93,7 @@ class CdsRequest:
         def key_check(route: CdsRouteBus):
             return route.name_ and last_week < route.last_time_
 
-        keys = set([x for x in self.cds_routes.keys() for r in bus_routes if x.upper() == r.upper()])
+        keys = set([x for x in self.codd_routes.keys() for r in bus_routes if x.upper() == r.upper()])
 
         routes = self.load_cds_buses_from_db(tuple(keys))
         self.logger.debug(routes)
@@ -213,7 +206,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request(self, search_result: SearchResult, user_loc: UserLoc = None, short_format=False):
-        keys = set([x for x in self.cds_routes.keys()
+        keys = set([x for x in self.codd_routes.keys()
                     for r in search_result.bus_routes if x.upper() == r.upper()])
 
         if not keys and search_result.bus_filter == '':
@@ -370,7 +363,7 @@ class CdsRequest:
 
         result = [f'Время: {self.now():%H:%M:%S}']
         routes_set = set()
-        routes_filter = list(set([x for x in self.cds_routes.keys()
+        routes_filter = list(set([x for x in self.codd_routes.keys()
                                   for r in search_result.bus_routes if x.upper() == r.upper()]))
         self.calc_avg_speed()
 
@@ -495,6 +488,6 @@ class CdsRequest:
     def is_bus_stop_name(self, s):
         if not s or not isinstance(s, str):
             return False
-        if s in self.cds_routes:
+        if s in self.codd_routes:
             return False
         return any((x for x in self.bus_stops if fuzzy_search_advanced(s, x.NAME_)))
