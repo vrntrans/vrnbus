@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Dict
 
 from helpers import distance_km, distance, get_iso_time
 
@@ -149,6 +149,9 @@ class CdsBaseDataProvider:
         pass
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
+        pass
+
+    def load_codd_routes(self) -> Dict:
         pass
 
 

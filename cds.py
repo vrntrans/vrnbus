@@ -8,7 +8,7 @@ from datetime import timedelta
 from itertools import groupby, product
 from logging import Logger
 from pathlib import Path
-from typing import Iterable, Dict, Container, List, Optional
+from typing import Iterable, Container, List, Optional
 
 import cachetools.func
 import pytz
@@ -60,7 +60,7 @@ class CdsRequest:
         self.bus_routes = init_bus_routes()
         self.data_provider = data_provider
 
-        self.codd_routes = self.init_codd_routes()
+        self.codd_routes = self.data_provider.load_codd_routes()
         self.avg_speed = 18.0
         self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=10))
@@ -75,11 +75,6 @@ class CdsRequest:
         if bus_data in value:
             return
         value.append(bus_data)
-
-    def init_codd_routes(self) -> Dict:
-        my_file = Path("bus_routes_codd.json")
-        with open(my_file, 'rb') as f:
-            return json.load(f)
 
     @cachetools.func.ttl_cache()
     def matches_bus_stops(self, lat, lon, size=3):

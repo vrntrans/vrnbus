@@ -3,7 +3,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 import fdb
 
@@ -42,6 +42,11 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
     def now(self) -> datetime:
         return datetime.now()
+
+    def load_codd_routes(self) -> Dict:
+        my_file = Path("bus_routes_codd.json")
+        with open(my_file, 'rb') as f:
+            return json.load(f)
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         def make_names_lower(x):
@@ -99,6 +104,11 @@ class CdsTestDataProvider(CdsBaseDataProvider):
             self.mocked_now = datetime.strptime(path.name, "codd_data_db%y_%m_%d_%H_%M_%S.json")
         else:
             raise Exception("Cannot load test data from ./test_data/")
+
+    def load_codd_routes(self) -> Dict:
+        my_file = Path("bus_routes_codd.json")
+        with open(my_file, 'rb') as f:
+            return json.load(f)
 
     def now(self):
         if self.test_data_files and self.test_data_index >= len(self.test_data_files):
