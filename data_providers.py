@@ -7,7 +7,7 @@ from typing import List, Dict
 
 import fdb
 
-from data_types import CdsRouteBus, CdsBaseDataProvider, CoddBus
+from data_types import CdsRouteBus, CdsBaseDataProvider, CoddBus, LongBusRouteStop
 
 LOAD_TEST_DATA = False
 
@@ -60,18 +60,48 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
-            try:
-                self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
-                                          password=CDS_PASS, charset='WIN1251')
-                self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
-            except Exception as general_error:
-                self.logger.error(general_error)
             return {}
 
         result = [CoddBus(**x) for x in result]
         end = time.time()
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
         return {x.NAME_: x.ID_ for x in result}
+
+    def load_bus_stations_routes(self) -> Dict:
+        bus_routes = self.load_codd_route_names()
+
+        bus_routes_ids = {v: k for k, v in bus_routes.items()}
+
+        try:
+            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                cur = tr.cursor()
+                cur.execute('''select bsr.NUM as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_, 
+                                bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_
+                                from BS_ROUTE bsr
+                                join ROUTS r on bsr.ROUTE_ID = r.ID_
+                                join BS on bsr.BS_ID = bs.ID
+                                order by ROUT_, NUMBER_''')
+                result = cur.fetchallmap()
+                tr.commit()
+                cur.close()
+        except fdb.fbcore.DatabaseError as db_error:
+            self.logger.error(db_error)
+            return {}
+
+        long_bus_stops = [LongBusRouteStop(**x) for x in result]
+
+        bus_stations = {}
+
+        for stop in long_bus_stops:
+            route_name = bus_routes_ids.get(stop.ROUT_, '')
+            bus_list = bus_stations.get(route_name, [])
+            bus_list.append(stop)
+            bus_stations[route_name] = bus_list
+
+        for (k, v) in bus_stations.items():
+            v.sort(key=lambda tup: tup.NUMBER_)
+
+        return bus_stations
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         def make_names_lower(x):
@@ -155,6 +185,18 @@ class CdsTestDataProvider(CdsBaseDataProvider):
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         return self.next_test_data()
+
+    def load_bus_stations_routes(self) -> Dict:
+        with open(Path("bus_stations.json"), 'rb') as f:
+            bus_stations = json.load(f)
+
+        result = {}
+        for k, v in bus_stations.items():
+            route = [LongBusRouteStop(*i) for i in v]
+            route.sort(key=lambda tup: tup.NUMBER_)
+            result[k] = route
+
+        return result
 
 
 def get_data_provider(logger):

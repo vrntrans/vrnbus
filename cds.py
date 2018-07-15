@@ -57,10 +57,10 @@ class CdsRequest:
         self.fake_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.bus_stops = [BusStop(**i) for i in init_bus_stops()]
-        self.bus_routes = init_bus_routes()
         self.data_provider = data_provider
-
         self.codd_routes = self.data_provider.load_codd_route_names()
+        self.bus_routes = self.data_provider.load_bus_stations_routes()
+
         self.avg_speed = 18.0
         self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=10))
