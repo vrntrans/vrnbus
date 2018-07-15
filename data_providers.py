@@ -43,7 +43,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
     def now(self) -> datetime:
         return datetime.now()
 
-    def load_codd_routes(self) -> Dict:
+    def load_codd_route_names(self) -> Dict:
         self.logger.debug('Execute fetch routes from DB')
         start = time.time()
         try:
@@ -130,7 +130,7 @@ class CdsTestDataProvider(CdsBaseDataProvider):
         else:
             raise Exception("Cannot load test data from ./test_data/")
 
-    def load_codd_routes(self) -> Dict:
+    def load_codd_route_names(self) -> Dict:
         my_file = Path("bus_routes_codd.json")
         with open(my_file, 'rb') as f:
             return json.load(f)

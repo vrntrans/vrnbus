@@ -60,7 +60,7 @@ class CdsRequest:
         self.bus_routes = init_bus_routes()
         self.data_provider = data_provider
 
-        self.codd_routes = self.data_provider.load_codd_routes()
+        self.codd_routes = self.data_provider.load_codd_route_names()
         self.avg_speed = 18.0
         self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=10))

@@ -34,7 +34,7 @@ class LongBusRouteStop(NamedTuple):
     LAT_: float
     LON_: float
     ROUT_: int
-    CONTROL_: int
+    CONTROL_: int = 0
 
     def distance_km(self, bus_stop):
         return distance_km(self.LAT_, self.LON_, bus_stop.LAT_, bus_stop.LON_)
@@ -151,7 +151,10 @@ class CdsBaseDataProvider:
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         pass
 
-    def load_codd_routes(self) -> Dict:
+    def load_codd_route_names(self) -> Dict:
+        pass
+
+    def load_bus_stations_routes(self) -> Dict:
         pass
 
 
