@@ -7,7 +7,7 @@ from typing import List, Dict
 
 import fdb
 
-from data_types import CdsRouteBus, CdsBaseDataProvider
+from data_types import CdsRouteBus, CdsBaseDataProvider, CoddBus
 
 LOAD_TEST_DATA = False
 
@@ -44,9 +44,34 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         return datetime.now()
 
     def load_codd_routes(self) -> Dict:
-        my_file = Path("bus_routes_codd.json")
-        with open(my_file, 'rb') as f:
-            return json.load(f)
+        self.logger.debug('Execute fetch routes from DB')
+        start = time.time()
+        try:
+            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                cur = tr.cursor()
+                cur.execute('''select ID_, NAME_ from ROUTS
+                                where ROUTE_ACTIVE_ = 1
+                                order by NAME_''')
+                self.logger.debug('Finish execution')
+                result = cur.fetchallmap()
+                tr.commit()
+                cur.close()
+                end = time.time()
+                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
+        except fdb.fbcore.DatabaseError as db_error:
+            self.logger.error(db_error)
+            try:
+                self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
+                                          password=CDS_PASS, charset='WIN1251')
+                self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+            except Exception as general_error:
+                self.logger.error(general_error)
+            return {}
+
+        result = [CoddBus(**x) for x in result]
+        end = time.time()
+        self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
+        return {x.NAME_: x.ID_ for x in result}
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         def make_names_lower(x):
