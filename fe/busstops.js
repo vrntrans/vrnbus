@@ -266,8 +266,16 @@
 
                 marker_group.clearLayers()
                 bus_stop_list.forEach(function (item) {
-                    L.marker([item.LAT_, item.LON_]).addTo(marker_group)
-                                        .bindTooltip(item.NAME_ + " (id: " + item.ID + ")");
+                    L.marker([item.LAT_, item.LON_], {
+                        opacity: 0.5
+                    }).on('click', function (e) {
+                        var new_opacity = this.options.opacity < 1 ? 1 : 0.5
+                        this.setOpacity(new_opacity)
+                        var icon =  L.icon({iconUrl: "busstop.png", iconSize: [25, 25],})
+                        this.setIcon(icon)
+                    }).
+                    addTo(marker_group)
+                        .bindTooltip(item.NAME_ + " (id: " + item.ID + ")");
 
                 })
 
@@ -323,11 +331,11 @@
         if (station_name)
             station_name.value = load_from_ls('station') || ''
 
-        l_map = L.map('mapid').setView([51.6754966,39.2088823], 13)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(l_map)
-            marker_group = L.layerGroup().addTo(l_map);
+        l_map = L.map('mapid').setView([51.6754966, 39.2088823], 13)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(l_map)
+        marker_group = L.layerGroup().addTo(l_map);
     }
 
     document.addEventListener("DOMContentLoaded", init);

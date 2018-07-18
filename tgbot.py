@@ -39,7 +39,7 @@ class BusBot:
             self.logger.error("The Telegram bot token is empty. Use @BotFather to get your token")
             return
         self.stats_fail_start = None
-        self.users_to_inform = [int(x.strip()) for x in USERS_TO_INFORM.split(",")]
+        self.users_to_inform = [int(x.strip()) for x in USERS_TO_INFORM.split(",")] if USERS_TO_INFORM else []
         self.logger.info(f"User to inform in Tg: {self.users_to_inform}")
         self.updater = Updater(VRNBUSBOT_TOKEN, request_kwargs={'read_timeout': 10})
         self.bot = self.updater.bot
