@@ -21,7 +21,7 @@
     var lastbus = document.getElementById('lastbus')
     var nextbus_loading = document.getElementById('nextbus_loading')
     var lastbus_loading = document.getElementById('lastbus_loading')
-    var cb_refresh = document.getElementById('cb_refresh')
+    var cb_show_labels = document.getElementById('cb_show_labels')
     var cb_show_info = document.getElementById('cb_show_info')
     var btn_station_search = document.getElementById('btn_station_search')
 
@@ -34,14 +34,9 @@
             get_cds_bus()
         }
 
-    if (cb_refresh)
-        cb_refresh.onclick = function () {
-            if (!cb_refresh.checked) {
-                clearTimeout(timer_id)
-                clearTimeout(timer_stop_id)
-                timer_id = 0
-                timer_stop_id = 0
-            }
+    if (cb_show_labels)
+        cb_show_labels.onclick = function () {
+            get_bus_stop_list()
         }
 
     if (cb_show_info) {
@@ -84,16 +79,16 @@
     }
 
     function run_timer(func) {
-        if (cb_refresh.checked && !timer_id) {
+        if (cb_show_labels.checked && !timer_id) {
             timer_id = setTimeout(function tick() {
                 func().then(function () {
-                    if (cb_refresh.checked)
+                    if (cb_show_labels.checked)
                         timer_id = setTimeout(tick, 30 * 1000)
                 })
             }, 30 * 1000)
             if (!timer_stop_id)
                 timer_stop_id = setTimeout(function () {
-                    cb_refresh.checked = false
+                    cb_show_labels.checked = false
                     clearTimeout(timer_id)
                     timer_id = 0
                     timer_stop_id = 0
@@ -107,7 +102,7 @@
 
         var expires = options.expires;
 
-        if (typeof expires == "number" && expires) {
+        if (typeof expires === "number" && expires) {
             var d = new Date();
             d.setTime(d.getTime() + expires * 1000);
             expires = options.expires = d;
@@ -235,6 +230,11 @@
 
 
     function get_bus_stop_list() {
+        var show_labels = cb_show_labels.checked;
+        if (bus_stop_list.length > 0) {
+            return update_bus_stops(bus_stop_list, show_labels)
+        }
+
         return fetch('/bus_stops',
             {
                 method: 'GET',
@@ -248,46 +248,55 @@
             .then(function (data) {
                 update_cookies()
                 bus_stop_list = data.result
-                bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
-                    return bus_stop.NAME_
-                })
-                if (station_name) {
-                    bus_stop_auto_complete = new autoComplete({
-                        selector: station_name,
-                        source: function (term, suggest) {
-                            term = term.toLowerCase();
-                            var matches = [];
-                            for (var i = 0; i < bus_stop_names.length; i++)
-                                if (~bus_stop_names[i].toLowerCase().indexOf(term)) matches.push(bus_stop_names[i]);
-                            suggest(matches);
-                        }
-                    })
-                }
 
-                marker_group.clearLayers()
-                bus_stop_list.forEach(function (item) {
-                    L.marker([item.LAT_, item.LON_]).on('click', function (e) {
-                        var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
-                        var greenIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
-                        var url = this.options.icon.options.iconUrl
-                        var isBlueIcon = url === "marker-icon.png" || url === blueIconUrl
-
-                        var icon = new L.Icon({
-                            iconUrl: isBlueIcon ? greenIconUrl : blueIconUrl,
-                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                            iconSize: [25, 41],
-                            iconAnchor: [12, 41],
-                            popupAnchor: [1, -34],
-                            shadowSize: [41, 41]
-                        });
-
-                        this.setIcon(icon)
-                    }).addTo(marker_group)
-                        .bindTooltip(item.NAME_ + " (id: " + item.ID + ")");
-
-                })
-
+                update_bus_stops_autocomplete(bus_stop_list, show_labels)
+                update_bus_stops(bus_stop_list)
             })
+    }
+
+    function update_bus_stops_autocomplete(bus_stop_list) {
+        update_cookies()
+        bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
+            return bus_stop.NAME_
+        })
+        if (station_name) {
+            bus_stop_auto_complete = new autoComplete({
+                selector: station_name,
+                source: function (term, suggest) {
+                    term = term.toLowerCase();
+                    var matches = [];
+                    for (var i = 0; i < bus_stop_names.length; i++)
+                        if (~bus_stop_names[i].toLowerCase().indexOf(term)) matches.push(bus_stop_names[i]);
+                    suggest(matches);
+                }
+            })
+        }
+    }
+
+    function update_bus_stops(bus_stop_list, show_tooltips_always) {
+        marker_group.clearLayers()
+
+        bus_stop_list.forEach(function (item) {
+            L.marker([item.LAT_, item.LON_]).on('click', function (e) {
+                var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
+                var greenIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
+                var url = this.options.icon.options.iconUrl
+                var isBlueIcon = url === "marker-icon.png" || url === blueIconUrl
+
+                var icon = new L.Icon({
+                    iconUrl: isBlueIcon ? greenIconUrl : blueIconUrl,
+                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41],
+                    popupAnchor: [1, -34],
+                    shadowSize: [41, 41]
+                });
+
+                this.setIcon(icon)
+            }).addTo(marker_group)
+                .bindTooltip(item.NAME_ + " (" + item.ID + ")", {permanent: show_tooltips_always});
+        })
+
     }
 
     function update_cookies() {
@@ -339,10 +348,15 @@
         if (station_name)
             station_name.value = load_from_ls('station') || ''
 
-        l_map = L.map('mapid').setView([51.6754966, 39.2088823], 13)
+        l_map = L.map('mapid', {
+            fullscreenControl: {
+                pseudoFullscreen: false // if true, fullscreen to page width and height
+            }
+        }).setView([51.6754966, 39.2088823], 13)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(l_map)
+
         marker_group = L.layerGroup().addTo(l_map);
     }
 
