@@ -266,15 +266,23 @@
 
                 marker_group.clearLayers()
                 bus_stop_list.forEach(function (item) {
-                    L.marker([item.LAT_, item.LON_], {
-                        opacity: 0.5
-                    }).on('click', function (e) {
-                        var new_opacity = this.options.opacity < 1 ? 1 : 0.5
-                        this.setOpacity(new_opacity)
-                        var icon =  L.icon({iconUrl: "busstop.png", iconSize: [25, 25],})
+                    L.marker([item.LAT_, item.LON_]).on('click', function (e) {
+                        var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
+                        var greenIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
+                        var url = this.options.icon.options.iconUrl
+                        var isBlueIcon = url === "marker-icon.png" || url === blueIconUrl
+
+                        var icon = new L.Icon({
+                            iconUrl: isBlueIcon ? greenIconUrl : blueIconUrl,
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                            popupAnchor: [1, -34],
+                            shadowSize: [41, 41]
+                        });
+
                         this.setIcon(icon)
-                    }).
-                    addTo(marker_group)
+                    }).addTo(marker_group)
                         .bindTooltip(item.NAME_ + " (id: " + item.ID + ")");
 
                 })
