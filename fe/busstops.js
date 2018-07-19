@@ -22,6 +22,7 @@
     var nextbus_loading = document.getElementById('nextbus_loading')
     var lastbus_loading = document.getElementById('lastbus_loading')
     var cb_show_labels = document.getElementById('cb_show_labels')
+    var cb_show_id_only = document.getElementById('cb_show_id_only')
     var cb_show_info = document.getElementById('cb_show_info')
     var btn_station_search = document.getElementById('btn_station_search')
 
@@ -34,11 +35,17 @@
             get_cds_bus()
         }
 
-    if (cb_show_labels)
+    if (cb_show_labels) {
         cb_show_labels.onclick = function () {
             get_bus_stop_list()
         }
+    }
 
+    if (cb_show_id_only) {
+        cb_show_id_only.onclick = function () {
+            get_bus_stop_list()
+        }
+    }
     if (cb_show_info) {
         cb_show_info.onclick = function () {
             var show = cb_show_info.checked
@@ -231,8 +238,10 @@
 
     function get_bus_stop_list() {
         var show_labels = cb_show_labels.checked;
+        var show_id_only = cb_show_id_only.checked;
+
         if (bus_stop_list.length > 0) {
-            return update_bus_stops(bus_stop_list, show_labels)
+            return update_bus_stops(bus_stop_list, show_labels, show_id_only)
         }
 
         return fetch('/bus_stops',
@@ -273,10 +282,12 @@
         }
     }
 
-    function update_bus_stops(bus_stop_list, show_tooltips_always) {
+    function update_bus_stops(bus_stop_list, show_tooltips_always, show_id_only) {
         marker_group.clearLayers()
 
         bus_stop_list.forEach(function (item) {
+            var tooltip_text = show_id_only ? "" + item.ID : item.NAME_ + " (" + item.ID + ")";
+
             L.marker([item.LAT_, item.LON_]).on('click', function (e) {
                 var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
                 var greenIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
@@ -294,7 +305,7 @@
 
                 this.setIcon(icon)
             }).addTo(marker_group)
-                .bindTooltip(item.NAME_ + " (" + item.ID + ")", {permanent: show_tooltips_always});
+                .bindTooltip(tooltip_text, {permanent: show_tooltips_always});
         })
 
     }
@@ -340,9 +351,6 @@
         if (!user_ip && ls_user_ip) {
             setCookie("user_ip", ls_user_ip, {expires: 3600 * 24 * 7})
         }
-        if (station_name) {
-            get_bus_stop_list()
-        }
 
 
         if (station_name)
@@ -358,6 +366,10 @@
         }).addTo(l_map)
 
         marker_group = L.layerGroup().addTo(l_map);
+
+        if (station_name) {
+            get_bus_stop_list()
+        }
     }
 
     document.addEventListener("DOMContentLoaded", init);
