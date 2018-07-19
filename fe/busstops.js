@@ -358,7 +358,7 @@
 
         l_map = L.map('mapid', {
             fullscreenControl: {
-                pseudoFullscreen: false // if true, fullscreen to page width and height
+                pseudoFullscreen: true // if true, fullscreen to page width and height
             }
         }).setView([51.6754966, 39.2088823], 13)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
