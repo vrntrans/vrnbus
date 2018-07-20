@@ -15,16 +15,18 @@ try:
     import settings
 
     CDS_HOST = settings.CDS_HOST
-    CDS_DB_PATH = settings.CDS_DB_PATH
+    CDS_DB_PROJECTS_PATH = settings.CDS_DB_PROJECTS_PATH
+    CDS_DB_DATA_PATH = settings.CDS_DB_DATA_PATH
     CDS_USER = settings.CDS_USER
     CDS_PASS = settings.CDS_PASS
     LOAD_TEST_DATA = settings.LOAD_TEST_DATA
 except ImportError:
     settings = None
     env = os.environ
-    if all((x in env for x in ("CDS_HOST", "CDS_DB_PATH", "CDS_USER", "CDS_PASS",))):
+    if all((x in env for x in ("CDS_HOST", "CDS_DB_PROJECTS_PATH", "CDS_DB_DATA_PATH", "CDS_USER", "CDS_PASS",))):
         CDS_HOST = env['CDS_HOST']
-        CDS_DB_PATH = env['CDS_DB_PATH']
+        CDS_DB_PROJECTS_PATH = env['CDS_DB_PROJECTS_PATH']
+        CDS_DB_DATA_PATH = env['CDS_DB_DATA_PATH']
         CDS_USER = env['CDS_USER']
         CDS_PASS = env['CDS_PASS']
     else:
@@ -36,9 +38,12 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
     def __init__(self, logger):
         self.logger = logger
-        self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
+        self.cds_db_project = fdb.connect(host=CDS_HOST, database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
                                   password=CDS_PASS, charset='WIN1251')
-        self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+        self.cds_db_data = fdb.connect(host=CDS_HOST, database=CDS_DB_DATA_PATH, user=CDS_USER,
+                                  password=CDS_PASS, charset='WIN1251')
+        self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+        self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
 
     def now(self) -> datetime:
         return datetime.now()
@@ -47,7 +52,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.debug('Execute fetch routes from DB')
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
                 cur.execute('''select ID_, NAME_ from ROUTS
                                 where ROUTE_ACTIVE_ = 1
@@ -73,7 +78,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         bus_routes_ids = {v: k for k, v in bus_routes.items()}
 
         try:
-            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
                 cur.execute('''select bsr.NUM as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_, 
                                 bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_
@@ -110,7 +115,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.debug('Execute fetch all from DB')
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
                 cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
                     o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_
@@ -127,9 +132,9 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
             try:
-                self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PATH, user=CDS_USER,
+                self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
                                           password=CDS_PASS, charset='WIN1251')
-                self.cds_db.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+                self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
             except Exception as general_error:
                 self.logger.error(general_error)
             return []
@@ -144,7 +149,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.debug('Execute load_bus_stops from DB')
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
                 cur.execute('''select distinct  ID, NAME as NAME_, LAT as LAT_, LON as LON_
                             from bs
