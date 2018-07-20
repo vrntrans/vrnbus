@@ -24,10 +24,10 @@
     var cb_show_labels = document.getElementById('cb_show_labels')
     var cb_show_id_only = document.getElementById('cb_show_id_only')
     var cb_show_info = document.getElementById('cb_show_info')
+    var cb_animation = document.getElementById('cb_animation')
     var btn_station_search = document.getElementById('btn_station_search')
 
     var bus_stop_list = []
-    var bus_stop_names = []
     var bus_stop_auto_complete
 
     if (lastbus)
@@ -69,15 +69,6 @@
 
     if (station_query) {
         station_query.onkeyup = function (event) {
-            event.preventDefault()
-            if (event.keyCode === 13) {
-                run_search_by_name()
-            }
-        }
-    }
-
-    if (station_name) {
-        station_name.onkeyup = function (event) {
             event.preventDefault()
             if (event.keyCode === 13) {
                 run_search_by_name()
@@ -140,11 +131,6 @@
         return matches ? decodeURIComponent(matches[1]) : undefined;
     }
 
-    function run_search_by_name() {
-        run_timer(run_search_by_name)
-        return get_bus_stop_by_name()
-    }
-
     function update_user_position() {
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(function (position) {
@@ -196,40 +182,6 @@
         }
     }
 
-    function get_bus_stop_by_name() {
-        var btn_station_search = document.getElementById('btn_station_search')
-        waiting(nextbus_loading, btn_station_search, true)
-
-        var bus_query = station_query.value
-        var station = station_name.value
-
-        save_station_params()
-
-        var params = 'q=' + encodeURIComponent(bus_query) +
-            '&station=' + encodeURIComponent(station)
-
-        return fetch('/bus_stop_search?' + params,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-            })
-            .then(function (res) {
-                return res.json()
-            })
-            .then(function (data) {
-                update_cookies()
-                waiting(nextbus_loading, btn_station_search, false)
-                format_bus_stops(data.header, data.bus_stops)
-            })
-            .catch(function (error) {
-                waiting(nextbus_loading, btn_station_search, false)
-                info.innerHTML = 'Ошибка: ' + error
-            })
-    }
-
     function waiting(element, button, state) {
         element.className = state ? 'spinner' : ''
         button.disabled = state
@@ -265,21 +217,40 @@
 
     function update_bus_stops_autocomplete(bus_stop_list) {
         update_cookies()
-        bus_stop_names = bus_stop_list.map(function callback(bus_stop) {
-            return bus_stop.NAME_
-        })
-        if (station_name) {
-            bus_stop_auto_complete = new autoComplete({
-                selector: station_name,
-                source: function (term, suggest) {
-                    term = term.toLowerCase();
-                    var matches = [];
-                    for (var i = 0; i < bus_stop_names.length; i++)
-                        if (~bus_stop_names[i].toLowerCase().indexOf(term)) matches.push(bus_stop_names[i]);
-                    suggest(matches);
-                }
-            })
+
+        if (!station_name) {
+            return;
         }
+
+        bus_stop_auto_complete = new autoComplete({
+            selector: station_name,
+            source: function (term, suggest) {
+                term = term.toLowerCase();
+                var matches = [];
+                for (var i = 0; i < bus_stop_list.length; i++) {
+                    var bus_stop = bus_stop_list[i]
+                    var name_with_id = bus_stop.NAME_ + " (" + bus_stop.ID + ")"
+                    if (~name_with_id.toLowerCase().indexOf(term)) matches.push(bus_stop);
+                }
+                suggest(matches);
+            },
+            renderItem: function (item, search) {
+                search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
+                var name_with_id = item.NAME_ + " (" + item.ID + ")"
+                var data_values = 'data-lat="' + item.LAT_ + '" data-lng="' + item.LON_ + '"'
+                return '<div class="autocomplete-suggestion" data-val="' + name_with_id + '" ' + data_values + '> '
+                    + name_with_id.replace(re, "<b>$1</b>") + '</div>';
+            },
+            onSelect: function (e, term, item) {
+                var lat = item.getAttribute('data-lat')
+                var lng = item.getAttribute('data-lng')
+                if (cb_animation.checked)
+                    l_map.flyTo([lat, lng], 17)
+                else
+                    l_map.setView([lat, lng], 17)
+            }
+        })
     }
 
     function update_bus_stops(bus_stop_list, show_tooltips_always, show_id_only) {
