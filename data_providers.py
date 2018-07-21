@@ -39,11 +39,30 @@ class CdsDBDataProvider(CdsBaseDataProvider):
     def __init__(self, logger):
         self.logger = logger
         self.cds_db_project = fdb.connect(host=CDS_HOST, database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
-                                  password=CDS_PASS, charset='WIN1251')
+                                          password=CDS_PASS, charset='WIN1251')
         self.cds_db_data = fdb.connect(host=CDS_HOST, database=CDS_DB_DATA_PATH, user=CDS_USER,
-                                  password=CDS_PASS, charset='WIN1251')
+                                       password=CDS_PASS, charset='WIN1251')
         self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
         self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+
+    def try_reconnect(self):
+        try:
+            self.cds_db_project.close()
+            self.cds_db_project = fdb.connect(host=CDS_HOST, database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
+                                              password=CDS_PASS, charset='WIN1251')
+            self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+            self.logger.info(f"Success connect to {CDS_HOST} {CDS_DB_PROJECTS_PATH}")
+        except Exception as general_error:
+            self.logger.error(general_error)
+
+        try:
+            self.cds_db_data.close()
+            self.cds_db_data = fdb.connect(host=CDS_HOST, database=CDS_DB_DATA_PATH, user=CDS_USER,
+                                           password=CDS_PASS, charset='WIN1251')
+            self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+            self.logger.info(f"Success connect to {CDS_HOST} {CDS_DB_DATA_PATH}")
+        except Exception as general_error:
+            self.logger.error(general_error)
 
     def now(self) -> datetime:
         return datetime.now()
@@ -65,6 +84,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
+            self.try_reconnect()
             return {}
 
         result = [CoddBus(**x) for x in result]
@@ -91,6 +111,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 cur.close()
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
+            self.try_reconnect()
             return {}
 
         long_bus_stops = [LongBusRouteStop(**x) for x in result]
@@ -131,12 +152,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
-            try:
-                self.cds_db = fdb.connect(host=CDS_HOST, database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
-                                          password=CDS_PASS, charset='WIN1251')
-                self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
-            except Exception as general_error:
-                self.logger.error(general_error)
+            self.try_reconnect()
             return []
 
         result = [CdsRouteBus(**make_names_lower(x)) for x in result]
@@ -162,9 +178,11 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
+            self.try_reconnect()
             return []
 
         return [BusStop(**x) for x in result]
+
 
 class CdsTestDataProvider(CdsBaseDataProvider):
     CACHE_TIMEOUT = 0.0001
