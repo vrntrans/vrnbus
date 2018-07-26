@@ -224,20 +224,28 @@
 
         bus_stop_auto_complete = new autoComplete({
             selector: station_name,
+            minChars: 1,
             source: function (term, suggest) {
                 term = term.toLowerCase();
+                var id = parseInt(term, 10);
                 var matches = [];
                 for (var i = 0; i < bus_stop_list.length; i++) {
                     var bus_stop = bus_stop_list[i]
-                    var name_with_id =  bus_stop.ID + " " + bus_stop.NAME_
-                    if (~name_with_id.toLowerCase().indexOf(term)) matches.push(bus_stop);
+                    var name_with_id = bus_stop.ID + " " + bus_stop.NAME_
+                    if (Number.isInteger(id) && id.toString(10) === term) {
+                        if (id === bus_stop.ID) {
+                            matches.push(bus_stop);
+                        }
+                    } else if (~name_with_id.toLowerCase().indexOf(term)) {
+                        matches.push(bus_stop);
+                    }
                 }
                 suggest(matches);
             },
             renderItem: function (item, search) {
                 search = search.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
                 var re = new RegExp("(" + search.split(' ').join('|') + ")", "gi");
-                var name_with_id =  item.ID + " " + item.NAME_
+                var name_with_id = item.ID + " " + item.NAME_
                 var data_values = 'data-lat="' + item.LAT_ + '" data-lng="' + item.LON_ + '"'
                 return '<div class="autocomplete-suggestion" data-val="' + name_with_id + '" ' + data_values + '> '
                     + name_with_id.replace(re, "<b>$1</b>") + '</div>';
@@ -257,11 +265,11 @@
         marker_group.clearLayers()
 
         bus_stop_list.forEach(function (item) {
-            if (!item.LAT_ || !item.LON_){
+            if (!item.LAT_ || !item.LON_) {
                 return
             }
 
-            var tooltip_text = show_id_only ? "" + item.ID :  item.ID + " " +  item.NAME_;
+            var tooltip_text = show_id_only ? "" + item.ID : item.ID + " " + item.NAME_;
 
             L.marker([item.LAT_, item.LON_]).on('click', function (e) {
                 var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
