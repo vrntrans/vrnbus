@@ -38,8 +38,9 @@ class CdsRequest:
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.data_provider = data_provider
         self.codd_routes = data_provider.load_codd_route_names()
+        self.all_bus_stops = data_provider.load_bus_stops()
+        self.bus_stops = [bs for bs in self.all_bus_stops if bs.LAT_ and bs.LON_]
         self.bus_routes = data_provider.load_bus_stations_routes()
-        self.bus_stops = data_provider.load_bus_stops()
 
         self.avg_speed = 18.0
         self.fetching_in_progress = False

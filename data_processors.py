@@ -42,7 +42,7 @@ class WebDataProcessor(BaseDataProcessor):
         return response
 
     def get_bus_stops(self):
-        response = {'result': [x._asdict() for x in self.cds.bus_stops]}
+        response = {'result': [x._asdict() for x in self.cds.all_bus_stops]}
         return response
 
     def get_bus_stops_for_routes(self):
