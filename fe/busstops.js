@@ -7,6 +7,7 @@
 
     var l_map;
     var marker_group;
+    var my_renderer;
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
     var lastbusquery = document.getElementById('lastbusquery')
@@ -273,29 +274,23 @@
 
             var tooltip_text = show_id_only ? "" + item.ID : item.ID + " " + item.NAME_;
 
-            L.marker([item.LAT_, item.LON_]).on('click', function (e) {
-                var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
-                var greenIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
-                var url = this.options.icon.options.iconUrl
-                var isBlueIcon = url === "marker-icon.png" || url === blueIconUrl
-
-                var icon = new L.Icon({
-                    iconUrl: isBlueIcon ? greenIconUrl : blueIconUrl,
-                    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41],
-                    popupAnchor: [1, -34],
-                    shadowSize: [41, 41]
-                });
-
-                this.setIcon(icon)
+            L.circleMarker([item.LAT_, item.LON_], {
+                renderer: my_renderer,
+                fill: true,
+                fillOpacity: 0.8,
+                color: "#3388ff"
+            }).on('click', function (e) {
+                var new_color = e.target.options.color == "#3388ff" ? "#9acd32" : "#3388ff"
+                e.target.setStyle({
+                    color: new_color
+                })
             }).addTo(marker_group)
                 .bindTooltip(tooltip_text, {permanent: show_tooltips_always});
         })
 
         var wrong_stops_info = "Проверьте координаты остановок:<br/>"
         wrong_stops.forEach(function (item) {
-           wrong_stops_info += item.ID + " " + item.NAME_ + " (" + item.LAT_ + ", " + item.LON_ + ") "+ "<br/>"
+            wrong_stops_info += item.ID + " " + item.NAME_ + " (" + item.LAT_ + ", " + item.LON_ + ") " + "<br/>"
         })
         businfo.innerHTML = wrong_stops_info
     }
@@ -351,6 +346,9 @@
                 pseudoFullscreen: true // if true, fullscreen to page width and height
             }
         }).setView([51.6754966, 39.2088823], 13)
+
+        my_renderer = L.canvas({padding: 0.5});
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(l_map)
