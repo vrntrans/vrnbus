@@ -18,7 +18,8 @@ logger = logging.getLogger("vrnbus")
 class CdsRouteTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(CdsRouteTestCase, self).__init__(*args, **kwargs)
-        self.cds = CdsRequest(logger, None)
+        self.mock_provider = CdsTestDataProvider(logger)
+        self.cds = CdsRequest(logger, self.mock_provider)
         self.date_time = datetime.datetime(2018, 2, 15, 19, 56, 53)
 
     def test_routes_on_bus_stop(self):
@@ -46,11 +47,11 @@ class CdsRouteTestCase(unittest.TestCase):
         with self.subTest('From city center '):
             result = self.cds.get_closest_bus_stop_checked(route_name, (pos_2, pos_1))
             self.assertTrue(result.NAME_ == 'у-м Молодежный (ул. Лизюкова из центра)')
-            self.assertTrue(result.NUMBER_ == 61)
+            self.assertEqual(result.NUMBER_, 62)
 
         with self.subTest('To city center '):
             result = self.cds.get_closest_bus_stop_checked(route_name, (pos_1, pos_2))
-            self.assertTrue(result.NUMBER_ == 4)
+            self.assertEqual(result.NUMBER_, 5)
 
     def test_closest_bus_stop_same_stations(self):
         positions = [CdsBusPosition(51.667033, 39.193648, self.date_time),
