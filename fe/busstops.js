@@ -263,9 +263,11 @@
 
     function update_bus_stops(bus_stop_list, show_tooltips_always, show_id_only) {
         marker_group.clearLayers()
+        var wrong_stops = []
 
         bus_stop_list.forEach(function (item) {
-            if (!item.LAT_ || !item.LON_) {
+            if (!item.LAT_ || !item.LON_ || item.LON_ < 30 || item.LAT_ < 30) {
+                wrong_stops.push(item);
                 return
             }
 
@@ -291,6 +293,11 @@
                 .bindTooltip(tooltip_text, {permanent: show_tooltips_always});
         })
 
+        var wrong_stops_info = "Проверьте координаты остановок:<br/>"
+        wrong_stops.forEach(function (item) {
+           wrong_stops_info += item.ID + " " + item.NAME_ + " (" + item.LAT_ + ", " + item.LON_ + ") "+ "<br/>"
+        })
+        businfo.innerHTML = wrong_stops_info
     }
 
     function update_cookies() {
