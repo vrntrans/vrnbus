@@ -277,12 +277,19 @@
             L.circleMarker([item.LAT_, item.LON_], {
                 renderer: my_renderer,
                 fill: true,
-                fillOpacity: 0.8,
+                fillOpacity: 0.9,
                 color: "#3388ff"
             }).on('click', function (e) {
-                var new_color = e.target.options.color == "#3388ff" ? "#9acd32" : "#3388ff"
+                var colors = ["#3388ff",
+                    "#330088",
+                    "#ff662e"]
+                var color_index = colors.indexOf(e.target.options.color) + 1
+                if (color_index >= colors.length) {
+                    color_index = 0
+                }
+
                 e.target.setStyle({
-                    color: new_color
+                    color: colors[color_index]
                 })
             }).addTo(marker_group)
                 .bindTooltip(tooltip_text, {permanent: show_tooltips_always});
