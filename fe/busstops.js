@@ -262,6 +262,29 @@
         })
     }
 
+    function add_circle_marker(item, show_tooltips_always, tooltip_text){
+        L.circleMarker([item.LAT_, item.LON_], {
+                renderer: my_renderer,
+                fill: true,
+                fillOpacity: 0.9,
+                color: "#3388ff"
+            }).on('click', function (e) {
+                var marker_colors = ["#3388ff",
+                    "#330088",
+                    "#ff662e"]
+                var color_index = marker_colors.indexOf(e.target.options.color) + 1
+                if (color_index >= marker_colors.length) {
+                    color_index = 0
+                }
+
+                e.target.setStyle({
+                    color: marker_colors[color_index]
+                })
+            }).addTo(marker_group)
+                .bindTooltip(tooltip_text, {permanent: show_tooltips_always});
+    }
+
+
     function update_bus_stops(bus_stop_list, show_tooltips_always, show_id_only) {
         marker_group.clearLayers()
         var wrong_stops = []
@@ -274,25 +297,7 @@
 
             var tooltip_text = show_id_only ? "" + item.ID : item.ID + " " + item.NAME_;
 
-            L.circleMarker([item.LAT_, item.LON_], {
-                renderer: my_renderer,
-                fill: true,
-                fillOpacity: 0.9,
-                color: "#3388ff"
-            }).on('click', function (e) {
-                var colors = ["#3388ff",
-                    "#330088",
-                    "#ff662e"]
-                var color_index = colors.indexOf(e.target.options.color) + 1
-                if (color_index >= colors.length) {
-                    color_index = 0
-                }
 
-                e.target.setStyle({
-                    color: colors[color_index]
-                })
-            }).addTo(marker_group)
-                .bindTooltip(tooltip_text, {permanent: show_tooltips_always});
         })
 
         var wrong_stops_info = "Проверьте координаты остановок:<br/>"
