@@ -24,6 +24,7 @@
     var lastbus_loading = document.getElementById('lastbus_loading')
     var cb_show_labels = document.getElementById('cb_show_labels')
     var cb_show_id_only = document.getElementById('cb_show_id_only')
+    var cb_show_png_markers = document.getElementById('cb_show_png_markers')
     var cb_show_info = document.getElementById('cb_show_info')
     var cb_animation = document.getElementById('cb_animation')
     var btn_station_search = document.getElementById('btn_station_search')
@@ -44,6 +45,12 @@
 
     if (cb_show_id_only) {
         cb_show_id_only.onclick = function () {
+            get_bus_stop_list()
+        }
+    }
+
+    if (cb_show_png_markers) {
+        cb_show_png_markers.onclick = function () {
             get_bus_stop_list()
         }
     }
@@ -192,9 +199,10 @@
     function get_bus_stop_list() {
         var show_labels = cb_show_labels.checked;
         var show_id_only = cb_show_id_only.checked;
+        var show_png_markers = cb_show_png_markers.checked;
 
         if (bus_stop_list.length > 0) {
-            return update_bus_stops(bus_stop_list, show_labels, show_id_only)
+            return update_bus_stops(bus_stop_list, show_labels, show_id_only, show_png_markers)
         }
 
         return fetch('/bus_stops',
@@ -262,30 +270,49 @@
         })
     }
 
-    function add_circle_marker(item, show_tooltips_always, tooltip_text){
-        L.circleMarker([item.LAT_, item.LON_], {
-                renderer: my_renderer,
-                fill: true,
-                fillOpacity: 0.9,
-                color: "#3388ff"
-            }).on('click', function (e) {
-                var marker_colors = ["#3388ff",
-                    "#330088",
-                    "#ff662e"]
-                var color_index = marker_colors.indexOf(e.target.options.color) + 1
-                if (color_index >= marker_colors.length) {
-                    color_index = 0
-                }
+    function add_circle_marker(item) {
+        return L.circleMarker([item.LAT_, item.LON_], {
+            renderer: my_renderer,
+            fill: true,
+            fillOpacity: 0.9,
+            color: "#3388ff"
+        }).on('click', function (e) {
+            var marker_colors = ["#3388ff",
+                "#330088",
+                "#ff662e"]
+            var color_index = marker_colors.indexOf(e.target.options.color) + 1
+            if (color_index >= marker_colors.length) {
+                color_index = 0
+            }
 
-                e.target.setStyle({
-                    color: marker_colors[color_index]
-                })
-            }).addTo(marker_group)
-                .bindTooltip(tooltip_text, {permanent: show_tooltips_always});
+            e.target.setStyle({
+                color: marker_colors[color_index]
+            })
+        });
+    }
+
+    function add_png_marker(item) {
+        return L.marker([item.LAT_, item.LON_]).on('click', function (e) {
+            var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
+            var greenIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
+            var url = this.options.icon.options.iconUrl
+            var isBlueIcon = url === "marker-icon.png" || url === blueIconUrl
+
+            var icon = new L.Icon({
+                iconUrl: isBlueIcon ? greenIconUrl : blueIconUrl,
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            });
+
+            this.setIcon(icon)
+        })
     }
 
 
-    function update_bus_stops(bus_stop_list, show_tooltips_always, show_id_only) {
+    function update_bus_stops(bus_stop_list, show_tooltips_always, show_id_only, show_png_markers) {
         marker_group.clearLayers()
         var wrong_stops = []
 
@@ -296,8 +323,11 @@
             }
 
             var tooltip_text = show_id_only ? "" + item.ID : item.ID + " " + item.NAME_;
+            var marker = show_png_markers ? add_png_marker(item) : add_circle_marker(item)
 
-
+            marker
+                .addTo(marker_group)
+                .bindTooltip(tooltip_text, {permanent: show_tooltips_always})
         })
 
         var wrong_stops_info = "Проверьте координаты остановок:<br/>"
