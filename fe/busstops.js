@@ -271,15 +271,17 @@
     }
 
     function add_circle_marker(item) {
+        var marker_colors = ["#3388ff",
+            "#330088",
+            "#ff662e"]
+
         return L.circleMarker([item.LAT_, item.LON_], {
             renderer: my_renderer,
             fill: true,
             fillOpacity: 0.9,
             color: "#3388ff"
         }).on('click', function (e) {
-            var marker_colors = ["#3388ff",
-                "#330088",
-                "#ff662e"]
+
             var color_index = marker_colors.indexOf(e.target.options.color) + 1
             if (color_index >= marker_colors.length) {
                 color_index = 0
@@ -291,16 +293,34 @@
         });
     }
 
+    var icon_urls = []
+
     function add_png_marker(item) {
-        return L.marker([item.LAT_, item.LON_]).on('click', function (e) {
-            var blueIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png'
-            var greenIconUrl = 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png'
-            var url = this.options.icon.options.iconUrl
-            var isBlueIcon = url === "marker-icon.png" || url === blueIconUrl
+        var shadowUrl = 'https://unpkg.com/leaflet@1.3.3/dist/images/marker-shadow.png'
+
+        var icon = new L.Icon({
+            iconUrl: icon_urls[0],
+            shadowUrl: shadowUrl,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        return L.marker([item.LAT_, item.LON_],
+            {
+                icon: icon
+            }
+        ).on('click', function (e) {
+
+            var icon_index = icon_urls.indexOf(e.target.options.icon.options.iconUrl) + 1
+            if (icon_index >= icon_urls.length) {
+                icon_index = 0
+            }
 
             var icon = new L.Icon({
-                iconUrl: isBlueIcon ? greenIconUrl : blueIconUrl,
-                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconUrl: icon_urls[icon_index],
+                shadowUrl: shadowUrl,
                 iconSize: [25, 41],
                 iconAnchor: [12, 41],
                 popupAnchor: [1, -34],
@@ -396,6 +416,17 @@
         }).addTo(l_map)
 
         marker_group = L.layerGroup().addTo(l_map);
+
+        var iconUrls = [
+            'marker-icon-2x-blue.png',
+            'marker-icon-2x-green.png',
+            'marker-icon-2x-red.png',
+        ]
+
+        var base_color_marker_url = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/'
+        iconUrls.forEach(function (value) {
+            icon_urls.push(base_color_marker_url + value)
+        })
 
         if (station_name) {
             get_bus_stop_list()
