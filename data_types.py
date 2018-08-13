@@ -96,10 +96,14 @@ class CdsBusPosition(NamedTuple):
         if not bus_stop and not user_loc:
             return 10000
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
+        if lat is None or lon is None:
+            return 10000
         return distance(lat, lon, self.last_lat, self.last_lon)
 
     def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
+        if lat is None or lon is None:
+            return 10000
         return distance_km(lat, lon, self.last_lat, self.last_lon)
 
 
