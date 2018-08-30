@@ -15,7 +15,7 @@ if 'DYNO' in os.environ:
 else:
     debug = True
 
-FULL_ACCESS_KEY = os.environ.get('FULL_ACCESS_KEY', '?key=42')
+FULL_ACCESS_KEY = os.environ.get('FULL_ACCESS_KEY', '')
 
 
 # noinspection PyAbstractClass

@@ -10,6 +10,7 @@ from typing import NamedTuple
 
 import pytz
 
+QUICK_FIX_DIST = 10000
 
 class CustomJsonEncoder(json.JSONEncoder):
     def default(self, o):
@@ -64,10 +65,14 @@ def parse_routes(text):
 
 
 def distance(lat1, lon1, lat2, lon2):
+    if not all((lat1, lon1, lat2, lon2)):
+        return QUICK_FIX_DIST
     return ((lat1 - lat2) ** 2 + (lon1 - lon2) ** 2) ** 0.5
 
 
 def azimuth(glon1, glat1, glon2, glat2):
+    if not all((glon1, glat1, glon2, glat2)):
+        return QUICK_FIX_DIST
     lat1 = glat1 * math.pi / 180
     lat2 = glat2 * math.pi / 180
     long1 = glon1 * math.pi / 180
@@ -101,6 +106,8 @@ def parse_int(s, default=0):
 
 
 def distance_km(glat1, glon1, glat2, glon2):
+    if not all((glat1, glon1, glat2, glon2)):
+        return QUICK_FIX_DIST
     r = 6373.0
 
     lat1 = math.radians(glat1)

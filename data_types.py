@@ -2,7 +2,7 @@ import datetime
 from enum import Enum
 from typing import NamedTuple, List, Dict
 
-from helpers import distance_km, distance, get_iso_time
+from helpers import distance_km, distance, get_iso_time, QUICK_FIX_DIST
 
 
 class ArrivalInfo(NamedTuple):
@@ -94,16 +94,16 @@ class CdsBusPosition(NamedTuple):
 
     def distance(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         if not bus_stop and not user_loc:
-            return 10000
+            return QUICK_FIX_DIST
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         if lat is None or lon is None:
-            return 10000
+            return QUICK_FIX_DIST
         return distance(lat, lon, self.last_lat, self.last_lon)
 
     def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         if lat is None or lon is None:
-            return 10000
+            return QUICK_FIX_DIST
         return distance_km(lat, lon, self.last_lat, self.last_lon)
 
 
@@ -137,7 +137,7 @@ class CdsRouteBus(NamedTuple):
 
     def distance(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         if not bus_stop and not user_loc:
-            return 10000
+            return QUICK_FIX_DIST
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance(lat, lon, self.last_lat_, self.last_lon_)
 
