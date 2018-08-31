@@ -59,11 +59,11 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @property
     def referer(self):
-        return self.request.headers.get("Referer")
+        return self.request.headers.get("Referer", "")
 
     @property
     def full_access(self):
-        return self.referer and FULL_ACCESS_KEY in self.referer
+        return not self.referer or FULL_ACCESS_KEY in self.referer
 
     @property
     def user_agent(self):
@@ -116,11 +116,10 @@ class BusInfoHandler(BaseHandler):
     def bus_info_response(self, src, query, lat, lon):
         is_map = src == 'map'
         event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
-        referer = self.request.headers.get("Referer")
         if self.user_ip != self.remote_ip:
             self.track(WebEvent.IPCHANGE, f'{self.user_ip} != {self.remote_ip}')
         if self.full_access:
-            self.track(WebEvent.FULLINFO, referer, query, lat, lon)
+            self.track(WebEvent.FULLINFO, self.referer, query, lat, lon)
         if not self.anti_abuser.add_user_event(event, self.user_ip) and not self.full_access:
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
