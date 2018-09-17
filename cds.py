@@ -83,11 +83,13 @@ class CdsRequest:
     def get_closest_bus_stop_checked(self, route_name: str, bus_positions: Container[CdsBusPosition]):
         bus_stops = self.bus_routes.get(route_name, [])
 
-        if not bus_stops:
-            raise Exception(f"Empty bus_stops for {route_name}")
+        if not bus_stops or len(bus_stops) < 2:
+            self.logger.error(f"Empty bus_stops for {route_name}")
+            return
 
         if not bus_positions:
-            raise Exception("Empty bus_positions for {route_name}")
+            self.logger.error("Empty bus_positions for {route_name}")
+            return
 
         last_position = bus_positions[-1]
 
