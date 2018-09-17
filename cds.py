@@ -172,7 +172,7 @@ class CdsRequest:
             return d.last_time_ and (now - d.last_time_) < delta
 
         def filtered(d: CdsRouteBus):
-            return search_result.bus_filter == '' or search_result.bus_filter in d.name_
+            return d.filter_by_name(search_result.bus_filter)
 
         now = self.now()
         delta = timedelta(minutes=30)
@@ -315,7 +315,7 @@ class CdsRequest:
             return result
 
         for bus in all_buses:
-            if bus_filter and bus_filter not in bus.name_:
+            if not bus.filter_by_name(bus_filter):
                 continue
             closest_stop = self.get_closest_bus_stop(bus)
             bus_dist = bus.distance_km(closest_stop)
