@@ -113,8 +113,10 @@ class PingHandler(BaseHandler):
 
 
 class BusInfoHandler(BaseHandler):
-    def bus_info_response(self, src, query, lat, lon):
+    def bus_info_response(self, src, query, lat, lon, parent_url):
         is_map = src == 'map'
+        if parent_url:
+            self.track(WebEvent.IFRAME, parent_url, query, lat, lon)
         event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
         if self.user_ip != self.remote_ip:
             self.track(WebEvent.IPCHANGE, f'{self.user_ip} != {self.remote_ip}')
@@ -134,7 +136,8 @@ class BusInfoHandler(BaseHandler):
         src = self.get_argument('src', None)
         lat = self.get_argument('lat', None)
         lon = self.get_argument('lon', None)
-        self.bus_info_response(src, q, lat, lon)
+        parent_url = self.get_argument('parentUrl', None)
+        self.bus_info_response(src, q, lat, lon, parent_url)
 
 
 class ArrivalHandler(BaseHandler):

@@ -241,10 +241,17 @@
         button.disabled = state
     }
 
+    function fraud_check() {
+        if (parent !== window){
+            return "&parentUrl=" + encodeURIComponent(parent.location.href)
+        }
+        return ""
+    }
+
     function get_bus_positions(query) {
         waiting(lastbus_loading, lastbus_map_update, true)
 
-        var params = 'src=map&q=' + encodeURIComponent(query)
+        var params = 'src=map&q=' + encodeURIComponent(query) + fraud_check()
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
             params += '&lon=' + encodeURIComponent(coords.longitude)
@@ -580,6 +587,7 @@
             setCookie("user_ip", ls_user_ip, {expires: 3600 * 24 * 7})
         }
     }
+
 
     function init() {
         update_cookies()
