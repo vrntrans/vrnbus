@@ -115,8 +115,10 @@ class PingHandler(BaseHandler):
 class BusInfoHandler(BaseHandler):
     def bus_info_response(self, src, query, lat, lon, parent_url):
         is_map = src == 'map'
+        if self.referer and 'vrnbus.herokuapp.com' not in self.referer:
+            self.track(WebEvent.FRAUD, self.referer, query, lat, lon)
         if parent_url:
-            self.track(WebEvent.IFRAME, parent_url, query, lat, lon)
+            self.track(WebEvent.FRAUD, parent_url, query, lat, lon)
         event = WebEvent.BUSMAP if is_map else WebEvent.BUSINFO
         if self.user_ip != self.remote_ip:
             self.track(WebEvent.IPCHANGE, f'{self.user_ip} != {self.remote_ip}')

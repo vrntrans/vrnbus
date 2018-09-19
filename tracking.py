@@ -24,7 +24,7 @@ class TgEvent(Enum):
 
 class WebEvent(Enum):
     ABUSE = auto()
-    IFRAME = auto()
+    FRAUD = auto()
     ARRIVAL = auto()
     BUSINFO = auto()
     BUSMAP = auto()
