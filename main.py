@@ -35,7 +35,15 @@ logger.info([{k: os.environ[k]} for (k) in os.environ if 'PATH' not in k])
 user_settings = {}
 
 if __name__ == "__main__":
-    tracker = EventTracker(logger)
+    log_ignore_events = [
+        WebEvent.ABUSE,
+        WebEvent.FRAUD,
+        WebEvent.FULLINFO,
+        WebEvent.IPCHANGE,
+    ]
+
+    tracker = EventTracker(logger, log_ignore_events)
+
     abuse_rules = [
         AbuseRule(WebEvent.BUSMAP, 20, datetime.timedelta(minutes=60)),
         AbuseRule(WebEvent.BUSINFO, 20, datetime.timedelta(minutes=60)),

@@ -72,8 +72,9 @@ def get_events_by_names(str_events: List[str]):
 
 
 class EventTracker:
-    def __init__(self, logger):
+    def __init__(self, logger, log_ignore_events: List[Enum]):
         self.logger = logger
+        self.log_ignore_events = log_ignore_events
         self.events = defaultdict(int)
         self.detailed_events = defaultdict(lambda: defaultdict(int))
         self.start = datetime.datetime.now()
@@ -117,9 +118,11 @@ class EventTracker:
         user_info = f"user:{user.id}"
         self.add_event(event, str(user.id))
         self.tg_users.add(user.id)
-        self.logger.info(f"TRACK: {event} {user_info} {params if params else ''}")
+        if event not in self.log_ignore_events:
+            self.logger.info(f"TRACK: {event} {user_info} {params if params else ''}")
 
     def web(self, event: WebEvent, ip, *params):
         self.add_event(event, ip)
         self.web_users.add(ip)
-        self.logger.info(f"TRACK: {event} ip:{ip} {params if params else ''}")
+        if event not in self.log_ignore_events:
+            self.logger.info(f"TRACK: {event} ip:{ip} {params if params else ''}")
