@@ -243,7 +243,7 @@
 
     function fraud_check() {
         if (parent !== window){
-            return "&parentUrl=" + encodeURIComponent(parent.location.href)
+            return "&parentUrl=" + encodeURIComponent(document.referrer)
         }
         return ""
     }
