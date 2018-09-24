@@ -95,7 +95,8 @@ class EventTracker:
         def replace_event_name(event):
             return str(event).replace("Event.", ".")
 
-        events = [f'{replace_event_name(k):13} {v}' for k, v in self.events.items()]
+        events = [f'{replace_event_name(event_name):13} {sum(event_dict.values())} / {len(event_dict.keys())}'
+                  for event_name, event_dict in self.detailed_events.items()]
         events.sort()
         user_stats = "\n".join(events)
         tg_count = len(self.tg_users)

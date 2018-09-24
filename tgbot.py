@@ -190,9 +190,9 @@ class BusBot:
 """,
                                   reply_markup=ReplyKeyboardRemove())
 
-    def send_text(self, text, update):
+    def send_text(self, text, update, **kwargs):
         for part in textwrap.wrap(text, 4000, replace_whitespace=False):
-            update.message.reply_text(part)
+            update.message.reply_text(part, **kwargs)
 
     @run_async
     def last_buses(self, _, update, args):
@@ -356,8 +356,7 @@ class BusBot:
 
     @run_async
     def user_stats_pro(self, bot, update, args):
-        # TODO: Add user checking as a module (white/black lists and so on)
-        if update.message.from_user.id != 26943105:
+        if update.message.from_user.id not in self.users_to_inform:
             self.logger.error(f"Unknown user {update.message.from_user}")
             return
         self.ping_prod()
@@ -366,9 +365,8 @@ class BusBot:
         user_filter = ''.join(args if not valid_threshold else args[1:])
         event_filter = [get_event_by_name(i) for i in args if get_event_by_name(i)]
         stats = self.tracker.stats(True, threshold, user_filter, event_filter)
-        self.logger.debug(stats)
-        update.message.reply_text(f'```\n{stats}\n```',
-                                  parse_mode='Markdown')
+        self.send_text(f'```\n{stats}\n```', update,
+                       parse_mode='Markdown')
 
     @run_async
     def user_input(self, bot, update):
