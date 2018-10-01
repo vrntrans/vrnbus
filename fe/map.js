@@ -294,8 +294,8 @@
                     var time = bus.last_time_.substring(bus.last_time_.length - 8)
 
                     bus.desc = [time + " " + next_bus_stop.NAME_,
-                        bus.route_name_.trim() + " ( " + bus.name_ + " ) ",
-                        bus.last_lat_ + " " + bus.last_lon_].join('<br/>')
+                        bus.route_name_.trim() + ( bus.name_ ?  " ( " + bus.name_ + " ) " : ""),
+                        bus.last_lat_.toFixed(4) + " " + bus.last_lon_.toFixed(4)].join('<br/>')
 
                     return bus
                 })

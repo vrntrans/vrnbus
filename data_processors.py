@@ -15,13 +15,17 @@ class WebDataProcessor(BaseDataProcessor):
     def __init__(self, cds: CdsRequest, logger: Logger):
         super().__init__(cds, logger)
 
-    def get_bus_info(self, query, lat, lon):
+    def get_bus_info(self, query, lat, lon, full_info):
+        def eliminate_numbers(d: dict) -> dict:
+            if not full_info:
+                d['name_'] = ''
+            return d
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
         result = self.cds.bus_request(parse_routes(query), user_loc=user_loc, short_format=True)
         return {'q': query, 'text': result[0],
-                'buses': [(x[0]._asdict(), x[1]._asdict() if x[1] else {}) for x in result[1]]}
+                'buses': [(eliminate_numbers(x[0]._asdict()), x[1]._asdict() if x[1] else {}) for x in result[1]]}
 
     def get_arrival(self, query, lat, lon):
         matches = self.cds.matches_bus_stops(lat, lon)

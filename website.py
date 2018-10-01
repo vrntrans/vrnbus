@@ -17,6 +17,13 @@ else:
 
 FULL_ACCESS_KEY = os.environ.get('FULL_ACCESS_KEY', '')
 
+try:
+    import settings
+
+    FULL_ACCESS_KEY = settings.FULL_ACCESS_KEY
+except ImportError:
+    FULL_ACCESS_KEY = os.environ.get('FULL_ACCESS_KEY', '')
+
 
 # noinspection PyAbstractClass
 class NoCacheStaticFileHandler(tornado.web.StaticFileHandler):
@@ -128,7 +135,7 @@ class BusInfoHandler(BaseHandler):
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
         self.track(event, src, query, lat, lon)
-        response = self.processor.get_bus_info(query, lat, lon)
+        response = self.processor.get_bus_info(query, lat, lon, self.full_access)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 

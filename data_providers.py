@@ -246,5 +246,28 @@ class CdsTestDataProvider(CdsBaseDataProvider):
             return [BusStop(**i) for i in json.load(f)]
 
 
+class StubDataProvider(CdsBaseDataProvider):
+    CACHE_TIMEOUT = 0
+
+    def now(self) -> datetime:
+        return datetime.now()
+
+    def load_all_cds_buses(self) -> List[CdsRouteBus]:
+        return []
+
+    def load_codd_route_names(self) -> Dict:
+        return {}
+
+    def load_bus_stations_routes(self) -> Dict:
+        return {}
+
+    def load_bus_stops(self) -> List[BusStop]:
+        return []
+
 def get_data_provider(logger):
-    return CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
+    try:
+        return CdsTestDataProvider(logger) if LOAD_TEST_DATA else CdsDBDataProvider(logger)
+    except Exception as ex:
+        logger.exception(ex)
+        return StubDataProvider()
+
