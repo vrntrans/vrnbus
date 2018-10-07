@@ -94,6 +94,7 @@ class BusSite(tornado.web.Application):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
+            (r"/arrival_by_id", ArrivalByIdHandler),
             (r"/busmap", BusInfoHandler),
             (r"/businfolist", BusInfoHandler),
             (r"/buslist", BusListHandler),
@@ -163,13 +164,28 @@ class ArrivalHandler(BaseHandler):
         self.arrival_response()
 
 
+class ArrivalByIdHandler(BaseHandler):
+    def arrival_response(self):
+        busstop_id = int(self.get_argument('id'))
+        query = self.get_argument('q', "")
+        self.track(WebEvent.ARRIVAL, query, busstop_id)
+        response = self.processor.get_arrival_by_id(query, busstop_id)
+        self.write(json.dumps(response))
+        self.caching()
+
+    @run_on_executor
+    def get(self):
+        self.arrival_response()
+
+
 class BusListHandler(BaseHandler):
     def _response(self):
         self.logger.info(f'Bus list query')
 
         response = self.processor.get_bus_list()
         self.write(json.dumps(response))
-        self.caching(max_age=24 * 60 * 60)
+        if response:
+            self.caching(max_age=24 * 60 * 60)
 
     @run_on_executor
     def get(self):
@@ -182,7 +198,8 @@ class BusStopsHandler(BaseHandler):
 
         response = self.processor.get_bus_stops()
         self.write(json.dumps(response, ensure_ascii=False))
-        self.caching(max_age=24 * 60 * 60)
+        if response:
+            self.caching(max_age=24 * 60 * 60)
 
     @run_on_executor
     def get(self):
@@ -195,7 +212,8 @@ class BusStopsRoutesHandler(BaseHandler):
 
         response = self.processor.get_bus_stops_for_routes()
         self.write(json.dumps(response, ensure_ascii=False))
-        self.caching(max_age=24 * 60 * 60)
+        if response:
+            self.caching(max_age=24 * 60 * 60)
 
     @run_on_executor
     def get(self):

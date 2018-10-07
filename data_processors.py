@@ -1,7 +1,7 @@
 from logging import Logger
 
 from cds import CdsRequest
-from data_types import UserLoc
+from data_types import UserLoc, ArrivalInfo
 from helpers import parse_routes, natural_sort_key
 
 
@@ -20,6 +20,7 @@ class WebDataProcessor(BaseDataProcessor):
             if not full_info:
                 d['name_'] = ''
             return d
+
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
@@ -38,6 +39,22 @@ class WebDataProcessor(BaseDataProcessor):
         result_tuple = self.cds.next_bus(station_query, parse_routes(query))
         response = {'text': result_tuple[0], 'header': result_tuple[1], 'bus_stops': result_tuple[2]}
         return response
+
+    def get_text_from_arrival_info(self, arrival_info: ArrivalInfo):
+        def text_for_bus_stop(key, value):
+            return f"({self.cds.get_bus_stop_id(key)}) {key}\n{value}"
+
+        next_bus_text = '\n'.join([text_for_bus_stop(k, v) for (k, v) in arrival_info.bus_stops.items()])
+        return f'{arrival_info.header}\n{next_bus_text}'
+
+    def get_arrival_by_id(self, query, busstop_id):
+        bus_stop = self.cds.get_bus_stop_from_id(busstop_id)
+        if bus_stop:
+            search_params = parse_routes(query)
+            arrival_info = self.cds.next_bus_for_matches((bus_stop,), search_params)
+            result_text = self.get_text_from_arrival_info(arrival_info)
+            response = {'result': result_text, 'arrival_info': arrival_info}
+            return response
 
     def get_bus_list(self):
         codd_buses = list(self.cds.codd_routes.keys())
