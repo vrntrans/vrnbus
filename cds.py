@@ -12,7 +12,7 @@ import cachetools.func
 import pytz
 
 from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, \
-    CdsBaseDataProvider, StatsData
+    CdsBaseDataProvider, StatsData, ArrivalBusStopInfo, ArrivalBusStopInfoFull
 from helpers import fuzzy_search_advanced
 from helpers import get_time, natural_sort_key, distance, retry_multi, SearchResult
 
@@ -294,7 +294,7 @@ class CdsRequest:
         return self.next_bus_for_matches(tuple(bus_stop_matches), search_result)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
-    def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter):
+    def get_bus_distance_to(self, bus_route_names, bus_stop_name, bus_filter) -> List[ArrivalBusStopInfo]:
         def time_filter(bus_info: CdsRouteBus):
             if not bus_info.last_time_ or bus_info.last_time_ < last_n_minutes:
                 return False
@@ -330,7 +330,7 @@ class CdsRequest:
             dist = bus_dist + route_dist
             time_left = time_to_arrive(dist, bus.last_time_)
             if (same_station or route_dist > 0) and dist < 20 and time_left < 30:
-                result.append((bus, dist, time_left))
+                result.append(ArrivalBusStopInfo(bus, dist, time_left))
         return result
 
     # @cachetools.func.ttl_cache(ttl=30)
@@ -358,32 +358,34 @@ class CdsRequest:
 
                 result.append(f"Средняя скорость на маршрутах {avg_speed_routes:.2f} км/ч")
 
-        bus_stop_dict = {}
+        arrival_details = []
+
         headers = result[:]
         for item in bus_stop_matches:
-            arrival_buses = self.get_routes_on_bus_stop(item.NAME_)
-            arrival_buses = [x for x in arrival_buses if not routes_filter or x in routes_filter]
-            bus_stop_dict[item.NAME_] = ''
-            if not arrival_buses:
+            arrival_routes = self.get_routes_on_bus_stop(item.NAME_)
+            arrival_routes = [x for x in arrival_routes if not routes_filter or x in routes_filter]
+            if not arrival_routes:
                 continue
             if routes_filter:
                 avg_speed_routes = sum((self.speed_dict.get(x, self.avg_speed)
                                         for x in routes_filter)) / len(routes_filter)
-                self.logger.info(f'Average speed on routes {arrival_buses} {avg_speed_routes:.2f} kmh')
+                self.logger.info(f'Average speed on routes {arrival_routes} {avg_speed_routes:.2f} kmh')
 
-            routes_set.update(arrival_buses)
-            arrival_buses = tuple(sorted(arrival_buses, key=natural_sort_key))
+            routes_set.update(arrival_routes)
+            arrival_routes = tuple(sorted(arrival_routes, key=natural_sort_key))
             result.append(f'{item.NAME_}:')
-            distance_list = self.get_bus_distance_to(arrival_buses, item.NAME_, search_result.bus_filter)
-            distance_list.sort(key=lambda x: x[2])
-            bus_stop_value = '\n'.join((bus_info(*d) for d in distance_list))
-            bus_stop_dict[item.NAME_] = bus_stop_value
+            arrival_buses = self.get_bus_distance_to(arrival_routes, item.NAME_, search_result.bus_filter)
+            arrival_buses.sort(key=lambda x: x[2])
+            bus_stop_value = '\n'.join((bus_info(*d) for d in arrival_buses))
+            arrival_details.append(
+                ArrivalBusStopInfoFull(item.ID, item.NAME_, item.LAT_, item.LON_, bus_stop_value, arrival_buses))
+
             result.append(bus_stop_value)
             result.append("")
         routes_list = list(routes_set)
         routes_list.sort(key=natural_sort_key)
         result.append(f'Возможные маршруты: {" ".join(routes_list)}')
-        return ArrivalInfo('\n'.join(result), "\n".join(headers), bus_stop_dict)
+        return ArrivalInfo('\n'.join(result), "\n".join(headers), arrival_details)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def get_bus_statistics(self, full_info=False) -> Optional[StatsData]:

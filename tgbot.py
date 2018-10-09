@@ -287,12 +287,12 @@ class BusBot:
                               reply_markup=reply_markup)
 
     def get_text_from_arrival_info(self, arrival_info: ArrivalInfo):
-        def text_for_bus_stop(key, value):
-            s = (f'```{value}```' if value else '')
-            command = f'/nextbus_{self.cds.get_bus_stop_id(key)}'
-            return f"[{command}]({command}) {key}\n{s} "
+        def text_for_bus_stop(value):
+            s = (f'```{value.text}```' if value else '')
+            command = f'/nextbus_{value.bus_stop_id}'
+            return f"[{command}]({command}) {value.bus_stop_name}\n{s} "
 
-        next_bus_text = '\n'.join([text_for_bus_stop(k, v) for (k, v) in arrival_info.bus_stops.items()])
+        next_bus_text = '\n'.join([text_for_bus_stop(v) for v in arrival_info.arrival_details])
         return f'{arrival_info.header}\n{next_bus_text}'
 
     @run_async

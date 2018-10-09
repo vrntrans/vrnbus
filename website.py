@@ -156,7 +156,7 @@ class ArrivalHandler(BaseHandler):
         query = self.get_argument('q')
         self.track(WebEvent.ARRIVAL, query, lat, lon)
         response = self.processor.get_arrival(query, lat, lon)
-        self.write(json.dumps(response))
+        self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
     @run_on_executor
@@ -170,7 +170,7 @@ class ArrivalByIdHandler(BaseHandler):
         query = self.get_argument('q', "")
         self.track(WebEvent.ARRIVAL, query, busstop_id)
         response = self.processor.get_arrival_by_id(query, busstop_id)
-        self.write(json.dumps(response))
+        self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
     @run_on_executor

@@ -5,12 +5,6 @@ from typing import NamedTuple, List, Dict
 from helpers import distance_km, distance, get_iso_time, QUICK_FIX_DIST
 
 
-class ArrivalInfo(NamedTuple):
-    text: str
-    header: str = ''
-    bus_stops: dict = {}
-
-
 class UserLoc(NamedTuple):
     lat: float
     lon: float
@@ -147,6 +141,27 @@ class CdsRouteBus(NamedTuple):
     def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance_km(lat, lon, self.last_lat_, self.last_lon_)
+
+
+class ArrivalBusStopInfo(NamedTuple):
+    bus_info: CdsRouteBus
+    distance: float
+    time_left: float
+
+
+class ArrivalBusStopInfoFull(NamedTuple):
+    bus_stop_id: int
+    bus_stop_name: str
+    lat: float
+    lon: float
+    text: str
+    arrival_buses: List[ArrivalBusStopInfo] = []
+
+
+class ArrivalInfo(NamedTuple):
+    text: str
+    header: str = ''
+    arrival_details: List[ArrivalBusStopInfoFull] = []
 
 
 class CdsBaseDataProvider:

@@ -72,9 +72,9 @@ def get_events_by_names(str_events: List[str]):
 
 
 class EventTracker:
-    def __init__(self, logger, log_ignore_events: List[Enum]):
+    def __init__(self, logger, log_ignore_events: List[Enum] = None):
         self.logger = logger
-        self.log_ignore_events = log_ignore_events
+        self.log_ignore_events = log_ignore_events or []
         self.events = defaultdict(int)
         self.detailed_events = defaultdict(lambda: defaultdict(int))
         self.start = datetime.datetime.now()
