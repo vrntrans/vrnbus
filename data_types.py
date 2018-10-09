@@ -155,6 +155,7 @@ class ArrivalBusStopInfoFull(NamedTuple):
     lat: float
     lon: float
     text: str
+    bus_routes: List[str] = []
     arrival_buses: List[ArrivalBusStopInfo] = []
 
 
