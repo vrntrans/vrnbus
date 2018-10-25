@@ -70,7 +70,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @property
     def full_access(self):
-        return not self.referer or FULL_ACCESS_KEY in self.referer
+        return self.referer and FULL_ACCESS_KEY in self.referer
 
     @property
     def user_agent(self):
