@@ -140,9 +140,9 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 cur = tr.cursor()
                 cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
                     o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_
-                    FROM OBJECTS O JOIN BUS_STATIONS bs
+                    FROM OBJECTS O LEFT JOIN BUS_STATIONS bs
                     ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
-                    JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
+                    LEFT JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_
                     WHERE obj_output_=0''')
                 self.logger.debug('Finish execution')
                 result = cur.fetchallmap()
