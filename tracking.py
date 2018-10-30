@@ -31,6 +31,8 @@ class WebEvent(Enum):
     BUSSTOP = auto()
     FULLINFO = auto()
     IPCHANGE = auto()
+    IOS = auto()
+    ANDROID = auto()
 
     @staticmethod
     def from_str(label):

@@ -39,6 +39,11 @@ class BaseHandler(tornado.web.RequestHandler):
             self.set_cookie("user_ip", self.remote_ip, expires_days=30)
 
     def track(self, event: WebEvent, *params):
+        if 'CFNetwork' in self.user_agent:
+            self.tracker.web(WebEvent.IOS, self.remote_ip, *params, self.user_agent)
+        if 'Dalvik' in self.user_agent:
+            self.tracker.web(WebEvent.ANDROID, self.remote_ip, *params, self.user_agent)
+
         self.tracker.web(event, self.remote_ip, *params, self.user_agent)
 
     def data_received(self, chunk):
