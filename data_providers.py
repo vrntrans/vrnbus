@@ -101,7 +101,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
                 cur.execute('''select bsr.NUM as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_, 
-                                bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_
+                                bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_, bsr.BS_ID as ID
                                 from BS_ROUTE bsr
                                 join ROUTS r on bsr.ROUTE_ID = r.ID_
                                 join BS on bsr.BS_ID = bs.ID

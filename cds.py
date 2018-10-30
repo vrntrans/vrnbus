@@ -362,7 +362,7 @@ class CdsRequest:
 
         headers = result[:]
         for item in bus_stop_matches:
-            arrival_routes = self.get_routes_on_bus_stop(item.NAME_)
+            arrival_routes = self.get_routes_on_bus_stop(item.ID)
             arrival_routes = [x for x in arrival_routes if not routes_filter or x in routes_filter]
             if not arrival_routes:
                 continue
@@ -438,10 +438,10 @@ class CdsRequest:
         return dist
 
     @cachetools.func.ttl_cache()
-    def get_routes_on_bus_stop(self, bus_stop_name):
+    def get_routes_on_bus_stop(self, bus_stop_id):
         result = []
         for (k, v) in self.bus_routes.items():
-            if next((True for x in v if x.NAME_ == bus_stop_name), False):
+            if next((True for x in v if x.ID == bus_stop_id), False):
                 result.append(k)
         return result
 

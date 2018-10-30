@@ -128,7 +128,11 @@ def distance_km(glat1, glon1, glat2, glon2):
 def get_iso_time(s) -> datetime.datetime:
     if isinstance(s, datetime.datetime):
         return s
-    return datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S")
+
+    try:
+        return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S.%f')
+    except ValueError:
+        return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S')
 
 
 def get_time(s):

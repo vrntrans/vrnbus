@@ -14,7 +14,7 @@ class BusStop(NamedTuple):
     NAME_: str
     LAT_: float
     LON_: float
-    ID: int = 0
+    ID: int
 
     def __str__(self):
         return f'(BusStop: {self.NAME_} {self.LAT_} {self.LON_}  )'
@@ -30,6 +30,7 @@ class LongBusRouteStop(NamedTuple):
     LON_: float
     ROUT_: int
     CONTROL_: int = 0
+    ID: int = 0
 
     def distance_km(self, bus_stop):
         return distance_km(self.LAT_, self.LON_, bus_stop.LAT_, bus_stop.LON_)
@@ -117,8 +118,11 @@ class CdsRouteBus(NamedTuple):
     @staticmethod
     def make(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
              type_proj, last_station_time_, bus_station_):
-        last_time_ = get_iso_time(last_time_)
-        last_station_time_ = get_iso_time(last_station_time_)
+        try:
+            last_time_ = get_iso_time(last_time_)
+            last_station_time_ = get_iso_time(last_station_time_) if last_station_time_ else None
+        except Exception as e:
+            print(e)
         return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_,
                            route_name_, type_proj, last_station_time_, bus_station_)
 
