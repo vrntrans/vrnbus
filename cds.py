@@ -288,9 +288,9 @@ class CdsRequest:
             return ArrivalInfo(text=text, header=text)
         if len(bus_stop_matches) > 5:
             first_matches = '\n'.join([x.NAME_ for x in bus_stop_matches[:20]])
-            bus_stop_dict = {x.NAME_: '' for x in bus_stop_matches[:20]}
             return ArrivalInfo(f'Уточните остановку. Найденные варианты:\n{first_matches}',
-                               'Уточните остановку. Найденные варианты:', bus_stop_dict)
+                               'Уточните остановку. Найденные варианты:',
+                               bus_stops=bus_stop_matches[:20])
         return self.next_bus_for_matches(tuple(bus_stop_matches), search_result)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
@@ -378,14 +378,15 @@ class CdsRequest:
             arrival_buses.sort(key=lambda x: x[2])
             bus_stop_value = '\n'.join((bus_info(*d) for d in arrival_buses))
             arrival_details.append(
-                ArrivalBusStopInfoFull(item.ID, item.NAME_, item.LAT_, item.LON_, bus_stop_value, list(arrival_routes), arrival_buses))
+                ArrivalBusStopInfoFull(item.ID, item.NAME_, item.LAT_, item.LON_, bus_stop_value, list(arrival_routes),
+                                       arrival_buses))
 
             result.append(bus_stop_value)
             result.append("")
         routes_list = list(routes_set)
         routes_list.sort(key=natural_sort_key)
         result.append(f'Возможные маршруты: {" ".join(routes_list)}')
-        return ArrivalInfo('\n'.join(result), "\n".join(headers), arrival_details)
+        return ArrivalInfo('\n'.join(result), "\n".join(headers), arrival_details, found=True)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def get_bus_statistics(self, full_info=False) -> Optional[StatsData]:

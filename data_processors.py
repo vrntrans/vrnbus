@@ -62,8 +62,14 @@ class WebDataProcessor(BaseDataProcessor):
 
     def get_arrival_by_name(self, query, station_query):
         result_tuple = self.cds.next_bus(station_query, parse_routes(query))
-        response = {'text': result_tuple[0], 'header': result_tuple[1],
-                    'bus_stops': {v.bus_stop_name: v.text for v in result_tuple.arrival_details}}
+        if result_tuple.found:
+            response = {'text': result_tuple[0], 'header': result_tuple[1],
+                    'bus_stops': {v.bus_stop_name: v.text for v in
+                                  result_tuple.arrival_details} }
+        else:
+            response = {'text': result_tuple[0], 'header': result_tuple[1],
+                    'bus_stops': {k: '' for k in
+                                  result_tuple.bus_stops} }
         return response
 
     def get_text_from_arrival_info(self, arrival_info: ArrivalInfo):

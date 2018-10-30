@@ -10,7 +10,7 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMa
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater, run_async
 from tornado.httpclient import AsyncHTTPClient
 
-from data_types import UserLoc, ArrivalInfo, StatsData
+from data_types import UserLoc, ArrivalInfo, StatsData, BusStop
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult, parse_int
 from tracking import EventTracker, TgEvent, get_event_by_name
 
@@ -287,12 +287,19 @@ class BusBot:
                               reply_markup=reply_markup)
 
     def get_text_from_arrival_info(self, arrival_info: ArrivalInfo):
-        def text_for_bus_stop(value):
+        def text_for_arrival_info(value):
             s = (f'```{value.text}```' if value else '')
             command = f'/nextbus_{value.bus_stop_id}'
             return f"[{command}]({command}) {value.bus_stop_name}\n{s} "
 
-        next_bus_text = '\n'.join([text_for_bus_stop(v) for v in arrival_info.arrival_details])
+        def text_for_bus_stop(value: BusStop):
+            command = f'/nextbus_{value.ID}'
+            return f"[{command}]({command}) {value.NAME_}"
+
+        if arrival_info.found:
+            next_bus_text = '\n'.join([text_for_arrival_info(v) for v in arrival_info.arrival_details])
+        else:
+            next_bus_text = '\n'.join([text_for_bus_stop(v) for v in arrival_info.bus_stops])
         return f'{arrival_info.header}\n{next_bus_text}'
 
     @run_async

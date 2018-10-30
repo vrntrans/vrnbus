@@ -166,6 +166,8 @@ class ArrivalInfo(NamedTuple):
     text: str
     header: str = ''
     arrival_details: List[ArrivalBusStopInfoFull] = []
+    bus_stops: List[BusStop] = []
+    found: bool = False
 
 
 class CdsBaseDataProvider:
