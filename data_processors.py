@@ -76,7 +76,6 @@ class WebDataProcessor(BaseDataProcessor):
                                   result_tuple.bus_stops} }
         return response
 
-    @cachetools.func.ttl_cache(ttl=15)
     def get_text_from_arrival_info(self, arrival_info: ArrivalInfo):
         def text_for_bus_stop(value):
             return f"({value.bus_stop_id}) {value.bus_stop_name}\n{value.text}"
