@@ -40,6 +40,8 @@ if __name__ == "__main__":
         WebEvent.FRAUD,
         WebEvent.FULLINFO,
         WebEvent.IPCHANGE,
+        WebEvent.ANDROID,
+        WebEvent.IOS
     ]
 
     tracker = EventTracker(logger, log_ignore_events)
