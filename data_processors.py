@@ -1,5 +1,7 @@
 from logging import Logger
 
+import cachetools
+
 from cds import CdsRequest
 from data_types import UserLoc, ArrivalInfo
 from helpers import parse_routes, natural_sort_key
@@ -39,6 +41,7 @@ class WebDataProcessor(BaseDataProcessor):
     def __init__(self, cds: CdsRequest, logger: Logger):
         super().__init__(cds, logger)
 
+    @cachetools.func.ttl_cache(ttl=15, maxsize=4096)
     def get_bus_info(self, query, lat, lon, full_info):
         def eliminate_numbers(d: dict) -> dict:
             if not full_info:
@@ -60,6 +63,7 @@ class WebDataProcessor(BaseDataProcessor):
                     'bus_stops': {v.bus_stop_name: v.text for v in result_tuple.arrival_details}}
         return response
 
+    @cachetools.func.ttl_cache(ttl=15)
     def get_arrival_by_name(self, query, station_query):
         result_tuple = self.cds.next_bus(station_query, parse_routes(query))
         if result_tuple.found:
@@ -79,6 +83,7 @@ class WebDataProcessor(BaseDataProcessor):
         next_bus_text = '\n'.join([text_for_bus_stop(v) for v in arrival_info.arrival_details])
         return f'{arrival_info.header}\n{next_bus_text}'
 
+    @cachetools.func.ttl_cache(ttl=15)
     def get_arrival_by_id(self, query, busstop_id):
         bus_stop = self.cds.get_bus_stop_from_id(busstop_id)
         if bus_stop:
@@ -88,16 +93,19 @@ class WebDataProcessor(BaseDataProcessor):
             response = {'result': result_text, 'arrival_info': unpack_namedtuples(arrival_info)}
             return response
 
+    @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_list(self):
         codd_buses = list(self.cds.codd_routes.keys())
         codd_buses.sort(key=natural_sort_key)
         response = {'result': codd_buses}
         return response
 
+    @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_stops(self):
         response = {'result': [x._asdict() for x in self.cds.all_bus_stops]}
         return response
 
+    @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_stops_for_routes(self):
         response = {'result': {route_name: [x._asdict() for x in bus_stops] for (route_name, bus_stops) in
                                self.cds.bus_routes.items()}}
