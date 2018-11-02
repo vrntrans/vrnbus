@@ -325,6 +325,8 @@ class CdsRequest:
             if not bus.filter_by_name(bus_filter):
                 continue
             closest_stop = self.get_closest_bus_stop(bus)
+            if not closest_stop:
+                continue
             bus_dist = bus.distance_km(closest_stop)
             same_station = bus.bus_station_ == bus_stop_name
             route_dist = self.get_dist(bus.route_name_, closest_stop.NAME_, bus_stop_name)
