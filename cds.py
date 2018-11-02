@@ -119,6 +119,8 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=2048)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus):
+        if not bus_info.is_valid_coords():
+            return
         threshold = 0.005
         bus_stop = next((x for x in self.bus_stops
                          if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
@@ -147,9 +149,9 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_station(self, bus_info: CdsRouteBus):
         result = self.get_closest_bus_stop(bus_info)
-        if not result.NAME_:
+        if not result or not result.NAME_:
             self.logger.error(f"{result} {bus_info}")
-        return result.NAME_
+        return result and result.NAME_
 
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
         bus_station = self.bus_station(d)

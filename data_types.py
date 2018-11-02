@@ -143,8 +143,13 @@ class CdsRouteBus(NamedTuple):
         return distance(lat, lon, self.last_lat_, self.last_lon_)
 
     def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
+        if not bus_stop and not user_loc:
+            return QUICK_FIX_DIST
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         return distance_km(lat, lon, self.last_lat_, self.last_lon_)
+
+    def is_valid_coords(self):
+        return self.last_lat_ > 0.0 and self.last_lon_ > 0.0
 
 
 class ArrivalBusStopInfo(NamedTuple):
