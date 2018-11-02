@@ -148,9 +148,12 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_station(self, bus_info: CdsRouteBus):
+        if not bus_info.is_valid_coords():
+            self.logger.debug(f"Not valid coords {bus_info}")
+            return
         result = self.get_closest_bus_stop(bus_info)
         if not result or not result.NAME_:
-            self.logger.error(f"{result} {bus_info}")
+            self.logger.warning(f"{result} {bus_info}")
         return result and result.NAME_
 
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
