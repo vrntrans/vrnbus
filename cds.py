@@ -455,7 +455,7 @@ class CdsRequest:
     def get_next_bus_stop(self, route_name, bus_stop_name):
         route = self.bus_routes.get(route_name, [])
         if not route:
-            self.logger.error(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
+            self.logger.warning(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
             return
         size = len(route)
         for (i, v) in enumerate(route):
@@ -470,7 +470,7 @@ class CdsRequest:
         if bus_stop:
             return bus_stop
         else:
-            self.logger.error(f"Cannot found {bus_stop_name}, will return first bus_stop")
+            self.logger.warning(f"Cannot found {bus_stop_name}, will return first bus_stop")
             return self.bus_stops[0]
 
     def is_bus_stop_name(self, s):
