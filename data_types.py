@@ -115,6 +115,7 @@ class CdsRouteBus(NamedTuple):
     last_station_time_: datetime.datetime = None
     bus_station_: str = ""
     low_floor: bool = False
+    bus_type: int = 0
 
     @staticmethod
     def make(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,

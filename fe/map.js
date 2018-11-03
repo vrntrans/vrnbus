@@ -242,7 +242,7 @@
     }
 
     function fraud_check() {
-        if (parent !== window){
+        if (parent !== window) {
             return "&parentUrl=" + encodeURIComponent(document.referrer)
         }
         return ""
@@ -292,10 +292,21 @@
 
                     bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
                     var time = bus.last_time_.substring(bus.last_time_.length - 8)
+                    var bus_type = "МВ"
+                    switch (bus.bus_type) {
+                        case 3:
+                            bus_type = "СВ"
+                            break
+                        case 4:
+                            bus_type = "БВ"
+                            break
+                    }
+
 
                     bus.desc = [time + " " + next_bus_stop.NAME_,
-                        bus.route_name_.trim() + ( bus.name_ ?  " ( " + bus.name_ + " ) " : ""),
-                        bus.last_lat_.toFixed(4) + " " + bus.last_lon_.toFixed(4)].join('<br/>')
+                        bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
+                        bus.last_lat_.toFixed(4) + " " + bus.last_lon_.toFixed(4),
+                        (bus.low_floor ? "Низкопол" : "") + " " + bus_type].join('<br/>')
 
                     return bus
                 })
@@ -539,7 +550,7 @@
         }
     }
 
-        function setCookie(name, value, options) {
+    function setCookie(name, value, options) {
         options = options || {};
 
         var expires = options.expires;
