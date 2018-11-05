@@ -95,8 +95,8 @@ class CdsBusPosition(NamedTuple):
             return QUICK_FIX_DIST
         return distance(lat, lon, self.lat, self.lon)
 
-    def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
-        (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
+    def distance_km(self, bus_stop: BusStop = None, position: UserLoc = None):
+        (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (position.lat, position.lon)
         if lat is None or lon is None:
             return QUICK_FIX_DIST
         return distance_km(lat, lon, self.lat, self.lon)

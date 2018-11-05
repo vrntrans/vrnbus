@@ -117,13 +117,8 @@ class CdsSpeedTestCase(unittest.TestCase):
         self.cds = CdsRequest(logger, self.mock_provider)
 
     def test_avg_speed(self):
-        query = 'про 1КВ 1КС 3 3В 5 5А 6 6М 8 9КА 9КС'
-        search_request = parse_routes(query)
-        start = datetime.datetime.now()
-        result = self.cds.bus_request(search_request, short_format=True)
-        logger.info(result[0])
         avg_speeds = []
-        for i in range(10):
+        for i in range(50):
             time.sleep(0.01)
             self.cds.calc_avg_speed()
             avg_speeds.append(f"{self.cds.speed_dict['5А']:.2f} {self.cds.speed_dict['125']:.2f}")

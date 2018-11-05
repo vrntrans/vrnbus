@@ -45,6 +45,7 @@ class CdsRequest:
         self.avg_speed = 18.0
         self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=10))
+        self.bus_speed_dict = {}
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
 
@@ -176,6 +177,8 @@ class CdsRequest:
         def time_check(d: CdsRouteBus):
             if search_result.full_info:
                 return True
+            if self.bus_speed_dict.get(d.name_, 18) < 5:
+                return False
             return d.last_time_ and (now - d.last_time_) < delta
 
         def coords_check(d: CdsRouteBus, full_info):
@@ -231,9 +234,23 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_db_sec)
     def load_all_cds_buses_from_db(self) -> List[CdsRouteBus]:
+        def calc_speed(bus_positions: Deque[CdsBusPosition]):
+            if len(bus_positions) < 3:
+                return 18
+            bus_positions = sorted(bus_positions, key=lambda x: x.last_time)
+            curr_pos = bus_positions[0]
+            dist = 0
+            for pos in bus_positions:
+                dist = dist + pos.distance_km(position=curr_pos)
+                curr_pos = pos
+            delta = bus_positions[-1].last_time - bus_positions[0].last_time
+            return dist * 3600 // delta.seconds
+
         def update_last_bus_data(buses):
             for bus in buses:
                 self.add_last_bus_data(bus.name_, bus.get_bus_position())
+            for (k, v) in self.last_bus_data.items():
+                self.bus_speed_dict[k] = calc_speed(v)
 
         while self.fetching_in_progress:
             self.logger.info("Waiting for previous DB query")
@@ -271,7 +288,9 @@ class CdsRequest:
         speed_dict = {}
         curr_bus_routes = Counter((x.route_name_ for x in bus_list))
         for (route, size) in curr_bus_routes.items():
-            speed_dict[route] = sum((x.last_speed_ for x in bus_list if x.route_name_ == route)) / size
+            speed_dict[route] = sum((
+                self.bus_speed_dict.get(x.name_, 18) for x in bus_list
+                if x.route_name_ == route and self.bus_speed_dict.get(x.name_, 18) > 1)) / size
         self.speed_dict = speed_dict
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
