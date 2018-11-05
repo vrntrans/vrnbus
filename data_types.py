@@ -83,8 +83,8 @@ class CoddRouteBus(NamedTuple):
 
 
 class CdsBusPosition(NamedTuple):
-    last_lat: float
-    last_lon: float
+    lat: float
+    lon: float
     last_time: datetime.datetime
 
     def distance(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
@@ -93,13 +93,13 @@ class CdsBusPosition(NamedTuple):
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         if lat is None or lon is None:
             return QUICK_FIX_DIST
-        return distance(lat, lon, self.last_lat, self.last_lon)
+        return distance(lat, lon, self.lat, self.lon)
 
     def distance_km(self, bus_stop: BusStop = None, user_loc: UserLoc = None):
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (user_loc.lat, user_loc.lon)
         if lat is None or lon is None:
             return QUICK_FIX_DIST
-        return distance_km(lat, lon, self.last_lat, self.last_lon)
+        return distance_km(lat, lon, self.lat, self.lon)
 
 
 class CdsRouteBus(NamedTuple):

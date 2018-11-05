@@ -1,5 +1,6 @@
 import datetime
 import logging
+import time
 import unittest
 
 from cds import CdsRequest
@@ -23,7 +24,7 @@ class CdsRouteTestCase(unittest.TestCase):
         self.date_time = datetime.datetime(2018, 2, 15, 19, 56, 53)
 
     def test_routes_on_bus_stop(self):
-        result = self.cds.get_routes_on_bus_stop('у-м Молодежный (ул. Лизюкова в центр)')
+        result = self.cds.get_routes_on_bus_stop(57)
         self.assertTrue(result)
 
     def test_bus_stop_distance(self):
@@ -77,8 +78,7 @@ class CdsRouteTestCase(unittest.TestCase):
             "80",
             0,
             "2018-02-15T19:54:56",
-            "Рабочий проспект (из центра)",
-            None
+            "Рабочий проспект (из центра)"
         ])
 
         station = self.cds.get_closest_bus_stop(route_bus)
@@ -115,6 +115,19 @@ class CdsSpeedTestCase(unittest.TestCase):
         logger = logging.getLogger("vrnbus")
         self.mock_provider = CdsTestDataProvider(logger)
         self.cds = CdsRequest(logger, self.mock_provider)
+
+    def test_avg_speed(self):
+        query = 'про 1КВ 1КС 3 3В 5 5А 6 6М 8 9КА 9КС'
+        search_request = parse_routes(query)
+        start = datetime.datetime.now()
+        result = self.cds.bus_request(search_request, short_format=True)
+        logger.info(result[0])
+        avg_speeds = []
+        for i in range(10):
+            time.sleep(0.01)
+            self.cds.calc_avg_speed()
+            avg_speeds.append(f"{self.cds.speed_dict['5А']:.2f} {self.cds.speed_dict['125']:.2f}")
+        logger.info("\n".join(avg_speeds))
 
     def test_speed_businfo(self):
         query = 'про 1КВ 1КС 3 3В 5 5А 6 6М 8 9КА 9КС 10А 11 13 14В 15 15А 16В 17 18 23К 25А 26А 27 33К Тр.7 Тр.8 Тр.11 Тр.17'
@@ -174,7 +187,7 @@ class CdsBusArrivalTestCases(unittest.TestCase):
         self.processor = WebDataProcessor(self.cds, self.logger)
 
     def test_arrival(self):
-        result = self.processor.get_arrival("про", 51.692727, 39.18297)
+        result = self.processor.get_arrival("про 49 5а", 51.692727, 39.18297)
         stops = result['bus_stops']
         counts = 0
         for k, v in stops.items():
@@ -182,6 +195,7 @@ class CdsBusArrivalTestCases(unittest.TestCase):
             self.logger.info(v)
             counts += len(v.split('\n'))
             break
+        self.logger.info(result)
         self.logger.info(counts)
 
     def test_arrival_distance(self):

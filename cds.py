@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import timedelta
 from itertools import groupby, product
 from logging import Logger
-from typing import Iterable, Container, List, Optional
+from typing import Iterable, Container, List, Optional, Deque
 
 import cachetools.func
 import pytz
@@ -48,10 +48,10 @@ class CdsRequest:
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
 
-    def get_last_bus_data(self, bus_name):
+    def get_last_bus_data(self, bus_name) -> Deque[CdsBusPosition]:
         return self.last_bus_data.get(bus_name)
 
-    def add_last_bus_data(self, bus_name, bus_data):
+    def add_last_bus_data(self, bus_name, bus_data: CdsBusPosition):
         value = self.last_bus_data[bus_name]
         if bus_data in value:
             return
@@ -113,7 +113,7 @@ class CdsRequest:
                 if n1 > n2 and ((n1 <= m_num and n2 <= m_num) or (n1 >= m_num and n2 >= m_num)):
                     return s1
 
-            self.logger.warning(f"Bus stop for {route_name} ({last_position.last_lat}, {last_position.last_lon})")
+            self.logger.warning(f"Bus stop for {route_name} ({last_position.lat}, {last_position.lon})")
 
         return curr_1
 
@@ -178,6 +178,16 @@ class CdsRequest:
                 return True
             return d.last_time_ and (now - d.last_time_) < delta
 
+        def coords_check(d: CdsRouteBus, full_info):
+            if full_info:
+                return True
+            last_points = self.get_last_bus_data(d.name_)
+            if len(last_points) < 5:
+                return
+            dist = 0
+            curr_el = last_points[0]
+            return d.last_time_ and (now - d.last_time_) < delta
+
         def filtered(d: CdsRouteBus):
             return d.filter_by_name(search_result.bus_filter)
 
@@ -240,9 +250,11 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def calc_avg_speed(self):
         def time_filter(bus: CdsRouteBus):
-            if not bus.last_time_ or bus.last_time_ < last_n_minutes:
+            if not bus.last_station_time_ or not bus.last_time_:
                 return False
-            if bus.last_station_time_ and bus.last_station_time_ < last_n_minutes:
+            if bus.last_time_ < last_n_minutes:
+                return False
+            if bus.last_station_time_ < last_n_minutes:
                 return False
             return True
 
@@ -250,7 +262,7 @@ class CdsRequest:
         now = self.now()
         last_n_minutes = now - timedelta(minutes=15)
         bus_list = list(filter(time_filter, bus_full_list))
-        self.logger.info(f'Buses in last 15 munutes {len(bus_list)} from {len(bus_full_list)}')
+        self.logger.debug(f'Buses in last 15 munutes {len(bus_list)} from {len(bus_full_list)}')
         sum_speed = sum((x.last_speed_ for x in bus_list))
         if len(bus_list) > 0:
             self.speed_deque.append(sum_speed * 1.0 / len(bus_list))
@@ -445,7 +457,7 @@ class CdsRequest:
                 break
         return dist
 
-    @cachetools.func.ttl_cache()
+    @cachetools.func.ttl_cache(maxsize=4096)
     def get_routes_on_bus_stop(self, bus_stop_id):
         result = []
         for (k, v) in self.bus_routes.items():
