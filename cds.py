@@ -44,8 +44,9 @@ class CdsRequest:
 
         self.avg_speed = 18.0
         self.fetching_in_progress = False
-        self.last_bus_data = defaultdict(lambda: deque(maxlen=10))
+        self.last_bus_data = defaultdict(lambda: deque(maxlen=20))
         self.bus_speed_dict = {}
+        self.bus_onroute_dict = {}
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
 
@@ -80,6 +81,15 @@ class CdsRequest:
                                   key=lambda s: natural_sort_key(s.route_name_))
             return short_result
         return []
+
+    def get_closest_bus_stop_unchecked(self, route_name: str, bus_position: CdsBusPosition):
+        bus_stops = self.bus_routes.get(route_name, [])
+
+        if not bus_stops or len(bus_stops) < 2:
+            return
+
+        result = min(bus_stops, key=bus_position.distance)
+        return result
 
     def get_closest_bus_stop_checked(self, route_name: str, bus_positions: Container[CdsBusPosition]):
         bus_stops = self.bus_routes.get(route_name, [])
@@ -177,6 +187,8 @@ class CdsRequest:
         def time_check(d: CdsRouteBus):
             if search_result.full_info:
                 return True
+            if not self.bus_onroute_dict.get(d.name_, False):
+                return
             if self.bus_speed_dict.get(d.name_, 18) < 5:
                 return False
             return d.last_time_ and (now - d.last_time_) < delta
@@ -249,8 +261,11 @@ class CdsRequest:
         def update_last_bus_data(buses):
             for bus in buses:
                 self.add_last_bus_data(bus.name_, bus.get_bus_position())
+                bus_stop = self.get_closest_bus_stop_unchecked(bus.route_name_, bus)
+                self.bus_onroute_dict[bus.name_] = bus.distance_km(bus_stop) < 1
             for (k, v) in self.last_bus_data.items():
                 self.bus_speed_dict[k] = calc_speed(v)
+
 
         while self.fetching_in_progress:
             self.logger.info("Waiting for previous DB query")
