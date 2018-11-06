@@ -465,7 +465,11 @@
                 "iconContent": icon_content,
                 "rotation": rotation,
                 "clusterCaption": icon_content + ' ' + hint_content
+            },
+            "options":{
+                iconImageHref: bus.low_floor === 1 ? 'bus_round_lf.png' : 'bus_round.png',
             }
+
         }
     }
 
