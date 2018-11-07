@@ -116,17 +116,18 @@ class CdsRouteBus(NamedTuple):
     bus_station_: str = ""
     low_floor: bool = False
     bus_type: int = 0
+    avg_speed: float = 0
 
     @staticmethod
     def make(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
-             type_proj, last_station_time_, bus_station_):
+             type_proj, last_station_time_, bus_station_, low_floor=False, bus_type=0, avg_speed=18):
         try:
             last_time_ = get_iso_time(last_time_)
             last_station_time_ = get_iso_time(last_station_time_) if last_station_time_ else None
         except Exception as e:
             print(e)
         return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_,
-                           route_name_, type_proj, last_station_time_, bus_station_)
+                           route_name_, type_proj, last_station_time_, bus_station_, low_floor, bus_type, avg_speed)
 
     def get_bus_position(self) -> CdsBusPosition:
         return CdsBusPosition(self.last_lat_, self.last_lon_, self.last_time_)

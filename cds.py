@@ -180,7 +180,7 @@ class CdsRequest:
             if not bus_station == d.bus_station_:
                 orig_bus_stop = (' | ' + str(d.bus_station_))
 
-            return f"{result} {d.name_}{orig_bus_stop}"
+            return f"{result} {d.name_}, {d.last_speed_:.1f} ~ {self.bus_speed_dict.get(d.name_, 18):.1f} км/ч {orig_bus_stop}"
         return result
 
     def filter_bus_list(self, bus_list, search_result: SearchResult):
@@ -246,24 +246,24 @@ class CdsRequest:
                 dist = dist + pos.distance_km(position=curr_pos)
                 curr_pos = pos
             delta = bus_positions[-1].last_time - bus_positions[0].last_time
-            return dist * 3600 // delta.seconds
+            return dist * 3600 / delta.seconds
 
-        def update_last_bus_data(buses):
+        def update_last_bus_data(buses: List[CdsRouteBus]):
             for bus in buses:
                 self.add_last_bus_data(bus.name_, bus.get_bus_position())
                 bus_stop = self.get_closest_bus_stop_unchecked(bus.route_name_, bus)
                 self.bus_onroute_dict[bus.name_] = bus.distance_km(bus_stop) < 1
             for (k, v) in self.last_bus_data.items():
                 self.bus_speed_dict[k] = calc_speed(v)
-
+            return [x._replace(avg_speed=self.bus_speed_dict.get(x.name_, 18)) for x in buses]
 
         while self.fetching_in_progress:
             self.logger.info("Waiting for previous DB query")
             time.sleep(1)
         try:
             self.fetching_in_progress = True
-            result = self.data_provider.load_all_cds_buses()
-            update_last_bus_data(result)
+            all_buses = self.data_provider.load_all_cds_buses()
+            result = update_last_bus_data(all_buses)
             result.sort(key=lambda s: s.last_time_, reverse=True)
         finally:
             self.fetching_in_progress = False

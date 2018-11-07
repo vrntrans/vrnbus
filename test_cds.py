@@ -119,7 +119,7 @@ class CdsSpeedTestCase(unittest.TestCase):
     def test_avg_speed(self):
         avg_speeds = []
         for i in range(50):
-            time.sleep(0.01)
+            time.sleep(0.005)
             self.cds.calc_avg_speed()
             avg_speeds.append(f"{self.cds.speed_dict['5А']:.2f} {self.cds.speed_dict['125']:.2f}")
         logger.info("\n".join(avg_speeds))
