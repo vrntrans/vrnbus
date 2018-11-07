@@ -189,25 +189,15 @@ class CdsRequest:
                 return True
             if not self.bus_onroute_dict.get(d.name_, False):
                 return
-            if self.bus_speed_dict.get(d.name_, 18) < 5:
+            if self.bus_speed_dict.get(d.name_, 18) < 1:
                 return False
-            return d.last_time_ and (now - d.last_time_) < delta
-
-        def coords_check(d: CdsRouteBus, full_info):
-            if full_info:
-                return True
-            last_points = self.get_last_bus_data(d.name_)
-            if len(last_points) < 5:
-                return
-            dist = 0
-            curr_el = last_points[0]
             return d.last_time_ and (now - d.last_time_) < delta
 
         def filtered(d: CdsRouteBus):
             return d.filter_by_name(search_result.bus_filter)
 
         now = self.now()
-        delta = timedelta(minutes=30)
+        delta = timedelta(minutes=15)
         stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d)))
                              for d in bus_list if filtered(d) and time_check(d)]
         return stations_filtered
