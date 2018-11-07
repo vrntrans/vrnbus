@@ -46,6 +46,7 @@ class CdsRequest:
         self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=20))
         self.bus_speed_dict = {}
+        self.bus_last_speed_dict = {}
         self.bus_onroute_dict = {}
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
@@ -82,14 +83,17 @@ class CdsRequest:
             return short_result
         return []
 
-    def get_closest_bus_stop_unchecked(self, route_name: str, bus_position: CdsBusPosition):
-        bus_stops = self.bus_routes.get(route_name, [])
+    def is_bus_on_the_route(self, route_name: str, bus_position: CdsBusPosition):
+        if not bus_position.is_valid_coords():
+            return False
+        route_stops = self.bus_routes.get(route_name, [])
 
-        if not bus_stops or len(bus_stops) < 2:
-            return
+        if not route_stops or len(route_stops) < 2:
+            return False
 
-        result = min(bus_stops, key=bus_position.distance)
-        return result
+        result = next((x for x in route_stops
+                         if bus_position.distance_km(x) < 1), None)
+        return result is not None
 
     def get_closest_bus_stop_checked(self, route_name: str, bus_positions: Container[CdsBusPosition]):
         bus_stops = self.bus_routes.get(route_name, [])
@@ -236,10 +240,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_db_sec)
     def load_all_cds_buses_from_db(self) -> List[CdsRouteBus]:
-        def calc_speed(bus_positions: Deque[CdsBusPosition]):
-            if len(bus_positions) < 3:
-                return 18
-            bus_positions = sorted(bus_positions, key=lambda x: x.last_time)
+        def calc_speed(bus_positions: List[CdsBusPosition]):
             curr_pos = bus_positions[0]
             dist = 0
             for pos in bus_positions:
@@ -248,18 +249,37 @@ class CdsRequest:
             delta = bus_positions[-1].last_time - bus_positions[0].last_time
             return dist * 3600 / delta.seconds
 
+        def calc_result_speed(bus_positions: List[CdsBusPosition]):
+            if len(bus_positions) < 2:
+                return 18
+            last_speed = calc_speed(bus_positions[:3])
+            avg_speed = calc_speed(bus_positions)
+
+        def update_average_speeds():
+            for (k, bus_positions) in self.last_bus_data.items():
+                if len(bus_positions) < 2:
+                    continue
+                bus_positions = list(sorted(bus_positions, key=lambda x: x.last_time))
+                last_speed = calc_speed(bus_positions[-3:])
+                avg_speed = calc_speed(bus_positions)
+                if avg_speed < 5 and last_speed > 5:
+                    self.last_bus_data[k] = deque(bus_positions[-3:], maxlen=20)
+                    avg_speed = last_speed
+                self.bus_last_speed_dict[k] = last_speed
+                self.bus_speed_dict[k] = avg_speed
+
         def update_last_bus_data(buses: List[CdsRouteBus]):
             for bus in buses:
-                self.add_last_bus_data(bus.name_, bus.get_bus_position())
-                bus_stop = self.get_closest_bus_stop_unchecked(bus.route_name_, bus)
-                self.bus_onroute_dict[bus.name_] = bus.distance_km(bus_stop) < 1
-            for (k, v) in self.last_bus_data.items():
-                self.bus_speed_dict[k] = calc_speed(v)
-            return [x._replace(avg_speed=self.bus_speed_dict.get(x.name_, 18)) for x in buses]
+                bus_position = bus.get_bus_position()
+                self.add_last_bus_data(bus.name_, bus_position)
+                self.bus_onroute_dict[bus.name_] = self.is_bus_on_the_route(bus.route_name_, bus_position)
+            update_average_speeds()
+            return [x._replace(avg_speed=self.bus_speed_dict.get(x.name_, 18),
+                               avg_last_speed=self.bus_last_speed_dict.get(x.name_, 18)) for x in buses]
 
         while self.fetching_in_progress:
             self.logger.info("Waiting for previous DB query")
-            time.sleep(1)
+            time.sleep(5)
         try:
             self.fetching_in_progress = True
             all_buses = self.data_provider.load_all_cds_buses()

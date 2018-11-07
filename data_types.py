@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import NamedTuple, List, Dict
+from typing import NamedTuple, List, Dict, Union
 
 from helpers import distance_km, distance, get_iso_time, QUICK_FIX_DIST
 
@@ -95,11 +95,14 @@ class CdsBusPosition(NamedTuple):
             return QUICK_FIX_DIST
         return distance(lat, lon, self.lat, self.lon)
 
-    def distance_km(self, bus_stop: BusStop = None, position: UserLoc = None):
+    def distance_km(self, bus_stop: BusStop = None, position: Union[UserLoc, NamedTuple] = None):
         (lat, lon) = (bus_stop.LAT_, bus_stop.LON_) if bus_stop else (position.lat, position.lon)
         if lat is None or lon is None:
             return QUICK_FIX_DIST
         return distance_km(lat, lon, self.lat, self.lon)
+
+    def is_valid_coords(self):
+        return self.lat > 0.0 and self.lon > 0.0
 
 
 class CdsRouteBus(NamedTuple):
@@ -117,6 +120,7 @@ class CdsRouteBus(NamedTuple):
     low_floor: bool = False
     bus_type: int = 0
     avg_speed: float = 0
+    avg_last_speed: float = 0
 
     @staticmethod
     def make(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,

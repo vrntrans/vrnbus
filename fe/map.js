@@ -307,7 +307,8 @@
                         bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
                         bus.last_lat_.toFixed(4) + " " + bus.last_lon_.toFixed(4)
                             + " " + bus.last_speed_.toFixed(1)
-                            + " ~ " + bus.avg_speed.toFixed(1),
+                            + " ~ " + bus.avg_speed.toFixed(1)
+                            + " ~ " + bus.avg_last_speed.toFixed(1),
                         (bus.low_floor ? "Низкопол" : "") + " " + bus_type].join('<br/>')
 
                     return bus
