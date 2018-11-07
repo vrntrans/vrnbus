@@ -376,7 +376,7 @@
                 })
 
                 select.onchange = function () {
-                    var text = select.options[select.selectedIndex].text; // Текстовое значение для выбранного option
+                    var text = select.options[select.selectedIndex].value; // Текстовое значение для выбранного option
                     if (text !== '-') {
                         if (lastbusquery)
                             lastbusquery.value += ' ' + text
