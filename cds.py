@@ -178,14 +178,16 @@ class CdsRequest:
         day_info = ""
         if self.now() - d.last_time_ > timedelta(days=1):
             day_info = f'{d.last_time_:%d.%m} '
+        speed_info = f' {d.last_speed_:.1f} ~ {self.bus_speed_dict.get(d.name_, 18):.1f} км/ч'
         result = f"{route_name}{day_info}{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
+
         if full_info:
             orig_bus_stop = ""
             if not bus_station == d.bus_station_:
                 orig_bus_stop = (' | ' + str(d.bus_station_))
 
-            return f"{result} {d.name_}, {d.last_speed_:.1f} ~ {self.bus_speed_dict.get(d.name_, 18):.1f} км/ч {orig_bus_stop}"
-        return result
+            return f"{result} {d.name_},{speed_info} {orig_bus_stop}"
+        return result + speed_info
 
     def filter_bus_list(self, bus_list, search_result: SearchResult):
         def time_check(d: CdsRouteBus):
@@ -363,8 +365,8 @@ class CdsRequest:
                 return False
             return True
 
-        def time_to_arrive(km, last_time):
-            speed = self.avg_speed if self.avg_speed > 0.1 else 0.1
+        def time_to_arrive(km, last_time, avg_speed):
+            speed = avg_speed if avg_speed > 0.1 else 0.1
             minutes = (km * 60 / speed)
             time_diff = now - last_time
             return minutes - time_diff.seconds / 60
@@ -391,7 +393,7 @@ class CdsRequest:
             if bus.bus_station_ != closest_stop.NAME_:
                 route_dist += self.get_dist(bus.route_name_, bus.bus_station_, bus_stop_name)
             dist = bus_dist + route_dist
-            time_left = time_to_arrive(dist, bus.last_time_)
+            time_left = time_to_arrive(dist, bus.last_time_, self.bus_speed_dict.get(bus.name_, 18))
             if (same_station or route_dist > 0) and dist < 20 and time_left < 30:
                 result.append(ArrivalBusStopInfo(bus, dist, time_left))
         return result
