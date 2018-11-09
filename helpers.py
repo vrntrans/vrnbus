@@ -25,6 +25,7 @@ class SearchResult(NamedTuple):
     full_info: bool = False
     bus_routes: tuple = tuple()
     bus_filter: str = ''
+    all_buses: bool = False
 
 
 tz = pytz.timezone('Europe/Moscow')
@@ -38,7 +39,7 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
 
 def parse_routes(text):
     if not text:
-        return SearchResult()
+        return SearchResult()._replace(all_buses=True)
     if isinstance(text, (list, tuple,)):
         text = ' '.join(text)
     args = re.split("[ ,;]+", text)

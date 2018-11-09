@@ -210,7 +210,10 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request(self, search_result: SearchResult, user_loc: UserLoc = None, short_format=False):
-        keys = set([x for x in self.codd_routes.keys()
+        if search_result.all_buses:
+            keys = set(self.codd_routes.keys())
+        else:
+            keys = set([x for x in self.codd_routes.keys()
                     for r in search_result.bus_routes if x.upper() == r.upper()])
 
         if not keys and search_result.bus_filter == '':
