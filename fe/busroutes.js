@@ -46,11 +46,18 @@
                 if (curr_point == item) {
                     return
                 }
+
                 var edge_key = [curr_point.ID, item.ID]
+                var edge_info = `${route_name} ( ${edge_key} ) ${curr_point.NAME_} - ${item.NAME_} (${curr_point.NUMBER_}, ${item.NUMBER_})`
                 if (edge_key in edges) {
-                    console.log(edge_key)
+                    curr_point = item
                     return
                 }
+
+                if (curr_point.NUMBER_ == item.NUMBER_){
+                    console.log(edge_info)
+                }
+
 
                 var pointA = new L.LatLng(curr_point.LAT_, curr_point.LON_);
                 var pointB = new L.LatLng(item.LAT_, item.LON_);
@@ -61,7 +68,7 @@
                     weight: 3,
                     opacity: 0.5,
                     smoothFactor: 1
-                }).bindPopup(`${route_name} ( ${edge_key} ) ${curr_point.NAME_} - ${item.NAME_}`);
+                }).bindPopup(edge_info);
                 // firstpolyline.addTo(map);
                 drawn_items.addLayer(firstpolyline)
 
