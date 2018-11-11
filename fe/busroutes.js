@@ -12,7 +12,7 @@
 
     function get_bus_stops_routes() {
         if (bus_route_stops.length > 0) {
-            return update_bus_stops(bus_route_stops, show_labels, show_id_only, show_png_markers)
+            return  update_bus_stops_routes(bus_route_stops)
         }
 
         return fetch('/bus_stops_routes',
@@ -31,7 +31,37 @@
             })
     }
 
-    function update_bus_stops_routes(bus_stops_routes) {
+        function get_bus_list() {
+        return fetch('/buslist',
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+            })
+            .then(function (res) {
+                return res.json()
+            })
+            .then(function (data) {
+                var bus_list = data.result
+
+                var select = document.getElementById('bus_routes')
+                select.appendChild(new Option('Все маршруты', ''))
+                bus_list.forEach(function (bus_name) {
+                    var opt = new Option(bus_name, bus_name)
+                    select.appendChild(opt)
+                })
+
+                select.onchange = function () {
+                    var route_name = select.options[select.selectedIndex].value;
+                    update_bus_stops_routes(bus_route_stops, route_name)
+                }
+            })
+    }
+
+
+    function update_bus_stops_routes(bus_stops_routes, selected_route_name) {
         drawn_items.clearLayers()
         marker_group.clearLayers()
         var edges = {}
@@ -40,10 +70,12 @@
         for (var route_name in bus_stops_routes) {
             if (!route_name)
                 continue
+            if (selected_route_name && route_name !== selected_route_name)
+                continue
             var route = bus_stops_routes[route_name]
             var curr_point = route[0]
             route.forEach(function (item) {
-                if (curr_point == item) {
+                if (curr_point === item) {
                     return
                 }
 
@@ -54,7 +86,7 @@
                     return
                 }
 
-                if (curr_point.NUMBER_ == item.NUMBER_){
+                if (curr_point.NUMBER_ === item.NUMBER_){
                     console.log(edge_info)
                 }
 
@@ -67,7 +99,9 @@
                     color: 'red',
                     weight: 3,
                     opacity: 0.5,
-                    smoothFactor: 1
+                    smoothFactor: 1,
+                    edge_key: edge_key,
+                    edge_info: edge_info
                 }).bindPopup(edge_info);
                 // firstpolyline.addTo(map);
                 drawn_items.addLayer(firstpolyline)
@@ -141,15 +175,22 @@
         }));
 
 
-        map.on("draw:created draw:edited", function (event) {
+        map.on("draw:created", function (event) {
             var layer = event.layer;
 
             // drawn_items.addLayer(layer);
         });
 
+        map.on('draw:edited', function (e) {
+         var layers = e.layers;
+         layers.eachLayer(function (layer) {
+             console.log(layer  )
+         });
+     });
+
         marker_group = L.layerGroup().addTo(map);
 
-
+        get_bus_list()
         get_bus_stops_routes()
     }
 

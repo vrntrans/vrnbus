@@ -12,19 +12,19 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <link href='https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/leaflet.fullscreen.css'
           rel='stylesheet'/>
-    <title>vrnbus (beta) | Карта с остановками</title>
+    <title>vrnbus (beta) | Карта с маршрутами</title>
 </head>
-<body>
+<body class="box">
 <div class="menu">
     <div><b>Маршруты</b></div>
     <div><a href="businfo.html">Автобусы</a></div>
     <div><a href="map.html">Карта</a></div>
     <div><a href="feedback.html">О проекте</a></div>
 </div>
-<div id="mapid" style="width: 100%; height: 400px"></div>
-<div>
-    <div id="businfo" style="white-space:pre-wrap;"></div>
+<div class="input-row">
+    <select class="input-row" id="bus_routes"></select>
 </div>
+<div id="mapid" class="map"></div>
 
 <script>
     (window.fetch && window.Promise && Array.prototype.find && String.prototype.includes) || document.write(
