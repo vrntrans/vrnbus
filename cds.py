@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import timedelta
 from itertools import groupby, product
 from logging import Logger
-from typing import Iterable, Container, List, Optional, Deque
+from typing import Iterable, Container, List, Optional, Deque, Union, Collection
 
 import cachetools.func
 import pytz
@@ -74,11 +74,11 @@ class CdsRequest:
 
         keys = set([x for x in self.codd_routes.keys() for r in bus_routes if x.upper() == r.upper()])
 
-        routes = self.load_cds_buses_from_db(tuple(keys))
-        self.logger.debug(f'Loaded {len(routes)} buses from DB for {bus_routes} query')
-        if routes:
+        bus_on_routes = self.load_cds_buses_from_db(tuple(keys))
+        self.logger.debug(f'Loaded {len(bus_on_routes)} buses from DB for {bus_routes} query')
+        if bus_on_routes:
             last_week = self.now() - timedelta(days=7)
-            short_result = sorted([d for d in routes if key_check(d)],
+            short_result = sorted([d for d in bus_on_routes if key_check(d)],
                                   key=lambda s: natural_sort_key(s.route_name_))
             return short_result
         return []
@@ -334,7 +334,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     @retry_multi()
-    def load_cds_buses_from_db(self, keys) -> Iterable[CdsRouteBus]:
+    def load_cds_buses_from_db(self, keys) -> Collection[CdsRouteBus]:
         all_buses = self.load_all_cds_buses_from_db()
         if not keys:
             return all_buses
@@ -347,7 +347,7 @@ class CdsRequest:
             return -1
         return bus_stop.ID or self.bus_stops.index(bus_stop)
 
-    def get_bus_stop_from_id(self, id) -> BusStop:
+    def get_bus_stop_from_id(self, id) -> Union[BusStop, None]:
         bus_stop = next(filter(lambda x: x.ID == id, self.bus_stops), None)
         if bus_stop:
             return bus_stop
