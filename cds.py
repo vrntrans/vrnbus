@@ -75,7 +75,7 @@ class CdsRequest:
         keys = set([x for x in self.codd_routes.keys() for r in bus_routes if x.upper() == r.upper()])
 
         routes = self.load_cds_buses_from_db(tuple(keys))
-        self.logger.debug(routes)
+        self.logger.debug(f'Loaded {len(routes)} buses from DB for {bus_routes} query')
         if routes:
             last_week = self.now() - timedelta(days=7)
             short_result = sorted([d for d in routes if key_check(d)],
@@ -128,7 +128,7 @@ class CdsRequest:
                 if n1 > n2 and ((n1 <= m_num and n2 <= m_num) or (n1 >= m_num and n2 >= m_num)):
                     return s1
 
-            self.logger.warning(f"Bus stop for {route_name} ({last_position.lat}, {last_position.lon})")
+            self.logger.debug(f"Bus stop for {route_name} ({last_position.lat}, {last_position.lon})")
 
         return curr_1
 
@@ -168,7 +168,7 @@ class CdsRequest:
             return
         result = self.get_closest_bus_stop(bus_info)
         if not result or not result.NAME_:
-            self.logger.warning(f"{result} {bus_info}")
+            self.logger.debug(f"{result} {bus_info}")
         return result and result.NAME_
 
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
@@ -527,7 +527,7 @@ class CdsRequest:
     def get_next_bus_stop(self, route_name, bus_stop_name):
         route = self.bus_routes.get(route_name, [])
         if not route:
-            self.logger.warning(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
+            self.logger.debug(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
             return
         size = len(route)
         for (i, v) in enumerate(route):
@@ -542,7 +542,7 @@ class CdsRequest:
         if bus_stop:
             return bus_stop
         else:
-            self.logger.warning(f"Cannot found {bus_stop_name}, will return first bus_stop")
+            self.logger.debug(f"Cannot found {bus_stop_name}, will return first bus_stop")
             return self.bus_stops[0]
 
     def is_bus_stop_name(self, s):
