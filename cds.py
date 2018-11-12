@@ -276,7 +276,7 @@ class CdsRequest:
 
                 last_speed = calc_speed(bus_positions[-3:])
                 avg_speed = calc_speed(bus_positions)
-                if avg_speed < 5 and last_speed > 5:
+                if (avg_speed < 5 < last_speed) or (last_speed > avg_speed * 2):
                     self.last_bus_data[k] = deque(bus_positions[-3:], maxlen=20)
                     avg_speed = last_speed
                 self.bus_last_speed_dict[k] = last_speed
