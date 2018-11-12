@@ -249,9 +249,13 @@ class CdsRequest:
             curr_pos = bus_positions[0]
             dist = 0
             for pos in bus_positions:
+                if not pos.is_valid_coords():
+                    continue
                 dist = dist + pos.distance_km(position=curr_pos)
                 curr_pos = pos
             delta = bus_positions[-1].last_time - bus_positions[0].last_time
+            if delta.seconds == 0:
+                return 0.00001
             return dist * 3600 / delta.seconds
 
         def calc_result_speed(bus_positions: List[CdsBusPosition]):
@@ -264,7 +268,12 @@ class CdsRequest:
             for (k, bus_positions) in self.last_bus_data.items():
                 if len(bus_positions) < 2:
                     continue
+                bus_positions = list(filter(lambda bus: bus.is_valid_coords(), bus_positions))
+                if not bus_positions:
+                    continue
+
                 bus_positions = list(sorted(bus_positions, key=lambda x: x.last_time))
+
                 last_speed = calc_speed(bus_positions[-3:])
                 avg_speed = calc_speed(bus_positions)
                 if avg_speed < 5 and last_speed > 5:

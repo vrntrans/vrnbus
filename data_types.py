@@ -102,7 +102,7 @@ class CdsBusPosition(NamedTuple):
         return distance_km(lat, lon, self.lat, self.lon)
 
     def is_valid_coords(self):
-        return self.lat > 0.0 and self.lon > 0.0
+        return self.lat != 0.0 and self.lon != 0.0
 
 
 class CdsRouteBus(NamedTuple):

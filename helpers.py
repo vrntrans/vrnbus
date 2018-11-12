@@ -161,7 +161,7 @@ def retry_multi(max_retries=5):
                     ret = func(*args, **kwargs)
                     break
                 except Exception as e:
-                    logger.error(e)
+                    logger.exception(e)
                     if num_retries == max_retries:
                         raise
                     num_retries += 1
