@@ -40,6 +40,8 @@ if __name__ == "__main__":
         WebEvent.FRAUD,
         WebEvent.FULLINFO,
         WebEvent.IPCHANGE,
+        WebEvent.BUSMAP,
+        WebEvent.ARRIVAL,
         WebEvent.ANDROID,
         WebEvent.IOS
     ]
