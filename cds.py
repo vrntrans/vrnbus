@@ -10,6 +10,7 @@ from typing import Iterable, Container, List, Optional, Deque, Union, Collection
 
 import cachetools.func
 import pytz
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, \
     CdsBaseDataProvider, StatsData, ArrivalBusStopInfo, ArrivalBusStopInfoFull
@@ -42,6 +43,7 @@ class CdsRequest:
         self.bus_stops = [bs for bs in self.all_bus_stops if bs.LAT_ and bs.LON_]
         self.bus_routes = data_provider.load_bus_stations_routes()
 
+        self.all_cds_buses = []
         self.avg_speed = 18.0
         self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=20))
@@ -50,6 +52,14 @@ class CdsRequest:
         self.bus_onroute_dict = {}
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
+
+        self.update_all_cds_buses_from_db()
+        self.scheduler = BackgroundScheduler()
+        self.scheduler.start()
+        self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=20)
+
+    def stats_checking(self):
+        self.logger.info("Hello")
 
     def get_last_bus_data(self, bus_name) -> Deque[CdsBusPosition]:
         return self.last_bus_data.get(bus_name)
@@ -243,8 +253,10 @@ class CdsRequest:
     def now(self):
         return self.data_provider.now()
 
-    @cachetools.func.ttl_cache(ttl=ttl_db_sec)
     def load_all_cds_buses_from_db(self) -> List[CdsRouteBus]:
+        return self.all_cds_buses
+
+    def update_all_cds_buses_from_db(self):
         def calc_speed(bus_positions: List[CdsBusPosition]):
             curr_pos = bus_positions[0]
             dist = 0
@@ -301,7 +313,7 @@ class CdsRequest:
             result.sort(key=lambda s: s.last_time_, reverse=True)
         finally:
             self.fetching_in_progress = False
-        return result
+        self.all_cds_buses = result
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def calc_avg_speed(self):
