@@ -510,12 +510,26 @@
     }
 
     function ymap_show() {
+        var map_zoom = load_from_ls('map_zoom') || 13
+        var map_lat = load_from_ls('map_lat') || coords.latitude
+        var map_lon = load_from_ls('map_lon') || coords.longitude
+
         my_map = new ymaps.Map('map', {
-            center: [coords.latitude, coords.longitude],
-            zoom: 13
+            center: [map_lat, map_lon],
+            zoom: map_zoom
         }, {
-            searchControlProvider: 'yandex#search'
+            searchControlProvider: 'yandex#search',
+            minZoom: 11,
+            maxZoom: 19
         })
+
+        my_map.events.add('boundschange', function (event) {
+            save_to_ls('map_zoom', event.get('newZoom'))
+            var center =  event.get('newCenter')
+
+            save_to_ls('map_lat', center[0])
+            save_to_ls('map_lon', center[1])
+        });
 
         BusIconContentLayout = ymaps.templateLayoutFactory.createClass(
             '<img class="bus-icon" style=" z-index: -1; transform: rotate({{properties.rotation}}deg);" src="arrow.png">' +
