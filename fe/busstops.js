@@ -422,8 +422,8 @@
         //         '<img class="bus-icon" style=" z-index: 1;" src="bus_round.png">' +
         //         '<div class="bus-title" style="z-index: -2;"> HELLO </div>'
         // });
-        // you can set .my-div-icon styles in CSS
-        L.marker([51.6754966, 39.2088823], {icon: myIcon}).addTo(l_map);
+        // // you can set .my-div-icon styles in CSS
+        // L.marker([51.6754966, 39.2088823], {icon: myIcon}).addTo(l_map);
 
         var iconUrls = [
             'marker-icon-2x-blue.png',
