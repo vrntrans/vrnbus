@@ -37,7 +37,7 @@ user_settings = {}
 if __name__ == "__main__":
     log_ignore_events = [
         WebEvent.ABUSE,
-        WebEvent.FRAUD,
+        # WebEvent.FRAUD,
         WebEvent.FULLINFO,
         WebEvent.IPCHANGE,
         WebEvent.BUSMAP,
