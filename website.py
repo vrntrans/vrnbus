@@ -54,6 +54,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.caching()
 
     def caching(self, max_age=30):
+        self.set_header("Content-Type", "application/json; charset=utf-8")
         self.set_header("Cache-Control", f"max-age={max_age}")
 
     @property
@@ -110,7 +111,7 @@ class BusSite(tornado.web.Application):
             (r"/(.*.json)", static_handler, {"path": Path("./")}),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
         ]
-        tornado.web.Application.__init__(self, handlers)
+        tornado.web.Application.__init__(self, handlers, compress_response=True)
         self.logger = logger
         self.processor = processor
         self.tracker = tracker
