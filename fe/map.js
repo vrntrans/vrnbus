@@ -315,7 +315,7 @@
                 update_map(bus_with_azimuth, true)
             }).catch(function (error) {
                 waiting(lastbus_loading, lastbus_map_update, false)
-
+                console.error(error)
                 businfo.innerHTML = 'Ошибка: ' + error
             })
     }
@@ -404,6 +404,7 @@
             iconImageOffset: [-16, -16],
             iconContentOffset: [0, 0],
             iconContentLayout: BusIconContentLayout,
+            balloonMaxWidth: 250,
         })
 
         var features = []
@@ -466,7 +467,7 @@
                 "hintContent": hint_content,
                 "iconContent": icon_content,
                 "rotation": rotation,
-                "clusterCaption": icon_content + ' ' + hint_content
+                "clusterCaption": icon_content + ' ' + hint_content,
             },
             "options": {
                 iconImageHref: bus.low_floor === 1 ? 'bus_round_lf.png' : 'bus_round.png',
