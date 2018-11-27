@@ -455,7 +455,7 @@
         var balloon_content = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
         var lat = bus.lat2 || bus.last_lat_
         var lon = bus.lon2 || bus.last_lon_
-        var icon_content = bus.route_name_.trim()
+        var icon_content = bus.route_name_.trim() + (bus.name_ ? " " + bus.name_ : "")
         var rotation = bus.azimuth
 
         return {
