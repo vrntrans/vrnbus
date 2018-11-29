@@ -45,7 +45,7 @@ def parse_routes(text):
     args = re.split("[ ,;]+", text)
     if not args:
         return SearchResult()
-    result = []
+    route_filter = []
     bus_filter_start = False
     bus_filter = ''
     for i in args:
@@ -55,14 +55,14 @@ def parse_routes(text):
         if bus_filter_start:
             bus_filter += i
             continue
-        result.append(i)
-    if not result:
+        route_filter.append(i)
+    if not route_filter:
         return SearchResult(bus_filter=bus_filter)
-    full_info = result[0].upper() in ['PRO', 'ПРО']
+    full_info = route_filter[0].upper() in ['PRO', 'ПРО']
     if full_info:
-        result = result[1:]
+        route_filter = route_filter[1:]
 
-    return SearchResult(full_info, tuple(result), bus_filter)
+    return SearchResult(full_info, tuple(route_filter), bus_filter, not route_filter)
 
 
 def distance(lat1, lon1, lat2, lon2):
