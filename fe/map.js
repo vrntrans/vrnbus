@@ -248,6 +248,20 @@
         return ""
     }
 
+    function formate_date(last_time) {
+        function pad_zero(number) {
+            return ('0' + number).slice(-2)
+        }
+
+        var date = new Date(last_time)
+        var time = last_time.substring(last_time.length - 8)
+        if (Date.now() - date > (3600 * 1000 * 24)) {
+            time = date.getFullYear() + '-' + pad_zero(date.getMonth() + 1) + '-' + pad_zero(date.getDate()) + ' ' + time
+        }
+
+        return time
+    }
+
     function get_bus_positions(query) {
         waiting(lastbus_loading, lastbus_map_update, true)
 
@@ -291,11 +305,7 @@
                     var y = next_bus_stop.LON_ - bus.last_lon_
 
                     bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
-                    var date = new Date(bus.last_time_)
-                    var time =bus.last_time_.substring(bus.last_time_.length - 8)
-                    if (Date.now() - date > (3600*1000*24) ){
-                        time = bus.last_time_
-                    }
+                    var time = formate_date(bus.last_time_)
                     var bus_type = "МВ"
                     switch (bus.bus_type) {
                         case 3:
@@ -306,12 +316,11 @@
                             break
                     }
 
-
                     bus.desc = [time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
                         bus.last_speed_.toFixed(1)
-                            + " ~ " + bus.avg_speed.toFixed(1)
-                            + " ~ " + bus.avg_last_speed.toFixed(1),
+                        + " ~ " + bus.avg_speed.toFixed(1)
+                        + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',
                         (bus.low_floor ? "Низкопол" : "") + " " + bus_type].join('<br/>')
 
                     return bus
@@ -530,7 +539,7 @@
 
         my_map.events.add('boundschange', function (event) {
             save_to_ls('map_zoom', event.get('newZoom'))
-            var center =  event.get('newCenter')
+            var center = event.get('newCenter')
 
             save_to_ls('map_lat', center[0])
             save_to_ls('map_lon', center[1])
