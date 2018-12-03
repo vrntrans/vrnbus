@@ -291,7 +291,11 @@
                     var y = next_bus_stop.LON_ - bus.last_lon_
 
                     bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
-                    var time = bus.last_time_.substring(bus.last_time_.length - 8)
+                    var date = new Date(bus.last_time_)
+                    var time =bus.last_time_.substring(bus.last_time_.length - 8)
+                    if (Date.now() - date > (3600*1000*24) ){
+                        time = bus.last_time_
+                    }
                     var bus_type = "МВ"
                     switch (bus.bus_type) {
                         case 3:
