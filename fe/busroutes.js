@@ -68,6 +68,9 @@
         var edges = {}
         var bus_stops = {}
         var wrong_stops = []
+        var route_by_edges = {}
+
+        var natural_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
 
         for (var route_name in bus_stops_routes) {
             if (!route_name)
@@ -82,8 +85,18 @@
                 }
 
                 var edge_key = [curr_point.ID, item.ID]
-                var edge_info = `${route_name} ( ${edge_key} ) ${curr_point.NAME_} - ${item.NAME_} (${curr_point.NUMBER_}, ${item.NUMBER_})`
+                var edge_info = `( ${edge_key} ) ${curr_point.NAME_} - ${item.NAME_}`
+                if (!(edge_key in route_by_edges)){
+                    route_by_edges[edge_key] = []
+                }
+
+                route_by_edges[edge_key].push(route_name)
+                route_by_edges[edge_key].sort(natural_collator.compare)
+
                 if (edge_key in edges) {
+                    var edge = edges[edge_key]
+                    var routes = route_by_edges[edge_key]
+                    edge.setPopupContent(`${edge_info}<br/>` +  routes.join('<br/>'))
                     curr_point = item
                     return
                 }
