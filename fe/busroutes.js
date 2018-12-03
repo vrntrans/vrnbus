@@ -93,10 +93,12 @@
                 route_by_edges[edge_key].push(route_name)
                 route_by_edges[edge_key].sort(natural_collator.compare)
 
+                var edge = edges[edge_key]
+                var routes = route_by_edges[edge_key]
+                var popup_content = `${edge_info}<br/>` +  routes.join('<br/>')
+
                 if (edge_key in edges) {
-                    var edge = edges[edge_key]
-                    var routes = route_by_edges[edge_key]
-                    edge.setPopupContent(`${edge_info}<br/>` +  routes.join('<br/>'))
+                    edge.setPopupContent(popup_content)
                     curr_point = item
                     return
                 }
@@ -116,7 +118,7 @@
                     smoothFactor: 1,
                     edge_key: edge_key,
                     edge_info: edge_info
-                }).bindPopup(edge_info);
+                }).bindPopup(popup_content);
                 // firstpolyline.addTo(map);
                 drawn_items.addLayer(firstpolyline)
 
