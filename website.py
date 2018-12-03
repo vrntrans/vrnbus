@@ -53,7 +53,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_header("Tk", "N")
         self.caching()
 
-    def caching(self, max_age=30):
+    def caching(self, max_age=15):
         self.set_header("Content-Type", "application/json; charset=utf-8")
         self.set_header("Cache-Control", f"max-age={max_age}")
 
