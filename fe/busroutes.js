@@ -12,7 +12,7 @@
 
     function get_bus_stops_routes() {
         if (bus_route_stops.length > 0) {
-            return  update_bus_stops_routes(bus_route_stops)
+            return update_bus_stops_routes(bus_route_stops)
         }
 
         return fetch('/bus_stops_routes',
@@ -31,7 +31,7 @@
             })
     }
 
-        function get_bus_list() {
+    function get_bus_list() {
         return fetch('/buslist',
             {
                 method: 'GET',
@@ -64,7 +64,9 @@
     function update_bus_stops_routes(bus_stops_routes, selected_route_name) {
         drawn_items.clearLayers()
         marker_group.clearLayers()
+        var my_renderer = L.canvas({padding: 0.5});
         var edges = {}
+        var bus_stops = {}
         var wrong_stops = []
 
         for (var route_name in bus_stops_routes) {
@@ -86,18 +88,17 @@
                     return
                 }
 
-                if (curr_point.NUMBER_ === item.NUMBER_){
+                if (curr_point.NUMBER_ === item.NUMBER_) {
                     console.log(edge_info)
                 }
-
 
                 var pointA = new L.LatLng(curr_point.LAT_, curr_point.LON_);
                 var pointB = new L.LatLng(item.LAT_, item.LON_);
                 var pointList = [pointA, pointB];
 
                 var firstpolyline = new L.Polyline(pointList, {
-                    color: 'red',
-                    weight: 3,
+                    color: 'blue',
+                    weight: 5,
                     opacity: 0.5,
                     smoothFactor: 1,
                     edge_key: edge_key,
@@ -182,11 +183,11 @@
         });
 
         map.on('draw:edited', function (e) {
-         var layers = e.layers;
-         layers.eachLayer(function (layer) {
-             console.log(layer  )
-         });
-     });
+            var layers = e.layers;
+            layers.eachLayer(function (layer) {
+                console.log(layer)
+            });
+        });
 
         marker_group = L.layerGroup().addTo(map);
 
