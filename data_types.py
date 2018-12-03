@@ -119,6 +119,7 @@ class CdsRouteBus(NamedTuple):
     bus_station_: str = ""
     low_floor: bool = False
     bus_type: int = 0
+    obj_output: int = 0
     avg_speed: float = 0
     avg_last_speed: float = 0
 

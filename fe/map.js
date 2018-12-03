@@ -315,8 +315,9 @@
                             bus_type = "БВ"
                             break
                     }
+                    var bus_output = bus.obj_output == 1 ? ' <b>!</b> ':''
 
-                    bus.desc = [time + " " + next_bus_stop.NAME_,
+                    bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
                         bus.last_speed_.toFixed(1)
                         + " ~ " + bus.avg_speed.toFixed(1)
@@ -468,7 +469,8 @@
         var balloon_content = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
         var lat = bus.lat2 || bus.last_lat_
         var lon = bus.lon2 || bus.last_lon_
-        var icon_content = bus.route_name_.trim() + (bus.name_ ? "&nbsp;" + bus.name_ : "")
+        var bus_output = bus.obj_output === 1 ? ' <b>!</b>':''
+        var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (bus.name_ ? "&nbsp;" + bus.name_ : "")
         var rotation = bus.azimuth
 
         return {

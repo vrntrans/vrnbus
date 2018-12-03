@@ -184,7 +184,7 @@ class CdsRequest:
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
         bus_station = self.bus_station(d)
         dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
-        route_name = f"{d.route_name_} " if show_route_name else ""
+        route_name = f"{d.route_name_}" if show_route_name else ""
         day_info = ""
         if self.now() - d.last_time_ > timedelta(days=1):
             day_info = f'{d.last_time_:%d.%m} '
@@ -196,17 +196,20 @@ class CdsRequest:
             if not bus_station == d.bus_station_:
                 orig_bus_stop = (' | ' + str(d.bus_station_))
 
-            return f"{result} {d.name_},{speed_info} {orig_bus_stop}"
+
+            return f"{result} {'ВЫВЕДЕН ' if d.obj_output else ''}{d.name_},{speed_info} {orig_bus_stop}"
         return result + speed_info
 
     def filter_bus_list(self, bus_list, search_result: SearchResult):
-        def time_check(d: CdsRouteBus):
+        def bus_active(d: CdsRouteBus):
             if search_result.full_info:
                 return True
+            if d.obj_output:
+                return
             if not self.bus_onroute_dict.get(d.name_, False):
                 return
             if self.bus_speed_dict.get(d.name_, 18) < 1:
-                return False
+                return
             return d.last_time_ and (now - d.last_time_) < delta
 
         def filtered(d: CdsRouteBus):
@@ -215,7 +218,7 @@ class CdsRequest:
         now = self.now()
         delta = timedelta(minutes=15)
         stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d)))
-                             for d in bus_list if filtered(d) and time_check(d)]
+                             for d in bus_list if filtered(d) and bus_active(d)]
         return stations_filtered
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
