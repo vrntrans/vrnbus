@@ -489,7 +489,7 @@ class CdsRequest:
             return True
 
         def count_buses(buses: Iterable[CdsRouteBus], time_interval):
-            return sum(1 for i in buses if time_check(i, now - time_interval))
+            return sum(1 for i in buses if time_check(i, now - time_interval) and i.obj_output != 1)
 
         cds_buses = self.load_all_cds_buses_from_db()
         if not cds_buses:
@@ -499,7 +499,8 @@ class CdsRequest:
         hour_1 = count_buses(cds_buses, timedelta(hours=1))
         minutes_10 = count_buses(cds_buses, timedelta(minutes=10))
         minutes_30 = count_buses(cds_buses, timedelta(minutes=30))
-        bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{hour_1:<5} {minutes_30:^5} {minutes_10:5}\nВсего: {len(cds_buses)}"
+        total = count_buses(cds_buses, timedelta(days=7))
+        bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{hour_1:<5} {minutes_30:^5} {minutes_10:5}\nВсего: {total}"
         self.logger.info(f"{hour_1: <5} {minutes_30:5} {minutes_10:5}")
         if hour_1 > 0:
             buses_list = [f'Время: {self.now():%H:%M:%S}']
