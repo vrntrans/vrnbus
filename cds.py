@@ -102,7 +102,7 @@ class CdsRequest:
             return False
 
         result = next((x for x in route_stops
-                         if bus_position.distance_km(x) < 1), None)
+                       if bus_position.distance_km(x) < 1), None)
         return result is not None
 
     def get_closest_bus_stop_checked(self, route_name: str, bus_positions: Container[CdsBusPosition]):
@@ -184,7 +184,7 @@ class CdsRequest:
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
         bus_station = self.bus_station(d)
         dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
-        route_name = f"{d.route_name_}" if show_route_name else ""
+        route_name = f"{d.route_name_} " if show_route_name else ""
         day_info = ""
         if self.now() - d.last_time_ > timedelta(days=1):
             day_info = f'{d.last_time_:%d.%m} '
@@ -195,7 +195,6 @@ class CdsRequest:
             orig_bus_stop = ""
             if not bus_station == d.bus_station_:
                 orig_bus_stop = (' | ' + str(d.bus_station_))
-
 
             return f"{result} {'ВЫВЕДЕН ' if d.obj_output else ''}{d.name_},{speed_info} {orig_bus_stop}"
         return result + speed_info
@@ -227,7 +226,7 @@ class CdsRequest:
             keys = set(self.codd_routes.keys())
         else:
             keys = set([x for x in self.codd_routes.keys()
-                    for r in search_result.bus_routes if x.upper() == r.upper()])
+                        for r in search_result.bus_routes if x.upper() == r.upper()])
 
         if not keys and search_result.bus_filter == '':
             return 'Не заданы маршруты', []
