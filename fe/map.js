@@ -505,6 +505,7 @@
             "properties": {
                 "balloonContent": balloon_content,
                 "hintContent": hint_content,
+                "iconContent": icon_content,
                 "rotation": rotation,
                 "clusterCaption": icon_content + ' ' + hint_content,
                 'iconImageHref': file_name + opacity +'.png',
