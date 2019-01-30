@@ -335,8 +335,6 @@
 
                     bus.delta_time = diff_time(bus.last_time_, max_time);
 
-                    console.log(bus.delta_time, bus)
-
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
                         bus.last_speed_.toFixed(1)
