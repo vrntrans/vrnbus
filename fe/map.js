@@ -248,6 +248,13 @@
         return ""
     }
 
+    function diff_time(last_time, max_time) {
+        var date_1 = new Date(last_time)
+        var date_2 = new Date(max_time)
+
+        return (date_2 - date_1)/1000;
+    }
+
     function formate_date(last_time) {
         function pad_zero(number) {
             return ('0' + number).slice(-2)
@@ -292,6 +299,15 @@
                 if (!my_map)
                     return
 
+                if (data.buses.length > 0) {
+                    var min_last_time = data.buses[0][0].last_time_;
+                    var max_time = data.buses.reduce(function (accumulator, currentValue) {
+                        if (currentValue[0].last_time_ > accumulator)
+                            return currentValue[0].last_time_;
+                        return accumulator;
+                    }, min_last_time);
+                }
+
                 var bus_with_azimuth = data.buses.map(function (data) {
                     var bus = data[0]
                     var next_bus_stop = data[1]
@@ -315,7 +331,11 @@
                             bus_type = "БВ"
                             break
                     }
-                    var bus_output = bus.obj_output == 1 ? ' <b>!</b> ':''
+                    var bus_output = bus.obj_output == 1 ? ' <b>!</b> ' : ''
+
+                    bus.delta_time = diff_time(bus.last_time_, max_time);
+
+                    console.log(bus.delta_time, bus)
 
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
@@ -413,7 +433,7 @@
 
         objectManager.objects.options.set({
             iconLayout: 'default#imageWithContent',
-            iconImageHref: 'bus_round.png',
+            iconImageHref: 'bus_round_copy.png',
             iconImageSize: [32, 32],
             iconImageOffset: [-16, -16],
             iconContentOffset: [0, 0],
@@ -423,6 +443,12 @@
 
         var features = []
 
+
+        if (clear) {
+            my_map.geoObjects.removeAll()
+        }
+
+
         buses.forEach(function (bus, index) {
             features.push(add_bus(bus, index))
         })
@@ -431,10 +457,6 @@
             "type": "FeatureCollection",
             "features": features
         })
-
-        if (clear) {
-            my_map.geoObjects.removeAll()
-        }
 
         my_map.geoObjects.add(objectManager)
     }
@@ -461,7 +483,7 @@
     }
 
 
-    function add_bus(bus, id) {
+    function add_bus(bus, id, max_time) {
         if (!bus) {
             return
         }
@@ -469,9 +491,14 @@
         var balloon_content = bus.desc ? bus.desc : bus.last_time_ + JSON.stringify(bus, null, ' ')
         var lat = bus.lat2 || bus.last_lat_
         var lon = bus.lon2 || bus.last_lon_
-        var bus_output = bus.obj_output === 1 ? ' <b>!</b>':''
+        var bus_output = bus.obj_output === 1 ? ' <b>!</b>' : ''
         var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (bus.name_ ? "&nbsp;" + bus.name_ : "")
         var rotation = bus.azimuth
+        var opacity = bus.delta_time < 60 ? 100 : 75;
+        if (bus.delta_time > 180){
+            opacity = 50;
+        }
+        var file_name = bus.low_floor === 1 ? 'bus_round_lf_' : 'bus_round_';
 
         return {
             "type": "Feature",
@@ -480,14 +507,13 @@
             "properties": {
                 "balloonContent": balloon_content,
                 "hintContent": hint_content,
-                "iconContent": icon_content,
                 "rotation": rotation,
                 "clusterCaption": icon_content + ' ' + hint_content,
+                'iconImageHref': file_name + opacity +'.png',
             },
             "options": {
-                iconImageHref: bus.low_floor === 1 ? 'bus_round_lf.png' : 'bus_round.png',
+                iconImageHref:  "img/" + file_name + opacity +'.png',
             }
-
         }
     }
 
@@ -548,8 +574,8 @@
         });
 
         BusIconContentLayout = ymaps.templateLayoutFactory.createClass(
-            '<img class="bus-icon" style=" z-index: -1; transform: rotate({{properties.rotation}}deg);" src="arrow.png">' +
-            '<ymaps class="bus-title" style="z-index: -2;"> $[properties.iconContent] </ymaps>'
+            '<img class="bus-icon" style="z-index: -1;transform: rotate({{properties.rotation}}deg);" src="arrow.png"/>' +
+            '<ymaps class="bus-title" style="opacity:${{properties.iconOpacity}};z-index: -3;"> $[properties.iconContent] </ymaps>'
         )
 
         // TODO: Check with buses
