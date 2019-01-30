@@ -41,6 +41,8 @@ class CdsRequest:
         self.codd_routes = data_provider.load_codd_route_names()
         self.all_bus_stops = data_provider.load_bus_stops()
         self.bus_stops = [bs for bs in self.all_bus_stops if bs.LAT_ and bs.LON_]
+        self.bus_stops_dict = {bs.ID:bs for bs in self.bus_stops}
+        self.bus_stops_dict_name = {bs.NAME_:bs for bs in self.bus_stops}
         self.bus_routes = data_provider.load_bus_stations_routes()
 
         self.all_cds_buses = []
@@ -147,8 +149,7 @@ class CdsRequest:
         if not bus_info.is_valid_coords():
             return
         threshold = 0.005
-        bus_stop = next((x for x in self.bus_stops
-                         if bus_info.bus_station_ and x.NAME_ == bus_info.bus_station_), None)
+        bus_stop = self.bus_stops_dict_name.get(bus_info.bus_station_)
         if bus_stop and bus_info.distance(bus_stop) < threshold:
             return bus_stop
 
@@ -356,13 +357,13 @@ class CdsRequest:
         return result
 
     def get_bus_stop_id(self, name):
-        bus_stop = next(filter(lambda x: x.NAME_ == name, self.bus_stops), None)
+        bus_stop = self.bus_stops_dict_name.get(name)
         if not bus_stop:
             return -1
         return bus_stop.ID or self.bus_stops.index(bus_stop)
 
     def get_bus_stop_from_id(self, id) -> Union[BusStop, None]:
-        bus_stop = next(filter(lambda x: x.ID == id, self.bus_stops), None)
+        bus_stop = self.bus_stops_dict.get(id)
         if bus_stop:
             return bus_stop
         if id < 0 or id >= len(self.bus_stops):
@@ -553,7 +554,7 @@ class CdsRequest:
                     return v
                 return v
         self.logger.debug(f"Wrong params {route_name}, {bus_stop_name}")
-        bus_stop = next((x for x in self.bus_stops if x.NAME_ == bus_stop_name), None)
+        bus_stop = self.bus_stops_dict_name.get(bus_stop_name)
         if bus_stop:
             return bus_stop
         else:
