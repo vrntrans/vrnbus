@@ -15,7 +15,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, \
     CdsBaseDataProvider, StatsData, ArrivalBusStopInfo, ArrivalBusStopInfoFull
 from helpers import fuzzy_search_advanced
-from helpers import get_time, natural_sort_key, distance, retry_multi, SearchResult
+from helpers import get_time, natural_sort_key, distance, SearchResult
 
 LOAD_TEST_DATA = False
 
@@ -26,8 +26,7 @@ try:
 except ImportError:
     LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
 
-ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
-ttl_db_sec = 60 if not LOAD_TEST_DATA else 0.001
+ttl_sec = 10 if not LOAD_TEST_DATA else 0.001
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -58,7 +57,7 @@ class CdsRequest:
         self.update_all_cds_buses_from_db()
         self.scheduler = BackgroundScheduler()
         self.scheduler.start()
-        self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=20)
+        self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=15)
 
     def stats_checking(self):
         self.logger.info("Hello")
@@ -144,7 +143,7 @@ class CdsRequest:
 
         return curr_1
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=2048)
+    @cachetools.func.ttl_cache(maxsize=2048)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus):
         if not bus_info.is_valid_coords():
             return
@@ -172,7 +171,7 @@ class CdsRequest:
 
         return result
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
+    @cachetools.func.ttl_cache(maxsize=2048)
     def bus_station(self, bus_info: CdsRouteBus):
         if not bus_info.is_valid_coords():
             self.logger.debug(f"Not valid coords {bus_info}")
@@ -348,7 +347,6 @@ class CdsRequest:
         self.speed_dict = speed_dict
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
-    @retry_multi()
     def load_cds_buses_from_db(self, keys) -> Collection[CdsRouteBus]:
         all_buses = self.load_all_cds_buses_from_db()
         if not keys:

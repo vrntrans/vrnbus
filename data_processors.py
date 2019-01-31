@@ -17,7 +17,6 @@ except ImportError:
     LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
 
 ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
-ttl_db_sec = 60 if not LOAD_TEST_DATA else 0.001
 
 def isnamedtupleinstance(x):
     _type = type(x)
