@@ -97,7 +97,7 @@
                     timer_id = 0
                     timer_stop_id = 0
 
-                }, 10 * 60 * 1000)
+                }, 20 * 60 * 1000)
         }
     }
 
@@ -306,6 +306,9 @@
                             return currentValue[0].last_time_;
                         return accumulator;
                     }, min_last_time);
+
+                    var delta_with_current = (new Date() - new Date(max_time))/1000
+                    console.log("current_time - max_time",delta_with_current.toFixed(1))
                 }
 
                 var bus_with_azimuth = data.buses.map(function (data) {
@@ -331,9 +334,9 @@
                             bus_type = "БВ"
                             break
                     }
-                    var bus_output = bus.obj_output == 1 ? ' <b>!</b> ' : ''
+                    var bus_output = bus.obj_output === 1 ? ' <b>!</b> ' : ''
 
-                    bus.delta_time = diff_time(bus.last_time_, max_time);
+                    bus.delta_time = diff_time(bus.last_time_, new Date());
 
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
