@@ -495,11 +495,11 @@
         var bus_output = bus.obj_output === 1 ? ' <b>!</b>' : ''
         var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (bus.name_ ? "&nbsp;" + bus.name_ : "")
         var rotation = bus.azimuth
-        var opacity = bus.delta_time < 60 ? 100 : 75;
+        var wait = bus.delta_time < 60 ? '' : '_wait';
         if (bus.delta_time > 180){
-            opacity = 50;
+            wait = '_long_wait'
         }
-        var file_name = bus.low_floor === 1 ? 'bus_round_lf_' : 'bus_round_';
+        var file_name = bus.low_floor === 1 ? 'bus_round_lf' : 'bus_round';
 
         return {
             "type": "Feature",
@@ -511,10 +511,10 @@
                 "iconContent": icon_content,
                 "rotation": rotation,
                 "clusterCaption": icon_content + ' ' + hint_content,
-                'iconImageHref': file_name + opacity +'.png',
+                'iconImageHref': file_name + wait +'.png',
             },
             "options": {
-                iconImageHref:  "img/" + file_name + opacity +'.png',
+                iconImageHref:  "img/" + file_name + wait +'.png',
             }
         }
     }
