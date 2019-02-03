@@ -113,7 +113,7 @@ class CdsSpeedTestCase(unittest.TestCase):
                             handlers=[logging.StreamHandler()])
 
         logger = logging.getLogger("vrnbus")
-        self.mock_provider = CdsTestDataProvider(logger)
+        self.mock_provider = CdsDBDataProvider(logger)
         self.cds = CdsRequest(logger, self.mock_provider)
 
     def test_avg_speed(self):
@@ -201,8 +201,9 @@ class CdsBusArrivalTestCases(unittest.TestCase):
         self.assertGreater(right_direction, 0)
 
     def test_arrival_by_id(self):
-        result = self.processor.get_arrival_by_id("", 123)
-        self.assertTrue(result['arrival_info']['found'])
+        for i in range(500):
+            result = self.processor.get_arrival_by_id("pro", i)
+            self.assertTrue(result['arrival_info']['found'])
 
 
 if __name__ == '__main__':

@@ -27,7 +27,7 @@ try:
 except ImportError:
     LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
 
-ttl_sec = 10 if not LOAD_TEST_DATA else 0.001
+ttl_sec = 10 if not LOAD_TEST_DATA else 0.0001
 
 tz = pytz.timezone('Europe/Moscow')
 
@@ -56,6 +56,7 @@ class CdsRequest:
         self.avg_speed = 18.0
         self.fetching_in_progress = False
         self.last_bus_data = defaultdict(lambda: deque(maxlen=20))
+        self.route_distances = {}
         self.bus_speed_dict = {}
         self.bus_last_speed_dict = {}
         self.bus_onroute_dict = {}
@@ -571,7 +572,14 @@ class CdsRequest:
             text = '\n'.join(buses_list)
             return StatsData(minutes_10, minutes_30, hour_1, len(cds_buses), text)
 
-    @cachetools.func.ttl_cache(maxsize=4096)
+    def get_dist_bus_stop(self, src: LongBusRouteStop, dst: LongBusRouteStop):
+        key = (src.ID, dst.ID)
+        if key in self.route_distances:
+            return self.route_distances.get(key)
+        value = src.distance_km(dst)
+        self.route_distances[key] = value
+        return value
+
     def get_dist(self, route_name, bus_stop_start, bus_stop_stop):
         route: Iterable[LongBusRouteStop] = self.bus_routes.get(route_name, [])
 
@@ -579,7 +587,7 @@ class CdsRequest:
         prev_stop = None
         for bus_stop in route:
             if prev_stop:
-                dist += prev_stop.distance_km(bus_stop)
+                dist += self.get_dist_bus_stop(prev_stop, bus_stop)
                 prev_stop = bus_stop
             if not prev_stop and bus_stop.NAME_ == bus_stop_start:
                 prev_stop = bus_stop

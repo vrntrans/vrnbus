@@ -16,7 +16,7 @@ try:
 except ImportError:
     LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
 
-ttl_sec = 30 if not LOAD_TEST_DATA else 0.001
+ttl_sec = 10 if not LOAD_TEST_DATA else 0.0001
 
 def isnamedtupleinstance(x):
     _type = type(x)
@@ -56,7 +56,7 @@ class WebDataProcessor(BaseDataProcessor):
     def __init__(self, cds: CdsRequest, logger: Logger):
         super().__init__(cds, logger)
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec/2, maxsize=4096)
+    @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
     def get_bus_info(self, query, lat, lon, full_info):
         user_loc = None
         if lat and lon:
@@ -73,7 +73,7 @@ class WebDataProcessor(BaseDataProcessor):
                     'bus_stops': {v.bus_stop_name: v.text for v in result_tuple.arrival_details}}
         return response
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec/2)
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     def get_arrival_by_name(self, query, station_query):
         result_tuple = self.cds.next_bus(station_query, parse_routes(query))
         if result_tuple.found:
@@ -93,7 +93,7 @@ class WebDataProcessor(BaseDataProcessor):
         next_bus_text = '\n'.join([text_for_bus_stop(v) for v in arrival_info.arrival_details])
         return f'{arrival_info.header}\n{next_bus_text}'
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec/2)
+    @cachetools.func.ttl_cache(ttl=ttl_sec)
     def get_arrival_by_id(self, query, busstop_id):
         bus_stop = self.cds.get_bus_stop_from_id(busstop_id)
         if bus_stop:
