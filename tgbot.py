@@ -202,7 +202,12 @@ class BusBot:
 
         self.track(TgEvent.LAST, update, args)
         user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
-        response = self.cds.bus_request(parse_routes(args), user_loc=user_loc)
+        route_params = parse_routes(args)
+        if route_params.all_buses:
+            update.message.reply_text('Укажите маршруты для вывода')
+            return
+
+        response = self.cds.bus_request(route_params, user_loc=user_loc)
         text = response[0]
         self.track(TgEvent.LAST, update, args)
         self.logger.debug(f"last_buses. User: {user}; Response {' '.join(text.split())}")
@@ -409,7 +414,11 @@ class BusBot:
         else:
             user_loc = self.user_settings.get(user.id, {}).get('user_loc', None)
             self.logger.info(f"User: {user} '{text}' {user_loc}")
-            response = self.cds.bus_request(parse_routes(text), user_loc=user_loc)
+            route_params = parse_routes(text)
+            if route_params.all_buses:
+                update.message.reply_text('Укажите маршруты для вывода')
+                return
+            response = self.cds.bus_request(route_params, user_loc=user_loc)
             self.logger.debug(f'"{text}" User: {user}; Response: {response[:5]} from {len(response)}')
             reply_text = response[0]
             for part in textwrap.wrap(reply_text, 4000, replace_whitespace=False):

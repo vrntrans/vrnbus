@@ -37,7 +37,7 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
             for text in re.split(_nsre, s)]
 
 
-def parse_routes(text):
+def parse_routes(text) -> SearchResult:
     if not text:
         return SearchResult()._replace(all_buses=True)
     if isinstance(text, (list, tuple,)):
