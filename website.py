@@ -4,7 +4,6 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import tornado.web
-from tornado.concurrent import run_on_executor
 
 import helpers
 from abuse_checker import AbuseChecker
@@ -119,7 +118,6 @@ class BusSite(tornado.web.Application):
 
 
 class PingHandler(BaseHandler):
-    @run_on_executor
     def get(self):
         self.logger.info('PING')
         self.write("PONG")
@@ -146,7 +144,6 @@ class BusInfoHandler(BaseHandler):
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
-    @run_on_executor
     def get(self):
         q = self.get_argument('q')
         src = self.get_argument('src', None)
@@ -165,7 +162,6 @@ class ArrivalHandler(BaseHandler):
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
-    @run_on_executor
     def get(self):
         self.arrival_response()
 
@@ -179,7 +175,6 @@ class ArrivalByIdHandler(BaseHandler):
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
-    @run_on_executor
     def get(self):
         self.arrival_response()
 
@@ -193,7 +188,6 @@ class BusListHandler(BaseHandler):
         if response:
             self.caching(max_age=24 * 60 * 60)
 
-    @run_on_executor
     def get(self):
         self._response()
 
@@ -207,7 +201,6 @@ class BusStopsHandler(BaseHandler):
         if response:
             self.caching(max_age=24 * 60 * 60)
 
-    @run_on_executor
     def get(self):
         self._response()
 
@@ -221,7 +214,6 @@ class BusStopsRoutesHandler(BaseHandler):
         if response:
             self.caching(max_age=24 * 60 * 60)
 
-    @run_on_executor
     def get(self):
         self._response()
 
@@ -235,6 +227,5 @@ class BusStopSearchHandler(BaseHandler):
         self.write(json.dumps(response))
         self.caching()
 
-    @run_on_executor
     def get(self):
         self._response()

@@ -5,7 +5,7 @@ import cachetools
 
 from cds import CdsRequest
 from data_types import UserLoc, ArrivalInfo
-from helpers import parse_routes, natural_sort_key
+from helpers import parse_routes
 
 LOAD_TEST_DATA = False
 
@@ -93,7 +93,6 @@ class WebDataProcessor(BaseDataProcessor):
         next_bus_text = '\n'.join([text_for_bus_stop(v) for v in arrival_info.arrival_details])
         return f'{arrival_info.header}\n{next_bus_text}'
 
-    @cachetools.func.ttl_cache(ttl=ttl_sec)
     def get_arrival_by_id(self, query, busstop_id):
         bus_stop = self.cds.get_bus_stop_from_id(busstop_id)
         if bus_stop:
@@ -103,11 +102,8 @@ class WebDataProcessor(BaseDataProcessor):
             response = {'result': result_text, 'arrival_info': unpack_namedtuples(arrival_info)}
             return response
 
-    @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_list(self):
-        codd_buses = list(self.cds.codd_routes.keys())
-        codd_buses.sort(key=natural_sort_key)
-        response = {'result': codd_buses}
+        response = {'result': self.cds.codd_buses}
         return response
 
     @cachetools.func.ttl_cache(ttl=36000)
