@@ -205,8 +205,10 @@ class CdsRequest:
             return
         threshold = 0.5
         bus_stop = self.bus_stops_dict_name.get(bus_info.bus_station_)
-        if bus_stop and bus_info.distance_km(bus_stop) < threshold:
+        if bus_stop and bus_info.distance_km(bus_stop):
             return bus_stop
+        elif self.now() - bus_info.last_time_ > timedelta(minutes=15):
+            return self.get_nearest(bus_info.last_lat_, bus_info.last_lon_)
 
         bus_positions = self.last_bus_data[bus_info.name_]
         if not bus_positions:
