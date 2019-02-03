@@ -193,8 +193,16 @@ class CdsBusArrivalTestCases(unittest.TestCase):
         self.logger.info(counts)
 
     def test_arrival_distance(self):
-        result = self.cds.get_dist("27", 'Площадь Застава (в центр)', 'Центральный автовокзал (в центр)')
-        self.logger.info(result)
+        src = 'Центральный автовокзал (в центр)'
+        dst = 'Площадь Застава (в центр)'
+        wrong_direction = self.cds.get_dist("27", dst, src)
+        right_direction = self.cds.get_dist("27", src, dst)
+        self.assertTrue(wrong_direction == 0)
+        self.assertGreater(right_direction, 0)
+
+    def test_arrival_by_id(self):
+        result = self.processor.get_arrival_by_id("", 123)
+        self.assertTrue(result['arrival_info']['found'])
 
 
 if __name__ == '__main__':

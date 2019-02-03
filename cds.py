@@ -199,7 +199,7 @@ class CdsRequest:
 
         return curr_1
 
-    @cachetools.func.ttl_cache(maxsize=2048)
+    @cachetools.func.ttl_cache(maxsize=4096)
     def get_closest_bus_stop(self, bus_info: CdsRouteBus):
         if not bus_info.is_valid_coords():
             return
@@ -229,7 +229,7 @@ class CdsRequest:
 
         return result
 
-    @cachetools.func.ttl_cache(maxsize=2048)
+    @cachetools.func.ttl_cache(maxsize=4096)
     def bus_station(self, bus_info: CdsRouteBus):
         if not bus_info.is_valid_coords():
             self.logger.debug(f"Not valid coords {bus_info}")
@@ -571,7 +571,7 @@ class CdsRequest:
             text = '\n'.join(buses_list)
             return StatsData(minutes_10, minutes_30, hour_1, len(cds_buses), text)
 
-    @cachetools.func.ttl_cache()
+    @cachetools.func.ttl_cache(maxsize=4096)
     def get_dist(self, route_name, bus_stop_start, bus_stop_stop):
         route: Iterable[LongBusRouteStop] = self.bus_routes.get(route_name, [])
 
