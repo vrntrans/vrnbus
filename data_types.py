@@ -15,6 +15,7 @@ class BusStop(NamedTuple):
     LAT_: float
     LON_: float
     ID: int
+    AZMTH: int = 0
 
     def __str__(self):
         return f'(BusStop: {self.NAME_} {self.LAT_} {self.LON_}  )'

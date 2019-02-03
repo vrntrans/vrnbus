@@ -168,7 +168,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         try:
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
-                cur.execute('''select distinct  ID, NAME as NAME_, LAT as LAT_, LON as LON_
+                cur.execute('''select distinct  ID, NAME as NAME_, LAT as LAT_, LON as LON_, AZMTH
                             from bs
                             order by NAME_''')
                 self.logger.debug('Finish execution')

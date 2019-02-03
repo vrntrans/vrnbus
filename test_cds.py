@@ -125,11 +125,10 @@ class CdsSpeedTestCase(unittest.TestCase):
         logger.info("\n".join(avg_speeds))
 
     def test_speed_businfo(self):
-        query = 'про 1КВ 1КС 3 3В 5 5А 6 6М 8 9КА 9КС 10А 11 13 14В 15 15А 16В 17 18 23К 25А 26А 27 33К Тр.7 Тр.8 Тр.11 Тр.17'
+        query = 'про'
         search_request = parse_routes(query)
         start = datetime.datetime.now()
         result = self.cds.bus_request(search_request, short_format=True)
-        logger.info("PING")
         finish = datetime.datetime.now()
         logger.info(f"{finish - start}")
 

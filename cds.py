@@ -1,5 +1,5 @@
-import heapq
 import os
+import threading
 import time
 from collections import Counter, deque
 from collections import defaultdict
@@ -11,11 +11,12 @@ from typing import Iterable, Container, List, Optional, Deque, Union, Collection
 import cachetools.func
 import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
+from rtree import index
 
 from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, \
     CdsBaseDataProvider, StatsData, ArrivalBusStopInfo, ArrivalBusStopInfoFull
 from helpers import fuzzy_search_advanced
-from helpers import get_time, natural_sort_key, distance, SearchResult
+from helpers import get_time, natural_sort_key, SearchResult
 
 LOAD_TEST_DATA = False
 
@@ -32,17 +33,24 @@ tz = pytz.timezone('Europe/Moscow')
 
 
 class CdsRequest:
+    rtree_lock = threading.Lock()
+
     def __init__(self, logger: Logger, data_provider: CdsBaseDataProvider):
         self.logger = logger
         self.fake_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.data_provider = data_provider
         self.codd_routes = data_provider.load_codd_route_names()
+        self.bs_index: index.Index = None
+        self.bs_routes_index = {}
         self.all_bus_stops = data_provider.load_bus_stops()
         self.bus_stops = [bs for bs in self.all_bus_stops if bs.LAT_ and bs.LON_]
-        self.bus_stops_dict = {bs.ID:bs for bs in self.bus_stops}
-        self.bus_stops_dict_name = {bs.NAME_:bs for bs in self.bus_stops}
+
+        self.bus_stops_dict = {bs.ID: bs for bs in self.bus_stops}
+        self.bus_stops_dict_name = {bs.NAME_: bs for bs in self.bus_stops}
         self.bus_routes = data_provider.load_bus_stations_routes()
+        self.build_rtree_index(self.bus_stops)
+        self.build_rtree_index_for_routes(self.bus_routes)
 
         self.all_cds_buses = []
         self.avg_speed = 18.0
@@ -71,12 +79,60 @@ class CdsRequest:
             return
         value.append(bus_data)
 
+    def get_nearest(self, lat, lon) -> BusStop:
+        if self.bs_index is None:
+            self.build_rtree_index(self.bus_stops)
+        ids = list(self.bs_index.nearest((lat, lon), 1))
+        return self.bus_stops_dict.get(ids[0])
+
+    def get_k_nearest(self, lat, lon, k=3) -> List[BusStop]:
+        try:
+            if self.bs_index is None:
+                self.build_rtree_index(self.bus_stops)
+            ids = self.bs_index.nearest((lat, lon), k)
+            return [self.bus_stops_dict.get(i) for i in ids]
+        except Exception:
+            self.logger.exception(f'Error when process get_k_nearest({lat}, {lon}, {k})')
+            self.build_rtree_index(self.bus_stops)
+
+    def get_k_nearest_by_route(self, route_name, lat, lon, k=3) -> List[BusStop]:
+        try:
+            r_index = self.bs_routes_index.get(route_name)
+            bus_stops = self.bus_routes.get(route_name, [])
+            ids = [i for i in r_index.nearest((lat, lon), k)][:k]
+            return [next(filter(lambda x: x.ID == i, bus_stops), None) for i in ids]
+        except Exception:
+            self.logger.exception(f'Error when process get_k_nearest({lat}, {lon}, {k})')
+
+    def build_rtree_index(self, bus_stations: Iterable[BusStop]):
+        try:
+            self.logger.info("Recreate RTree index for bus stations")
+            with self.rtree_lock:
+                self.bs_index = index.Index()
+                for bs in bus_stations:
+                    self.bs_index.insert(bs.ID, (bs.LAT_, bs.LON_, bs.LAT_, bs.LON_))
+            self.logger.info("Recreate RTree index for bus stations finished")
+        except:
+            self.bs_index = None
+            self.logger.exception(f'Error when rebuild RTree index')
+
+    def build_rtree_index_for_routes(self, bus_stations_for_routes):
+        try:
+            self.logger.info("Recreate RTree index for routes")
+            with self.rtree_lock:
+                for k, v in bus_stations_for_routes.items():
+                    route_index = index.Index()
+                    for bs in v:
+                        route_index.insert(bs.ID, (bs.LAT_, bs.LON_, bs.LAT_, bs.LON_))
+                    self.bs_routes_index[k] = route_index
+            self.logger.info("Recreate RTree index for routes finished")
+        except:
+            self.bs_index = None
+            self.logger.exception(f'Error when rebuild RTree index')
+
     @cachetools.func.ttl_cache()
     def matches_bus_stops(self, lat, lon, size=3):
-        def distance_key(item):
-            return distance(item.LAT_, item.LON_, lat, lon)
-
-        return sorted(self.bus_stops, key=distance_key)[:size]
+        return self.get_k_nearest(lat, lon, size)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_routes):
@@ -102,9 +158,8 @@ class CdsRequest:
         if not route_stops or len(route_stops) < 2:
             return False
 
-        result = next((x for x in route_stops
-                       if bus_position.distance_km(x) < 1), None)
-        return result is not None
+        result = self.get_k_nearest_by_route(route_name, bus_position.lat, bus_position.lon, 1)
+        return bus_position.distance_km(result[0]) < 1
 
     def get_closest_bus_stop_checked(self, route_name: str, bus_positions: Container[CdsBusPosition]):
         bus_stops = self.bus_routes.get(route_name, [])
@@ -118,8 +173,9 @@ class CdsRequest:
             return
 
         last_position = bus_positions[-1]
+        nearest_result = self.get_k_nearest_by_route(route_name, last_position.lat, last_position.lon, 2)
 
-        (curr_1, curr_2) = heapq.nsmallest(2, bus_stops, key=last_position.distance)
+        (curr_1, curr_2) = nearest_result
         if curr_1.NUMBER_ == curr_2.NUMBER_ + 1:
             return curr_1
         elif curr_2.NUMBER_ == curr_1.NUMBER_ + 1:
@@ -129,7 +185,7 @@ class CdsRequest:
         curr_pos = {curr_1, curr_2}
         bus_positions = list(bus_positions)
         for prev_position in bus_positions[-1::-1]:
-            closest_prev = heapq.nsmallest(2, bus_stops, key=prev_position.distance)
+            closest_prev = self.get_k_nearest_by_route(route_name, prev_position.lat, prev_position.lon, 2)
             if set(closest_prev) == curr_pos:
                 continue
 
@@ -147,9 +203,9 @@ class CdsRequest:
     def get_closest_bus_stop(self, bus_info: CdsRouteBus):
         if not bus_info.is_valid_coords():
             return
-        threshold = 0.005
+        threshold = 0.5
         bus_stop = self.bus_stops_dict_name.get(bus_info.bus_station_)
-        if bus_stop and bus_info.distance(bus_stop) < threshold:
+        if bus_stop and bus_info.distance_km(bus_stop) < threshold:
             return bus_stop
 
         bus_positions = self.last_bus_data[bus_info.name_]
@@ -160,7 +216,7 @@ class CdsRequest:
         if closest_on_route and bus_info.distance(closest_on_route) < threshold:
             return closest_on_route
 
-        closest_stop = min(self.bus_stops, key=bus_info.distance)
+        closest_stop = self.get_nearest(bus_info.last_lat_, bus_info.last_lon_)
         if closest_stop and bus_info.distance(closest_stop) < threshold:
             return closest_stop
 
