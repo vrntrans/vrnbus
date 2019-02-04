@@ -1,14 +1,13 @@
 import datetime
+import datetime
 import os
 import re
 import textwrap
 
-import cachetools
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
     KeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater, run_async
-from tornado.httpclient import AsyncHTTPClient
 
 from data_types import UserLoc, ArrivalInfo, StatsData, BusStop
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult, parse_int
@@ -24,7 +23,7 @@ except ImportError:
     env = os.environ
     VRNBUSBOT_TOKEN = env.get('VRNBUSBOT_TOKEN')
     USERS_TO_INFORM = env.get('USERS_TO_INFORM', "")
-    PING_HOST = env.get('PING_HOST', 'http://localhost:8080')
+    PING_HOST = env.get('PING_HOST', 'http://localhost:8088')
 
 
 class BusBot:
@@ -135,7 +134,6 @@ class BusBot:
 
     @run_async
     def start(self, _, update):
-        self.ping_prod()
         self.track(TgEvent.START, update)
 
         location_keyboard = KeyboardButton(text="Местоположение", request_location=True)
@@ -155,7 +153,6 @@ class BusBot:
     @run_async
     def helpcmd(self, _, update):
         """Send a message when the command /help is issued."""
-        self.ping_prod()
         user = update.message.from_user
         self.track(TgEvent.HELP, update)
         update.message.reply_text("""
@@ -197,7 +194,6 @@ class BusBot:
     @run_async
     def last_buses(self, _, update, args):
         """Send a message when the command /last is issued."""
-        self.ping_prod()
         user = update.message.from_user
 
         self.track(TgEvent.LAST, update, args)
@@ -342,7 +338,6 @@ class BusBot:
 
     @run_async
     def send_stats(self, update, full_info):
-        self.ping_prod()
         user = update.message.from_user
 
         self.track(TgEvent.STATS, update, full_info)
@@ -359,7 +354,6 @@ class BusBot:
 
     @run_async
     def user_stats(self, _, update):
-        self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
         stats = self.tracker.stats()
         self.logger.debug(stats)
@@ -371,7 +365,6 @@ class BusBot:
         if update.message.from_user.id not in self.users_to_inform:
             self.logger.error(f"Unknown user {update.message.from_user}")
             return
-        self.ping_prod()
         self.track(TgEvent.USER_STATS, update)
         threshold, valid_threshold = parse_int(args[:1], 50)
         user_filter = ''.join(args if not valid_threshold else args[1:])
@@ -382,7 +375,6 @@ class BusBot:
 
     @run_async
     def user_input(self, bot, update):
-        self.ping_prod()
         message = update.message
         user = message.from_user
         text = message.text
@@ -443,12 +435,6 @@ class BusBot:
 
     @run_async
     def location(self, _, update):
-        self.ping_prod()
         loc = update.message.location
         (lat, lon) = loc.latitude, loc.longitude
         self.show_arrival(update, lat, lon)
-
-    @cachetools.func.ttl_cache(ttl=30)
-    def ping_prod(self):
-        http_client = AsyncHTTPClient()
-        http_client.fetch(f"{PING_HOST}/ping")

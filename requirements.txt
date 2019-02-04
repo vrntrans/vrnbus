@@ -1,9 +1,9 @@
-python-telegram-bot==10.0.2
+python-telegram-bot==11.1.0
 cachetools==2.0.1
-tornado==4.5.3
+tornado==5.1.1
 pytz==2017.3
 fdb==1.8
 freezegun==0.3.10
 python-dateutil==2.7.0
-APScheduler==3.5.1
+APScheduler==3.5.3
 Rtree==0.8.3

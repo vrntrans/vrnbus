@@ -60,4 +60,4 @@ if __name__ == "__main__":
     bot = BusBot(cds, user_settings, logger, tracker)
     application = BusSite(data_processor, logger, tracker, anti_abuser)
     application.listen(os.environ.get('PORT', 8088))
-    tornado.ioloop.IOLoop.instance().start()
+    tornado.ioloop.IOLoop.current().start()
