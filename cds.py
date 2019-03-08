@@ -15,7 +15,7 @@ from rtree import index
 
 from data_types import ArrivalInfo, UserLoc, BusStop, LongBusRouteStop, CdsBusPosition, CdsRouteBus, \
     CdsBaseDataProvider, StatsData, ArrivalBusStopInfo, ArrivalBusStopInfoFull
-from helpers import fuzzy_search_advanced
+from helpers import fuzzy_search_advanced, sort_routes
 from helpers import get_time, natural_sort_key, SearchResult
 
 LOAD_TEST_DATA = False
@@ -41,8 +41,7 @@ class CdsRequest:
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.data_provider = data_provider
         self.codd_routes = data_provider.load_codd_route_names()
-        self.codd_buses = list(self.codd_routes.keys())
-        self.codd_buses.sort(key=natural_sort_key)
+        self.codd_buses = sort_routes(self.codd_routes.keys())
 
         self.bs_index: index.Index = None
         self.bs_routes_index = {}

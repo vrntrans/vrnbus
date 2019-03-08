@@ -1,13 +1,13 @@
 import datetime
 import json
 import logging
-import math
 import re
 import time
 from functools import wraps
-from itertools import zip_longest
+from itertools import zip_longest, filterfalse
 from typing import NamedTuple
 
+import math
 import pytz
 
 QUICK_FIX_DIST = 10000
@@ -35,6 +35,15 @@ logger = logging.getLogger("vrnbus")
 def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
             for text in re.split(_nsre, s)]
+
+def sort_routes(source):
+    routes = list(source)
+    is_trolley = lambda x: x.startswith("Тр.")
+    trolleys = list(filter(is_trolley, routes))
+    trolleys.sort(key=natural_sort_key)
+    rest = list(filterfalse(is_trolley, routes))
+    rest.sort(key=natural_sort_key)
+    return trolleys + rest
 
 
 def parse_routes(text) -> SearchResult:
