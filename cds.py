@@ -65,6 +65,8 @@ class CdsRequest:
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
 
+        self.bus_stats = []
+
         self.update_all_cds_buses_from_db()
         self.scheduler = BackgroundScheduler()
         self.scheduler.start()
@@ -260,25 +262,26 @@ class CdsRequest:
             return f"{result} {'ВЫВЕДЕН ' if d.obj_output else ''}{d.name_},{speed_info} {orig_bus_stop}"
         return result + speed_info
 
+    def bus_active(self, d: CdsRouteBus, full_info):
+        if full_info:
+            return True
+        if d.obj_output:
+            return
+        if not self.bus_onroute_dict.get(d.name_, False):
+            return
+        if self.bus_speed_dict.get(d.name_, 18) < 1:
+            return
+        now = self.now()
+        delta = timedelta(minutes=15)
+        return d.last_time_ and (now - d.last_time_) < delta
+
     def filter_bus_list(self, bus_list, search_result: SearchResult):
-        def bus_active(d: CdsRouteBus):
-            if search_result.full_info:
-                return True
-            if d.obj_output:
-                return
-            if not self.bus_onroute_dict.get(d.name_, False):
-                return
-            if self.bus_speed_dict.get(d.name_, 18) < 1:
-                return
-            return d.last_time_ and (now - d.last_time_) < delta
 
         def filtered(d: CdsRouteBus):
             return d.filter_by_name(search_result.bus_filter)
 
-        now = self.now()
-        delta = timedelta(minutes=15)
         stations_filtered = [(d, self.get_next_bus_stop(d.route_name_, self.bus_station(d)))
-                             for d in bus_list if filtered(d) and bus_active(d)]
+                             for d in bus_list if filtered(d) and self.bus_active(d, search_result.full_info)]
         return stations_filtered
 
     @cachetools.func.ttl_cache(ttl=ttl_sec)
@@ -373,6 +376,7 @@ class CdsRequest:
             self.fetching_in_progress = True
             all_buses = self.data_provider.load_all_cds_buses()
             result = update_last_bus_data(all_buses)
+            self.bus_stats.append((self.now(), sum((self.bus_active(bus, False) == True for bus in result ))))
             result.sort(key=lambda s: s.last_time_, reverse=True)
         finally:
             self.fetching_in_progress = False
@@ -572,6 +576,7 @@ class CdsRequest:
                 buses_list += (('{:10s} => {}'.format(i[0], i[1])) for i in grouped)
             buses_list.append(bus_stats_text)
             text = '\n'.join(buses_list)
+            text += f'\nНа линии: {self.bus_stats[-1][1]}'
             return StatsData(minutes_10, minutes_30, hour_1, len(cds_buses), text)
 
     def get_dist_bus_stop(self, src: LongBusRouteStop, dst: LongBusRouteStop):

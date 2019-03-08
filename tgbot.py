@@ -106,7 +106,7 @@ class BusBot:
                 self.stats_fail_start = now
             send_msg(f'```\nПроверьте данные после {self.stats_fail_start:%H:%M:%S} \n{response.text}\n```')
         elif self.stats_fail_start:
-            send_msg(f'```\nДанные снова актуальны {self.stats_fail_start:%H:%M:%S} \n{response.text}\n```')
+            send_msg(f'```\nДанные снова актуальны после {self.stats_fail_start:%H:%M:%S} \n{response.text}\n```')
             self.stats_fail_start = None
 
     @run_async

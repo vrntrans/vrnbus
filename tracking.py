@@ -33,6 +33,7 @@ class WebEvent(Enum):
     IPCHANGE = auto()
     IOS = auto()
     ANDROID = auto()
+    USER_STATS = auto()
 
     @staticmethod
     def from_str(label):

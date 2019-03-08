@@ -7,6 +7,7 @@ import tornado.web
 
 import helpers
 from abuse_checker import AbuseChecker
+from data_processors import WebDataProcessor
 from tracking import WebEvent, EventTracker
 
 if 'DYNO' in os.environ:
@@ -95,7 +96,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class BusSite(tornado.web.Application):
-    def __init__(self, processor, logger, tracker: EventTracker, anti_abuser: AbuseChecker):
+    def __init__(self, processor: WebDataProcessor, logger, tracker: EventTracker, anti_abuser: AbuseChecker):
         static_handler = tornado.web.StaticFileHandler if not debug else NoCacheStaticFileHandler
         handlers = [
             (r"/arrival", ArrivalHandler),
@@ -108,6 +109,7 @@ class BusSite(tornado.web.Application):
             (r"/bus_stops", BusStopsHandler),
             (r"/ping", PingHandler),
             (r"/(.*.json)", static_handler, {"path": Path("./")}),
+            (r"/stats.html", StatsHandler),
             (r"/(.*)", static_handler, {"path": Path("./fe"), "default_filename": "index.html"}),
         ]
         tornado.web.Application.__init__(self, handlers, compress_response=True)
@@ -229,3 +231,14 @@ class BusStopSearchHandler(BaseHandler):
 
     def get(self):
         self._response()
+
+
+class StatsHandler(BaseHandler):
+    def arrival_response(self):
+        self.track(WebEvent.USER_STATS)
+        response = self.processor.get_stats()
+        self.write(response)
+        self.caching()
+
+    def get(self):
+        self.arrival_response()

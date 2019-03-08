@@ -6,6 +6,7 @@ import cachetools
 from cds import CdsRequest
 from data_types import UserLoc, ArrivalInfo
 from helpers import parse_routes
+from tracking import EventTracker
 
 LOAD_TEST_DATA = False
 
@@ -17,6 +18,7 @@ except ImportError:
     LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
 
 ttl_sec = 10 if not LOAD_TEST_DATA else 0.0001
+
 
 def isnamedtupleinstance(x):
     _type = type(x)
@@ -41,20 +43,23 @@ def unpack_namedtuples(obj):
     else:
         return obj
 
+
 def eliminate_numbers(d: dict, full_info) -> dict:
     if not full_info:
         d['name_'] = ''
     return d
 
+
 class BaseDataProcessor:
-    def __init__(self, cds: CdsRequest, logger: Logger):
+    def __init__(self, cds: CdsRequest, logger: Logger, tracker: EventTracker):
         self.cds = cds
         self.logger = logger
+        self.tracker = tracker
 
 
 class WebDataProcessor(BaseDataProcessor):
-    def __init__(self, cds: CdsRequest, logger: Logger):
-        super().__init__(cds, logger)
+    def __init__(self, cds: CdsRequest, logger: Logger, tracker: EventTracker):
+        super().__init__(cds, logger, tracker)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
     def get_bus_info(self, query, lat, lon, full_info):
@@ -63,7 +68,8 @@ class WebDataProcessor(BaseDataProcessor):
             user_loc = UserLoc(float(lat), float(lon))
         result = self.cds.bus_request(parse_routes(query), user_loc=user_loc, short_format=True)
         return {'q': query, 'text': result[0],
-                'buses': [(eliminate_numbers(x[0]._asdict(), full_info), x[1]._asdict() if x[1] else {}) for x in result[1]]}
+                'buses': [(eliminate_numbers(x[0]._asdict(), full_info), x[1]._asdict() if x[1] else {}) for x in
+                          result[1]]}
 
     def get_arrival(self, query, lat, lon):
         matches = self.cds.matches_bus_stops(lat, lon)
@@ -78,12 +84,12 @@ class WebDataProcessor(BaseDataProcessor):
         result_tuple = self.cds.next_bus(station_query, parse_routes(query))
         if result_tuple.found:
             response = {'text': result_tuple[0], 'header': result_tuple[1],
-                    'bus_stops': {v.bus_stop_name: v.text for v in
-                                  result_tuple.arrival_details} }
+                        'bus_stops': {v.bus_stop_name: v.text for v in
+                                      result_tuple.arrival_details}}
         else:
             response = {'text': result_tuple[0], 'header': result_tuple[1],
-                    'bus_stops': {k: '' for k in
-                                  result_tuple.bus_stops} }
+                        'bus_stops': {k: '' for k in
+                                      result_tuple.bus_stops}}
         return response
 
     def get_text_from_arrival_info(self, arrival_info: ArrivalInfo):
@@ -116,6 +122,12 @@ class WebDataProcessor(BaseDataProcessor):
         response = {'result': {route_name: [x._asdict() for x in bus_stops] for (route_name, bus_stops) in
                                self.cds.bus_routes.items()}}
         return response
+
+    @cachetools.func.ttl_cache(ttl=15)
+    def get_stats(self):
+        user_stats = self.tracker.stats()
+        bus_stats = self.cds.get_bus_statistics()
+        return user_stats + '\n\n' + bus_stats.text
 
 
 class TelegramDataProcessor(BaseDataProcessor):
