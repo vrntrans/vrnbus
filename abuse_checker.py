@@ -1,9 +1,11 @@
 import datetime
+import os
 from collections import defaultdict, deque
 from typing import List
 
 from data_types import AbuseRule
 
+BLACK_LIST = os.environ.get('BLACK_LIST', '')
 
 def last_time(delta: datetime.timedelta):
     return datetime.datetime.now() - delta
@@ -40,6 +42,9 @@ class AbuseChecker:
     def check_user(self, event, user_id):
         if self.check_time():
             return True
+
+        if user_id in BLACK_LIST:
+            return False
 
         self.prepare_dict(event)
         user_events = self.events[event][user_id]
