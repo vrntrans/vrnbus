@@ -40,11 +40,11 @@ class AbuseChecker:
         return now.hour >= 20 or now.hour <= 7
 
     def check_user(self, event, user_id):
-        if self.check_time():
-            return True
-
         if user_id in BLACK_LIST:
             return False
+
+        if self.check_time():
+            return True
 
         self.prepare_dict(event)
         user_events = self.events[event][user_id]
