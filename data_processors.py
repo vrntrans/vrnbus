@@ -1,4 +1,5 @@
 import os
+import random
 from logging import Logger
 
 import cachetools
@@ -44,9 +45,18 @@ def unpack_namedtuples(obj):
         return obj
 
 
-def eliminate_numbers(d: dict, full_info) -> dict:
+def eliminate_numbers(d: dict, full_info, is_fraud) -> dict:
     if not full_info:
         d['name_'] = ''
+        d['obj_id_'] = ''
+        d['proj_id_'] = ''
+
+    if is_fraud:
+        d['last_lat_'] += random.uniform(-0.05, 0.05)
+        d['last_lon_'] += random.uniform(-0.05, 0.05)
+        d['obj_id_'] = random.uniform(0, 2000)
+        d['proj_id_'] = random.uniform(0, 2000)
+
     return d
 
 
@@ -66,9 +76,13 @@ class WebDataProcessor(BaseDataProcessor):
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
-        result = self.cds.bus_request(parse_routes(query), user_loc=user_loc, short_format=True)
+        routes_info = parse_routes(query)
+        is_fraud = not full_info and len(routes_info.bus_routes) > 10
+
+        result = self.cds.bus_request(routes_info, user_loc=user_loc, short_format=True)
         return {'q': query, 'text': result[0],
-                'buses': [(eliminate_numbers(x[0]._asdict(), full_info), x[1]._asdict() if x[1] else {}) for x in
+                'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud), x[1]._asdict() if x[1] else {}) for x
+                          in
                           result[1]]}
 
     def get_arrival(self, query, lat, lon):
