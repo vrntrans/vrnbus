@@ -81,9 +81,9 @@ class WebDataProcessor(BaseDataProcessor):
 
         result = self.cds.bus_request(routes_info, user_loc=user_loc, short_format=True)
         return {'q': query, 'text': result[0],
-                'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud), x[1]._asdict() if x[1] else {}) for x
-                          in
-                          result[1]]}
+                'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud),
+                           x[1]._asdict() if x[1] and not is_fraud else {}) for x
+                          in result[1]]}
 
     def get_arrival(self, query, lat, lon):
         matches = self.cds.matches_bus_stops(lat, lon)

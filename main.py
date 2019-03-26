@@ -38,10 +38,10 @@ if __name__ == "__main__":
     log_ignore_events = [
         WebEvent.ABUSE,
         # WebEvent.FRAUD,
-        WebEvent.FULLINFO,
+        # WebEvent.FULLINFO,
         WebEvent.IPCHANGE,
         WebEvent.BUSMAP,
-        WebEvent.ARRIVAL,
+        # WebEvent.ARRIVAL,
         WebEvent.ANDROID,
         WebEvent.IOS
     ]
