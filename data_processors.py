@@ -48,8 +48,6 @@ def unpack_namedtuples(obj):
 def eliminate_numbers(d: dict, full_info, is_fraud) -> dict:
     if not full_info:
         d['name_'] = ''
-        d['obj_id_'] = ''
-        d['proj_id_'] = ''
 
     if is_fraud:
         d['last_lat_'] += random.uniform(-0.05, 0.05)
