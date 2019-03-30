@@ -54,6 +54,7 @@ def eliminate_numbers(d: dict, full_info, is_fraud) -> dict:
         d['last_lon_'] += random.uniform(-0.05, 0.05)
         d['obj_id_'] = random.uniform(0, 2000)
         d['proj_id_'] = random.uniform(0, 2000)
+        raise Exception("Wrong request")
 
     return d
 
