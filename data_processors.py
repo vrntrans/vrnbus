@@ -76,7 +76,7 @@ class WebDataProcessor(BaseDataProcessor):
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
         routes_info = parse_routes(query)
-        is_fraud = not full_info and len(routes_info.bus_routes) > 10
+        is_fraud = not full_info and len(routes_info.bus_routes) > 25
 
         result = self.cds.bus_request(routes_info, user_loc=user_loc, short_format=True)
         return {'q': query, 'text': result[0],
