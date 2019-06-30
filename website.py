@@ -106,7 +106,7 @@ class BusSite(tornado.web.Application):
             (r"/buslist", BusListHandler),
             (r"/bus_stop_search", BusStopSearchHandler),
             (r"/bus_stops_routes", BusStopsRoutesHandler),
-            (r"/bus_stations.json", BusStopsRoutesHandler),
+            (r"/bus_stations.json", BusStopsRoutesForAppsHandler),
             (r"/bus_stops", BusStopsHandler),
             (r"/ping", PingHandler),
             (r"/(.*.json)", static_handler, {"path": Path("./")}),
@@ -207,6 +207,17 @@ class BusStopsHandler(BaseHandler):
     def get(self):
         self._response()
 
+class BusStopsRoutesForAppsHandler(BaseHandler):
+    def _response(self):
+        self.logger.info(f'Bus list query')
+
+        response = self.processor.get_bus_stops_for_routes_for_apps()
+        self.write(json.dumps(response, ensure_ascii=False, indent=1, cls=helpers.CustomJsonEncoder))
+        if response:
+            self.caching(max_age=24 * 60 * 60)
+
+    def get(self):
+        self._response()
 
 class BusStopsRoutesHandler(BaseHandler):
     def _response(self):

@@ -136,6 +136,11 @@ class WebDataProcessor(BaseDataProcessor):
                                self.cds.bus_routes.items()}
         return response
 
+    @cachetools.func.ttl_cache(ttl=36000)
+    def get_bus_stops_for_routes_for_apps(self):
+        response = self.cds.bus_routes
+        return response
+
     @cachetools.func.ttl_cache(ttl=15)
     def get_stats(self):
         user_stats = self.tracker.stats()
