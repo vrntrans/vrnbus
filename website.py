@@ -106,6 +106,7 @@ class BusSite(tornado.web.Application):
             (r"/buslist", BusListHandler),
             (r"/bus_stop_search", BusStopSearchHandler),
             (r"/bus_stops_routes", BusStopsRoutesHandler),
+            (r"/bus_stations.json", BusStopsRoutesHandler),
             (r"/bus_stops", BusStopsHandler),
             (r"/ping", PingHandler),
             (r"/(.*.json)", static_handler, {"path": Path("./")}),
