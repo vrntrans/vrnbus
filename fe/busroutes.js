@@ -26,8 +26,7 @@
                 return res.json()
             })
             .then(function (data) {
-                bus_route_stops = data.result
-                update_bus_stops_routes(bus_route_stops)
+                update_bus_stops_routes(data)
             })
     }
 

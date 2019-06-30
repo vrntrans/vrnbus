@@ -132,8 +132,8 @@ class WebDataProcessor(BaseDataProcessor):
 
     @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_stops_for_routes(self):
-        response = {'result': {route_name: [x._asdict() for x in bus_stops] for (route_name, bus_stops) in
-                               self.cds.bus_routes.items()}}
+        response = {route_name: [x._asdict() for x in bus_stops] for (route_name, bus_stops) in
+                               self.cds.bus_routes.items()}
         return response
 
     @cachetools.func.ttl_cache(ttl=15)
