@@ -27,7 +27,7 @@
             })
             .then(function (data) {
                 bus_route_stops = data
-                update_bus_stops_routes(data)
+                // update_bus_stops_routes(data)
             })
     }
 
@@ -55,11 +55,15 @@
 
                 select.onchange = function () {
                     var route_name = select.options[select.selectedIndex].value;
-                    update_bus_stops_routes(bus_route_stops, route_name)
+                    if (route_name || document.getElementById('show_all_routes').checked){
+                        update_bus_stops_routes(bus_route_stops, route_name)
+                    }
                 }
 
                 document.getElementById('busnumber').onchange = select.onchange;
                 document.getElementById('busspeed').onchange = select.onchange;
+                document.getElementById('show_all_routes').onchange = select.onchange;
+                document.getElementById('wait_time').onchange = select.onchange;
             })
     }
 
@@ -148,7 +152,8 @@
             var routeinfo = document.getElementById('routeinfo');
             var busnumber = document.getElementById('busnumber').value;
             var busspeed = document.getElementById('busspeed').value;
-            var minute_interval = (length_route/busnumber)*60/busspeed;
+            var wait_time = document.getElementById('wait_time').value;
+            var minute_interval = ((length_route + (wait_time/60)*busspeed)/busnumber)*60/busspeed;
             routeinfo.innerText = `${selected_route_name} - ${length_route.toFixed(2)} км, ${busnumber}, ${minute_interval.toFixed(2)} минут `
         }
     }

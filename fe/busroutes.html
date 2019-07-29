@@ -23,11 +23,16 @@
 </div>
 <div class="input-row">
     <select class="input-row" id="bus_routes"></select>
+    <div>
+        <label>Все маршруты <input type="checkbox" id="show_all_routes"/> </label></div>
     <div id="routeinfo" style="white-space:pre-wrap;"></div>
     <div>
-    <label>Количество автобусов <input type="number" id="busnumber" value="10"/> </label></div>
+        <label>Количество автобусов <input type="number" id="busnumber" value="10"/> </label></div>
     <div>
-    <label>Скорость автобусов<input type="number" id="busspeed" value="17.5"/> </label></div>
+        <label>Скорость автобусов<input type="number" id="busspeed" value="17"/> </label></div>
+    <div>
+        <label>Время отдыха на конечных <input type="number" id="wait_time" value="10"/> минут</label>
+    </div>
 </div>
 <div id="mapid" class="map"></div>
 
