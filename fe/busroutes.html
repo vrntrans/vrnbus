@@ -23,6 +23,11 @@
 </div>
 <div class="input-row">
     <select class="input-row" id="bus_routes"></select>
+    <div id="routeinfo" style="white-space:pre-wrap;"></div>
+    <div>
+    <label>Количество автобусов <input type="number" id="busnumber" value="10"/> </label></div>
+    <div>
+    <label>Скорость автобусов<input type="number" id="busspeed" value="17.5"/> </label></div>
 </div>
 <div id="mapid" class="map"></div>
 
@@ -38,6 +43,8 @@
         crossorigin=""></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-fullscreen/v1.0.1/Leaflet.fullscreen.min.js'></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.rawgit.com/gokertanrisever/leaflet-ruler/master/src/leaflet-ruler.css">
+<script src="https://cdn.rawgit.com/gokertanrisever/leaflet-ruler/master/src/leaflet-ruler.js"></script>
 <script src="busroutes.js?1"></script>
 </body>
 </html>

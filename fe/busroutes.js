@@ -57,6 +57,9 @@
                     var route_name = select.options[select.selectedIndex].value;
                     update_bus_stops_routes(bus_route_stops, route_name)
                 }
+
+                document.getElementById('busnumber').onchange = select.onchange;
+                document.getElementById('busspeed').onchange = select.onchange;
             })
     }
 
@@ -71,6 +74,8 @@
         var route_by_edges = {}
 
         var natural_collator = new Intl.Collator(undefined, {numeric: true, sensitivity: 'base'});
+
+
 
         for (var route_name in bus_stops_routes) {
             if (!route_name)
@@ -127,6 +132,24 @@
                 curr_point = item
 
             })
+        }
+
+        if (selected_route_name) {
+            var length_route = 0;
+            var previousPoint = null;
+            Object.values(edges).forEach((polyline) => {
+                polyline.getLatLngs().forEach(function (latLng) {
+                    if (previousPoint) {
+                        length_route += previousPoint.distanceTo(latLng)/1000
+                    }
+                    previousPoint = latLng;
+                });
+            })
+            var routeinfo = document.getElementById('routeinfo');
+            var busnumber = document.getElementById('busnumber').value;
+            var busspeed = document.getElementById('busspeed').value;
+            var minute_interval = (length_route/busnumber)*60/busspeed;
+            routeinfo.innerText = `${selected_route_name} - ${length_route.toFixed(2)} км, ${busnumber}, ${minute_interval.toFixed(2)} минут `
         }
     }
 
@@ -205,6 +228,7 @@
         });
 
         marker_group = L.layerGroup().addTo(map);
+        L.control.ruler().addTo(map);
 
         get_bus_list()
         get_bus_stops_routes()
