@@ -6,6 +6,7 @@
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
     var bus_route_stops = []
+    var edited_edges = {}
     var bus_stop_auto_complete
     var drawn_items
 
@@ -119,6 +120,9 @@
                 var pointA = new L.LatLng(curr_point.LAT_, curr_point.LON_);
                 var pointB = new L.LatLng(item.LAT_, item.LON_);
                 var pointList = [pointA, pointB];
+                if (edited_edges[edge_key]){
+                    pointList = edited_edges[edge_key];
+                }
 
                 var firstpolyline = new L.Polyline(pointList, {
                     color: 'blue',
@@ -221,14 +225,12 @@
 
         map.on("draw:created", function (event) {
             var layer = event.layer;
-
-            // drawn_items.addLayer(layer);
         });
 
         map.on('draw:edited', function (e) {
             var layers = e.layers;
-            layers.eachLayer(function (layer) {
-                console.log(layer)
+            layers.eachLayer(function (edited_layer) {
+                edited_edges[edited_layer.options.edge_key] = edited_layer.editing.latlngs;
             });
         });
 
