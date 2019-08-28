@@ -5,11 +5,100 @@
     var my_renderer;
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
+    var timer_id = 0
+    var timer_stop_id = 0
+
     var bus_route_stops = []
     var edited_edges = {}
     var bus_stop_auto_complete
     var drawn_items
 
+    var route_run = document.getElementById('route_run')
+    var current_route = []
+    var icon_urls = []
+    var current_bus_stop_id = 0
+
+
+    document.getElementById('route_stop').onclick = function(){
+        clearTimeout(timer_id)
+        timer_id = 0
+        timer_stop_id = 0
+    }
+
+
+    function run_timer(func) {
+        if (!timer_id) {
+            timer_id = setTimeout(function tick() {
+                func().then(function () {
+                        timer_id = setTimeout(tick, 1 * 500)
+                }).catch(function(){
+                clearTimeout(timer_id)
+                    timer_id = 0
+                    timer_stop_id = 0
+                })
+            }, 1 * 100)
+            if (!timer_stop_id)
+                timer_stop_id = setTimeout(function () {
+                    clearTimeout(timer_id)
+                    timer_id = 0
+                    timer_stop_id = 0
+
+                }, 2* 60 * 1000)
+        }
+    }
+
+    route_run.onclick = function () {
+        run_timer(function(){
+            if (!current_route || !current_route.length){
+                return Promise.resolve()
+            }
+            marker_group.clearLayers()
+
+            var busnumber = document.getElementById('busnumber').value;
+            var busspeed = document.getElementById('busspeed').value;
+            var wait_time = document.getElementById('wait_time').value;
+
+            var bus_stop_interval = Math.floor(current_route.length / busnumber)
+
+            if (current_bus_stop_id >= current_route.length){
+                current_bus_stop_id = 0;
+            }
+            current_bus_stop_id++
+
+            for(var i=0; i < busnumber; i++){
+                var curr_id = (current_bus_stop_id + i * bus_stop_interval) % current_route.length
+                if (curr_id >= current_route.length){
+                    curr_id = 0;
+                }
+
+                var bus_stop = current_route[curr_id]
+                console.log('bus_stop ', bus_stop)
+                add_png_marker(bus_stop, i)
+                    .addTo(marker_group)
+                    .bindTooltip(i + ' ' + bus_stop.NAME_, {permanent: true})
+            }
+            return Promise.resolve()
+        })
+    }
+
+    function add_png_marker(item, index) {
+        var shadowUrl = 'https://unpkg.com/leaflet@1.3.3/dist/images/marker-shadow.png'
+
+        var icon = new L.Icon({
+            iconUrl: icon_urls[index % icon_urls.length],
+            shadowUrl: shadowUrl,
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+        });
+
+        return L.marker([item.LAT_, item.LON_],
+            {
+                icon: icon
+            }
+        )
+    }
 
     function get_bus_stops_routes() {
         if (bus_route_stops.length > 0) {
@@ -31,6 +120,8 @@
                 // update_bus_stops_routes(data)
             })
     }
+
+
 
     function get_bus_list() {
         return fetch('/buslist',
@@ -71,7 +162,6 @@
 
     function update_bus_stops_routes(bus_stops_routes, selected_route_name) {
         drawn_items.clearLayers()
-        marker_group.clearLayers()
         var my_renderer = L.canvas({padding: 0.5});
         var edges = {}
         var bus_stops = {}
@@ -88,6 +178,7 @@
             if (selected_route_name && route_name !== selected_route_name)
                 continue
             var route = bus_stops_routes[route_name]
+            current_route = bus_stops_routes[route_name]
             var curr_point = route[0]
             route.forEach(function (item) {
                 if (curr_point === item) {
@@ -222,6 +313,17 @@
             }
         }));
 
+
+        var iconUrls = [
+                    'marker-icon-2x-blue.png',
+                    'marker-icon-2x-green.png',
+                    'marker-icon-2x-red.png',
+                ]
+
+        var base_color_marker_url = 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/'
+        iconUrls.forEach(function (value) {
+            icon_urls.push(base_color_marker_url + value)
+        })
 
         map.on("draw:created", function (event) {
             var layer = event.layer;
