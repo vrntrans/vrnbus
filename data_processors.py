@@ -72,7 +72,7 @@ class WebDataProcessor(BaseDataProcessor):
         super().__init__(cds, logger, tracker)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
-    def get_bus_info(self, query, lat, lon, full_info):
+    def get_bus_info(self, query, lat, lon, full_info, is_mobile):
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
@@ -82,7 +82,7 @@ class WebDataProcessor(BaseDataProcessor):
         result = self.cds.bus_request(routes_info, user_loc=user_loc, short_format=True)
         return {'q': query,
                 'server_time': datetime.datetime.now(),
-                'text': result[0],
+                'text': '' if is_mobile else result[0],
                 'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud),
                            x[1]._asdict() if x[1] and not is_fraud else {}) for x
                           in result[1]]}
@@ -91,7 +91,8 @@ class WebDataProcessor(BaseDataProcessor):
         matches = self.cds.matches_bus_stops(lat, lon)
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
         result_tuple = self.cds.next_bus_for_matches(tuple(matches), parse_routes(query))
-        response = {'lat': lat, 'lon': lon, 'text': result_tuple[0], 'header': result_tuple[1],
+        response = {'lat': lat, 'lon': lon,
+                    'text': result_tuple[0], 'header': result_tuple[1],
                     'server_time': datetime.datetime.now(),
                     'bus_stops': {v.bus_stop_name: v.text for v in result_tuple.arrival_details}}
         return response

@@ -46,6 +46,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
         self.tracker.web(event, self.remote_ip, *params, self.user_agent)
 
+
     def data_received(self, chunk):
         pass
 
@@ -94,6 +95,9 @@ class BaseHandler(tornado.web.RequestHandler):
     def tracker(self) -> EventTracker:
         return self.application.tracker
 
+    @property
+    def is_mobile(self):
+        return any((x in self.user_agent for x in ['CFNetwork', 'Dalvik', 'Android',]))
 
 class BusSite(tornado.web.Application):
     def __init__(self, processor: WebDataProcessor, logger, tracker: EventTracker, anti_abuser: AbuseChecker):
@@ -143,7 +147,7 @@ class BusInfoHandler(BaseHandler):
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
         self.track(event, src, query, lat, lon)
-        response = self.processor.get_bus_info(query, lat, lon, self.full_access)
+        response = self.processor.get_bus_info(query, lat, lon, self.full_access, self.is_mobile)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
