@@ -1,3 +1,4 @@
+import datetime
 import os
 import random
 from logging import Logger
@@ -79,7 +80,9 @@ class WebDataProcessor(BaseDataProcessor):
         is_fraud = not full_info and len(routes_info.bus_routes) > 25
 
         result = self.cds.bus_request(routes_info, user_loc=user_loc, short_format=True)
-        return {'q': query, 'text': result[0],
+        return {'q': query,
+                'server_time': datetime.datetime.now(),
+                'text': result[0],
                 'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud),
                            x[1]._asdict() if x[1] and not is_fraud else {}) for x
                           in result[1]]}
@@ -89,6 +92,7 @@ class WebDataProcessor(BaseDataProcessor):
         self.logger.info(f'{lat};{lon} {";".join([str(i) for i in matches])}')
         result_tuple = self.cds.next_bus_for_matches(tuple(matches), parse_routes(query))
         response = {'lat': lat, 'lon': lon, 'text': result_tuple[0], 'header': result_tuple[1],
+                    'server_time': datetime.datetime.now(),
                     'bus_stops': {v.bus_stop_name: v.text for v in result_tuple.arrival_details}}
         return response
 
@@ -97,10 +101,12 @@ class WebDataProcessor(BaseDataProcessor):
         result_tuple = self.cds.next_bus(station_query, parse_routes(query))
         if result_tuple.found:
             response = {'text': result_tuple[0], 'header': result_tuple[1],
+                        'server_time': datetime.datetime.now(),
                         'bus_stops': {v.bus_stop_name: v.text for v in
                                       result_tuple.arrival_details}}
         else:
             response = {'text': result_tuple[0], 'header': result_tuple[1],
+                        'server_time': datetime.datetime.now(),
                         'bus_stops': {k: '' for k in
                                       result_tuple.bus_stops}}
         return response
@@ -145,7 +151,7 @@ class WebDataProcessor(BaseDataProcessor):
     def get_stats(self):
         user_stats = self.tracker.stats()
         bus_stats = self.cds.get_bus_statistics()
-        return user_stats + '\n\n' + bus_stats.text
+        return str(datetime.datetime.now()) + '\n\n' + user_stats + '\n\n' + bus_stats.text
 
 
 class TelegramDataProcessor(BaseDataProcessor):

@@ -294,6 +294,7 @@
                 waiting(lastbus_loading, lastbus_map_update, false)
                 var q = data.q
                 var text = data.text
+                var server_time = new Date(data.server_time)
                 businfo.innerHTML = 'Маршруты: ' + q + '\nКоличество результатов: ' + data.buses.length + '\n' + text
 
                 if (!my_map)
@@ -308,7 +309,9 @@
                     }, min_last_time);
 
                     var delta_with_current = (new Date() - new Date(max_time))/1000
-                    console.log("current_time - max_time",delta_with_current.toFixed(1))
+                    var delta_with_max = (server_time - new Date(max_time))/1000
+                    console.log("current_time - max_time", delta_with_current.toFixed(1))
+                    console.log("server_time - max_time", delta_with_max.toFixed(1))
                 }
 
                 var bus_with_azimuth = data.buses.map(function (data) {
@@ -336,7 +339,7 @@
                     }
                     var bus_output = bus.obj_output === 1 ? ' <b>!</b> ' : ''
 
-                    bus.delta_time = diff_time(bus.last_time_, new Date());
+                    bus.delta_time = diff_time(bus.last_time_, server_time);
 
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
                         bus.route_name_.trim() + (bus.name_ ? " ( " + bus.name_ + " ) " : ""),
