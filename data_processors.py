@@ -72,7 +72,7 @@ class WebDataProcessor(BaseDataProcessor):
         super().__init__(cds, logger, tracker)
 
     @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
-    def get_bus_info(self, query, lat, lon, full_info, is_mobile):
+    def get_bus_info(self, query, lat, lon, full_info, hide_text=True):
         user_loc = None
         if lat and lon:
             user_loc = UserLoc(float(lat), float(lon))
@@ -82,7 +82,7 @@ class WebDataProcessor(BaseDataProcessor):
         result = self.cds.bus_request(routes_info, user_loc=user_loc, short_format=True)
         return {'q': query,
                 'server_time': datetime.datetime.now(),
-                'text': '' if is_mobile else result[0],
+                'text': '' if hide_text else result[0],
                 'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud),
                            x[1]._asdict() if x[1] and not is_fraud else {}) for x
                           in result[1]]}

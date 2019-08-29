@@ -132,7 +132,7 @@ class PingHandler(BaseHandler):
 
 
 class BusInfoHandler(BaseHandler):
-    def bus_info_response(self, src, query, lat, lon, parent_url):
+    def bus_info_response(self, src, query, lat, lon, parent_url, hide_text):
         is_map = src == 'map'
         if self.referer and 'vrnbus.herokuapp.com' not in self.referer:
             self.track(WebEvent.FRAUD, self.referer, query, lat, lon)
@@ -147,7 +147,7 @@ class BusInfoHandler(BaseHandler):
             self.track(WebEvent.ABUSE, query, lat, lon)
             return self.send_error(500)
         self.track(event, src, query, lat, lon)
-        response = self.processor.get_bus_info(query, lat, lon, self.full_access, self.is_mobile)
+        response = self.processor.get_bus_info(query, lat, lon, self.full_access, hide_text)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
@@ -157,7 +157,9 @@ class BusInfoHandler(BaseHandler):
         lat = self.get_argument('lat', None)
         lon = self.get_argument('lon', None)
         parent_url = self.get_argument('parentUrl', None)
-        self.bus_info_response(src, q, lat, lon, parent_url)
+        hide_text = self.get_argument('hide_text', None) is not None
+
+        self.bus_info_response(src, q, lat, lon, parent_url, hide_text)
 
 
 class ArrivalHandler(BaseHandler):
