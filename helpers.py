@@ -38,7 +38,7 @@ def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
 
 def sort_routes(source):
     routes = list(source)
-    is_trolley = lambda x: x.startswith("Тр.")
+    is_trolley = lambda x: x.startswith("Т")
     trolleys = list(filter(is_trolley, routes))
     trolleys.sort(key=natural_sort_key)
     rest = list(filterfalse(is_trolley, routes))
