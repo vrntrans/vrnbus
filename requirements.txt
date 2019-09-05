@@ -8,3 +8,4 @@ freezegun==0.3.10
 python-dateutil==2.7.0
 APScheduler==3.5.3
 Rtree==0.8.3
+requests==2.22.0
