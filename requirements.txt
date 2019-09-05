@@ -3,6 +3,7 @@ cachetools==2.0.1
 tornado==5.1.1
 pytz==2017.3
 fdb==1.8
+bs4==*
 freezegun==0.3.10
 python-dateutil==2.7.0
 APScheduler==3.5.3

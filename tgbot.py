@@ -10,6 +10,7 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMa
 from telegram.ext import CommandHandler, CallbackQueryHandler, Filters, MessageHandler, Updater, run_async
 
 from data_types import UserLoc, ArrivalInfo, StatsData, BusStop
+from fotobus_scrapper import fb_links
 from helpers import parse_routes, natural_sort_key, grouper, SearchResult, parse_int
 from tracking import EventTracker, TgEvent, get_event_by_name
 
@@ -54,6 +55,7 @@ class BusBot:
         self.dp.add_handler(CommandHandler("last", self.last_buses, pass_args=True))
 
         self.dp.add_handler(CommandHandler("nextbus", self.next_bus_handler, pass_args=True))
+        self.dp.add_handler(CommandHandler("fb", self.fb_link_handler, pass_args=True))
 
         self.dp.add_handler(CommandHandler("userstats", self.user_stats))
         self.dp.add_handler(CommandHandler("userstatspro", self.user_stats_pro, pass_args=True))
@@ -335,6 +337,11 @@ class BusBot:
 
     def next_bus_handler(self, _, update, args):
         self.next_bus_general(update, args)
+
+    def fb_link_handler(self, _, update, args):
+        bus_name = args if isinstance(args, str) else ' '.join(args)
+        fotobus_links = fb_links(bus_name)
+        update.message.reply_text("\n".join((f"[{link}]({link})" for link in fotobus_links)), parse_mode='Markdown')
 
     @run_async
     def send_stats(self, update, full_info):
