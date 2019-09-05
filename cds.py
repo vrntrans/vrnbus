@@ -292,7 +292,7 @@ class CdsRequest:
             keys = set([x for x in self.codd_routes.keys()
                         for r in search_result.bus_routes if x.upper() == r.upper()])
 
-        if not keys and search_result.bus_filter == '':
+        if not keys and not search_result.bus_filter:
             return 'Не заданы маршруты', []
         short_result = self.bus_request_as_list(tuple(keys))
         if short_result:

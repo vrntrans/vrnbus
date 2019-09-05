@@ -139,7 +139,9 @@ class CdsRouteBus(NamedTuple):
         return CdsBusPosition(self.last_lat_, self.last_lon_, self.last_time_)
 
     def filter_by_name(self, filter_query: str) -> bool:
-        return filter_query == '' or filter_query.lower() in self.name_.lower()
+        bus_filter = filter_query.lower().split(' ')
+        name = self.name_.lower()
+        return not filter_query or any((q in name for q in bus_filter if q))
 
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '

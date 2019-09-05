@@ -62,7 +62,7 @@ def parse_routes(text) -> SearchResult:
             bus_filter_start = True
             continue
         if bus_filter_start:
-            bus_filter += i
+            bus_filter += i + ' '
             continue
         route_filter.append(i)
     if not route_filter:
