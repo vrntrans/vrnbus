@@ -125,7 +125,8 @@ class WebDataProcessor(BaseDataProcessor):
             search_params = parse_routes(query)
             arrival_info = self.cds.next_bus_for_matches((bus_stop,), search_params)
             result_text = self.get_text_from_arrival_info(arrival_info)
-            response = {'result': result_text, 'arrival_info': unpack_namedtuples(arrival_info)}
+            response = {'result': result_text, 'server_time': datetime.datetime.now(),
+                        'arrival_info': unpack_namedtuples(arrival_info)}
             return response
 
     def get_bus_list(self):
