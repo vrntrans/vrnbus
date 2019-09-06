@@ -352,7 +352,8 @@ class BusBot:
 
     def fb_link_show(self, bus_name, update):
         fotobus_links = fb_links(bus_name)
-        update.message.reply_text("\n".join((f"/fb {bus_name} [{link}]({link})" for link in fotobus_links)), parse_mode='Markdown')
+        command = f'/fb_{bus_name}'
+        update.message.reply_text("\n".join((f"[{command}]({command}) [{link}]({link})" for link in fotobus_links)), parse_mode='Markdown')
 
     @run_async
     def send_stats(self, update, full_info):
