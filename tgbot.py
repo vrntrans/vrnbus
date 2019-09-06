@@ -361,14 +361,12 @@ class BusBot:
 
         self.track(TgEvent.STATS, update, full_info)
         response = self.cds.get_bus_statistics(full_info) or StatsData(0, 0, 0, 0, "Нет данных")
-        update.message.reply_text(f'```\n{response.text}\n```', parse_mode='Markdown')
+        update.message.reply_text(f'/stats ```\n{response.text}\n```', parse_mode='Markdown')
 
     def stats(self, _, update):
-        """Send a message when the command /stats is issued."""
         self.send_stats(update, False)
 
     def stats_full(self, _, update):
-        """Send a message when the command /stats is issued."""
         self.send_stats(update, True)
 
     @run_async
