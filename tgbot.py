@@ -124,6 +124,14 @@ class BusBot:
                     self.next_bus_for_bus_stop(update, bus_stop, match.group(2))
                     return
 
+        if command.startswith('/fb'):
+            match = re.match(r'/fb[_]?(\S+)', command)
+            if match and match.group(1):
+                bus_name = match.group(1)
+                self.track(TgEvent.CUSTOM_CMD, update, command)
+                self.fb_link_show(bus_name, update)
+                return
+
         self.track(TgEvent.WRONG_CMD, update, command, "Didn't find")
         bot.send_message(chat_id=update.message.chat_id,
                          text=f"Sorry, I didn't understand that command. {update.message.text}")
@@ -340,6 +348,9 @@ class BusBot:
 
     def fb_link_handler(self, _, update, args):
         bus_name = args if isinstance(args, str) else ' '.join(args)
+        self.fb_link_show(bus_name, update)
+
+    def fb_link_show(self, bus_name, update):
         fotobus_links = fb_links(bus_name)
         update.message.reply_text("\n".join((f"/fb {bus_name} [{link}]({link})" for link in fotobus_links)), parse_mode='Markdown')
 
