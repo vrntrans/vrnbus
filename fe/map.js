@@ -342,7 +342,7 @@
                     bus.delta_time = diff_time(bus.last_time_, server_time);
 
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
-                        bus.route_name_.trim() + (bus.name_ ? " ( <a href='/fotobus_info?name=" + bus.name_ + "'>" + bus.name_ + "</a> ) " : ""),
+                        bus.route_name_.trim() + (bus.name_ ? " ( <a target='_blank' rel='noopener' href='/fotobus_info?name=" + bus.name_ + "'>" + bus.name_ + "</a> ) " : ""),
                         bus.last_speed_.toFixed(1)
                         + " ~ " + bus.avg_speed.toFixed(1)
                         + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',
