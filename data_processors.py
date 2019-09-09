@@ -7,6 +7,7 @@ import cachetools
 
 from cds import CdsRequest
 from data_types import UserLoc, ArrivalInfo
+from fotobus_scrapper import fb_links
 from helpers import parse_routes
 from tracking import EventTracker
 
@@ -137,6 +138,11 @@ class WebDataProcessor(BaseDataProcessor):
     def get_bus_stops(self):
         response = {'result': [x._asdict() for x in self.cds.all_bus_stops]}
         return response
+
+    @cachetools.func.ttl_cache(ttl=36000)
+    def get_fotobus_url(self, name):
+        links = fb_links(name)
+        return links
 
     @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_stops_for_routes(self):

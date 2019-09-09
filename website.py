@@ -112,6 +112,7 @@ class BusSite(tornado.web.Application):
             (r"/bus_stops_routes", BusStopsRoutesHandler),
             (r"/bus_stations.json", BusStopsRoutesForAppsHandler),
             (r"/bus_stops", BusStopsHandler),
+            (r"/fotobus_info", FotoBusHandler),
             (r"/ping", PingHandler),
             (r"/(.*.json)", static_handler, {"path": Path("./")}),
             (r"/stats.html", StatsHandler),
@@ -246,6 +247,20 @@ class BusStopSearchHandler(BaseHandler):
         response = self.processor.get_arrival_by_name(query, station_query)
         self.write(json.dumps(response))
         self.caching()
+
+    def get(self):
+        self._response()
+
+
+class FotoBusHandler(BaseHandler):
+    def _response(self):
+        name = self.get_argument('name')
+        self.track(WebEvent.FOTOBUS, name)
+        links = self.processor.get_fotobus_url(name)
+        if links:
+            self.redirect(links[0])
+        else:
+            self.send_error(404)
 
     def get(self):
         self._response()

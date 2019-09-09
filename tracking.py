@@ -29,6 +29,7 @@ class WebEvent(Enum):
     BUSINFO = auto()
     BUSMAP = auto()
     BUSSTOP = auto()
+    FOTOBUS = auto()
     FULLINFO = auto()
     IPCHANGE = auto()
     IOS = auto()
