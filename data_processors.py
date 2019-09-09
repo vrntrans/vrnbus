@@ -49,6 +49,7 @@ def unpack_namedtuples(obj):
 
 def eliminate_numbers(d: dict, full_info, is_fraud) -> dict:
     if not full_info:
+        d['hidden_name'] = d['name_']
         d['name_'] = ''
 
     if is_fraud:
