@@ -502,7 +502,7 @@
         var lon = bus.lon2 || bus.last_lon_
         var bus_output = bus.obj_output === 1 ? ' <b>!</b>' : ''
         var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (bus.name_ ? "&nbsp;" + bus.name_ : "")
-        var rotation = bus.azimuth
+        var rotation = bus.db_azimuth
         var wait = bus.delta_time < 60 ? '' : '_wait';
         if (bus.delta_time > 180){
             wait = '_long_wait'
