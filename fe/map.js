@@ -326,6 +326,7 @@
                     var x = next_bus_stop.LAT_ - bus.last_lat_
                     var y = next_bus_stop.LON_ - bus.last_lon_
 
+                    bus.db_azimuth = bus.azimuth
                     bus.azimuth = Math.floor(Math.atan2(y, x) * 180 / Math.PI)
                     var time = formate_date(bus.last_time_)
                     var bus_type = "МВ"
@@ -349,6 +350,7 @@
                         bus.last_speed_.toFixed(1)
                         + " ~ " + bus.avg_speed.toFixed(1)
                         + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',
+                        "Азимуты: к остановке " + bus.azimuth + ';  ' + bus.db_azimuth,
                         (bus.low_floor ? "Низкопол" : "") + " " + bus_type].join('<br/>')
 
                     return bus
