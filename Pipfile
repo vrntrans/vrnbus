@@ -1,0 +1,24 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+
+[packages]
+
+tornado = "*"
+requests = "*"
+python-telegram-bot = "*"
+cachetools = "*"
+pytz = "*"
+fdb = "*"
+freezegun = "*"
+python-dateutil = "*"
+apscheduler = "*"
+rtree = "*"
+"beautifulsoup4" = "*"
+
+
+[dev-packages]
+
