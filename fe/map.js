@@ -679,6 +679,7 @@
         }
         get_bus_list()
 
+        firebase.analytics().setUserId(load_from_ls('user_ip') || '');
 
         if (lastbusquery)
             lastbusquery.value = load_from_ls('bus_query') || ''
@@ -688,6 +689,11 @@
 
         if (station_name)
             station_name.value = load_from_ls('station') || ''
+
+        firebase.analytics().logEvent("open_map", {
+            user_ip: load_from_ls('user_ip'),
+            bus_query: load_from_ls('bus_query'),
+        })
     }
 
     document.addEventListener("DOMContentLoaded", init);
