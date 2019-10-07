@@ -119,6 +119,18 @@
                 bus_route_stops = data
                 // update_bus_stops_routes(data)
             })
+            .then(function () {
+                return fetch('/bus_route_edges', {
+                    method: 'GET'})
+            }).then(function (res) {
+                return res.json()
+            }).
+            then(function (data) {
+                console.log('bus_route_edges', data)
+                data.forEach(function (item) {
+                    edited_edges[item.edge_key] = item.points
+                })
+            })
     }
 
 
@@ -333,6 +345,16 @@
             var layers = e.layers;
             layers.eachLayer(function (edited_layer) {
                 edited_edges[edited_layer.options.edge_key] = edited_layer.editing.latlngs;
+                fetch('/bus_route_edges', {
+                    method: 'POST', // или 'PUT'
+                    body: JSON.stringify({
+                        'edge_key':edited_layer.options.edge_key,
+                        'points':edited_layer.editing.latlngs
+            }), // данные могут быть 'строкой' или {объектом}!
+                headers: {'Content-Type': 'application/json'},
+
+                credentials: 'include',
+            })
             });
         });
 

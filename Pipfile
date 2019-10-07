@@ -18,6 +18,9 @@ python-dateutil = "*"
 apscheduler = "*"
 rtree = "*"
 "beautifulsoup4" = "*"
+sqlalchemy = "*"
+alembic = "*"
+"psycopg2" = "*"
 
 
 [dev-packages]

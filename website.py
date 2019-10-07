@@ -2,12 +2,15 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import List
 
 import tornado.web
 
 import helpers
 from abuse_checker import AbuseChecker
 from data_processors import WebDataProcessor
+from db import session_scope
+from models import RouteEdges
 from tracking import WebEvent, EventTracker
 
 if 'DYNO' in os.environ:
@@ -114,6 +117,7 @@ class BusSite(tornado.web.Application):
             (r"/bus_stations.json", BusStopsRoutesForAppsHandler),
             (r"/bus_stops", BusStopsHandler),
             (r"/fotobus_info", FotoBusHandler),
+            (r"/bus_route_edges", BusRouteEdgesHandler),
             (r"/ping", PingHandler),
             (r"/(.*.json)", static_handler, {"path": Path("./")}),
             (r"/stats.html", StatsHandler),
@@ -276,3 +280,28 @@ class StatsHandler(BaseHandler):
 
     def get(self):
         self.arrival_response()
+
+class BusRouteEdgesHandler(BaseHandler):
+    def arrival_response(self):
+        data = tornado.escape.json_decode(self.request.body)
+        self.write(data)
+        self.caching()
+
+    def post(self):
+        data = tornado.escape.json_decode(self.request.body)
+        edge_key = json.dumps(data.get("edge_key"))
+        points = json.dumps(data.get("points"))
+        with session_scope(f'RouteEdges id {edge_key}') as session:
+            edge = session.query(RouteEdges).filter_by(edge_key=edge_key).first()
+            if not edge:
+                edge = RouteEdges(edge_key=edge_key)
+                session.add(edge)
+            edge.points = points
+            session.commit()
+
+    def get(self):
+        with session_scope(f'Return all RouteEdges') as session:
+            edges: List[RouteEdges] = session.query(RouteEdges).all()
+            result = [{"edge_key":  json.loads(x.edge_key),
+                    "points": json.loads(x.points)} for x in edges]
+            self.write(json.dumps(result))
