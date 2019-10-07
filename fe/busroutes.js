@@ -297,7 +297,10 @@
         map = L.map('mapid', {
             fullscreenControl: {
                 pseudoFullscreen: true // if true, fullscreen to page width and height
-            }
+            },
+            minZoom: 10,
+            maxZoom: 20,
+            maxNativeZoom: 18
         }).setView([51.6754966, 39.2088823], 11)
 
         my_renderer = L.canvas({padding: 0.5});
@@ -314,12 +317,12 @@
             edit: {
                 featureGroup: drawn_items,
                 poly: {
-                    allowIntersection: false
+                    allowIntersection: true
                 }
             },
             draw: {
                 polygon: {
-                    allowIntersection: false,
+                    allowIntersection: true,
                     showArea: true
                 }
             }
