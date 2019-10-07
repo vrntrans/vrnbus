@@ -34,6 +34,7 @@ class WebEvent(Enum):
     IPCHANGE = auto()
     IOS = auto()
     ANDROID = auto()
+    WEB_SITE = auto()
     USER_STATS = auto()
 
     @staticmethod
