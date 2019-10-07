@@ -299,14 +299,16 @@
                 pseudoFullscreen: true // if true, fullscreen to page width and height
             },
             minZoom: 10,
-            maxZoom: 20,
-            maxNativeZoom: 18
+            maxZoom: 22
         }).setView([51.6754966, 39.2088823], 11)
 
         my_renderer = L.canvas({padding: 0.5});
 
         L.tileLayer('https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            minZoom: 10,
+            maxZoom: 22,
+            maxNativeZoom: 18
         }).addTo(map)
 
         // FeatureGroup is to store editable layers
