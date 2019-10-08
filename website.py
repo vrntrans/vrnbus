@@ -250,7 +250,7 @@ class BusStopSearchHandler(BaseHandler):
         station_query = self.get_argument('station')
         self.track(WebEvent.BUSSTOP, query, station_query)
         response = self.processor.get_arrival_by_name(query, station_query)
-        self.write(json.dumps(response))
+        self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
     def get(self):
