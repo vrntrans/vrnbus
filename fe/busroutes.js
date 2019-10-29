@@ -349,12 +349,14 @@
         map.on('draw:edited', function (e) {
             var layers = e.layers;
             layers.eachLayer(function (edited_layer) {
-                edited_edges[edited_layer.options.edge_key] = edited_layer.editing.latlngs;
+                var edge_key = edited_layer.options.edge_key;
+                var points = edited_layer.editing.latlngs[0];
+                edited_edges[edited_layer.options.edge_key] = points;
                 fetch('/bus_route_edges', {
                     method: 'POST', // или 'PUT'
                     body: JSON.stringify({
-                        'edge_key':edited_layer.options.edge_key,
-                        'points':edited_layer.editing.latlngs
+                        'edge_key': edge_key,
+                        'points': points
             }), // данные могут быть 'строкой' или {объектом}!
                 headers: {'Content-Type': 'application/json'},
 
