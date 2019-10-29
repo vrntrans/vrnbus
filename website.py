@@ -2,7 +2,6 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List
 
 import tornado.web
 
@@ -306,9 +305,6 @@ class BusRouteEdgesHandler(BaseHandler):
             session.commit()
 
     def get(self):
-        with session_scope(f'Return all RouteEdges') as session:
-            edges: List[RouteEdges] = session.query(RouteEdges).all()
-            result = [{"edge_key":  json.loads(x.edge_key),
-                    "points": json.loads(x.points)} for x in edges]
-            self.write(json.dumps(result))
-            self.caching()
+        result = self.processor.get_route_edges()
+        self.write(json.dumps(result))
+        self.caching()

@@ -1,14 +1,18 @@
 import datetime
+import json
 import os
 import random
 from logging import Logger
+from typing import List
 
 import cachetools
 
 from cds import CdsRequest
 from data_types import UserLoc, ArrivalInfo
+from db import session_scope
 from fotobus_scrapper import fb_links
 from helpers import parse_routes
+from models import RouteEdges
 from tracking import EventTracker
 
 LOAD_TEST_DATA = False
@@ -144,6 +148,13 @@ class WebDataProcessor(BaseDataProcessor):
     def get_fotobus_url(self, name):
         links = fb_links(name)
         return links
+
+    @cachetools.func.ttl_cache(ttl=60)
+    def get_route_edges(self):
+        with session_scope(f'Return all RouteEdges') as session:
+            edges: List[RouteEdges] = session.query(RouteEdges).all()
+            return [{"edge_key":  json.loads(x.edge_key),
+                    "points": json.loads(x.points)} for x in edges]
 
     @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_stops_for_routes(self):
