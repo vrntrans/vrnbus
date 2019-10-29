@@ -54,6 +54,11 @@ class BaseHandler(tornado.web.RequestHandler):
     def data_received(self, chunk):
         pass
 
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+
     def set_extra_headers(self, _):
         self.set_header("Tk", "N")
         self.caching()
@@ -250,6 +255,7 @@ class BusStopSearchHandler(BaseHandler):
         station_query = self.get_argument('station')
         self.track(WebEvent.BUSSTOP, query, station_query)
         response = self.processor.get_arrival_by_name(query, station_query)
+        self.logger.info(response)
         self.write(json.dumps(response, cls=helpers.CustomJsonEncoder))
         self.caching()
 
@@ -305,3 +311,4 @@ class BusRouteEdgesHandler(BaseHandler):
             result = [{"edge_key":  json.loads(x.edge_key),
                     "points": json.loads(x.points)} for x in edges]
             self.write(json.dumps(result))
+            self.caching()
