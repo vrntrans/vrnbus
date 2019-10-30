@@ -99,6 +99,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
                 cur.execute('''select "Id" as ID_, "Name" as  NAME_ from "NewRoute"
+                                where "NewRouteStatusID" <> 3
                                 order by NAME_''')
                 self.logger.debug('Finish execution')
                 result = cur.fetchallmap()
