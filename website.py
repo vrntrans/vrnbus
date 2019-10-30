@@ -8,8 +8,6 @@ import tornado.web
 import helpers
 from abuse_checker import AbuseChecker
 from data_processors import WebDataProcessor
-from db import session_scope
-from models import RouteEdges
 from tracking import WebEvent, EventTracker
 
 if 'DYNO' in os.environ:
@@ -92,7 +90,7 @@ class BaseHandler(tornado.web.RequestHandler):
         return self.request.headers["User-Agent"]
 
     @property
-    def processor(self):
+    def processor(self) -> WebDataProcessor:
         return self.application.processor
 
     @property
@@ -296,13 +294,7 @@ class BusRouteEdgesHandler(BaseHandler):
         data = tornado.escape.json_decode(self.request.body)
         edge_key = json.dumps(data.get("edge_key"))
         points = json.dumps(data.get("points"))
-        with session_scope(f'RouteEdges id {edge_key}') as session:
-            edge = session.query(RouteEdges).filter_by(edge_key=edge_key).first()
-            if not edge:
-                edge = RouteEdges(edge_key=edge_key)
-                session.add(edge)
-            edge.points = points
-            session.commit()
+        self.processor.add_route_edges(edge_key, points)
 
     def get(self):
         result = self.processor.get_route_edges()

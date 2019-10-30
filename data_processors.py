@@ -149,12 +149,21 @@ class WebDataProcessor(BaseDataProcessor):
         links = fb_links(name)
         return links
 
-    @cachetools.func.ttl_cache(ttl=60)
+    @cachetools.func.ttl_cache(ttl=15)
     def get_route_edges(self):
         with session_scope(f'Return all RouteEdges') as session:
             edges: List[RouteEdges] = session.query(RouteEdges).all()
             return [{"edge_key":  json.loads(x.edge_key),
                     "points": json.loads(x.points)} for x in edges]
+
+    def add_route_edges(self, edge_key, points):
+        with session_scope(f'RouteEdges id {edge_key}') as session:
+            edge = session.query(RouteEdges).filter_by(edge_key=edge_key).first()
+            if not edge:
+                edge = RouteEdges(edge_key=edge_key)
+                session.add(edge)
+            edge.points = points
+            session.commit()
 
     @cachetools.func.ttl_cache(ttl=36000)
     def get_bus_stops_for_routes(self):
