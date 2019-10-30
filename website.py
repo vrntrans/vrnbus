@@ -114,8 +114,10 @@ class BusSite(tornado.web.Application):
             (r"/busmap", BusInfoHandler),
             (r"/businfolist", BusInfoHandler),
             (r"/buslist", BusListHandler),
+            (r"/new_routes", NewRoutesHandler),
             (r"/bus_stop_search", BusStopSearchHandler),
             (r"/bus_stops_routes", BusStopsRoutesHandler),
+            (r"/bus_stops_new_routes", BusStopsNewRoutesHandler),
             (r"/bus_stations.json", BusStopsRoutesForAppsHandler),
             (r"/bus_stops", BusStopsHandler),
             (r"/fotobus_info", FotoBusHandler),
@@ -209,6 +211,19 @@ class BusListHandler(BaseHandler):
         self._response()
 
 
+class NewRoutesHandler(BaseHandler):
+    def _response(self):
+        self.logger.info(f'New bus list query')
+
+        response = self.processor.get_new_routes()
+        self.write(json.dumps(response))
+        if response:
+            self.caching(max_age=24 * 60 * 60)
+
+    def get(self):
+        self._response()
+
+
 class BusStopsHandler(BaseHandler):
     def _response(self):
         self.logger.info(f'Bus list query')
@@ -238,6 +253,19 @@ class BusStopsRoutesHandler(BaseHandler):
         self.logger.info(f'Bus list query')
 
         response = self.processor.get_bus_stops_for_routes()
+        self.write(json.dumps(response, ensure_ascii=False))
+        if response:
+            self.caching(max_age=24 * 60 * 60)
+
+    def get(self):
+        self._response()
+
+
+class BusStopsNewRoutesHandler(BaseHandler):
+    def _response(self):
+        self.logger.info(f'Bus list query')
+
+        response = self.processor.get_bus_stops_for_new_routes()
         self.write(json.dumps(response, ensure_ascii=False))
         if response:
             self.caching(max_age=24 * 60 * 60)
@@ -283,6 +311,7 @@ class StatsHandler(BaseHandler):
 
     def get(self):
         self.arrival_response()
+
 
 class BusRouteEdgesHandler(BaseHandler):
     def arrival_response(self):

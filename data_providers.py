@@ -92,30 +92,33 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
         return {x.NAME_: x.ID_ for x in result}
 
-    def load_bus_stations_routes(self) -> Dict:
-        bus_routes = self.load_codd_route_names()
-
-        bus_routes_ids = {v: k for k, v in bus_routes.items()}
-
+    def load_new_codd_route_names(self):
+        self.logger.debug('Execute fetch routes from DB')
+        start = time.time()
         try:
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
-                cur.execute('''select bsr.NUM as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_, 
-                                bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_, bsr.BS_ID as ID
-                                from BS_ROUTE bsr
-                                join ROUTS r on bsr.ROUTE_ID = r.ID_
-                                join BS on bsr.BS_ID = bs.ID
-                                order by ROUT_, NUMBER_''')
+                cur.execute('''select "Id" as ID_, "Name" as  NAME_ from "NewRoute"
+                                order by NAME_''')
+                self.logger.debug('Finish execution')
                 result = cur.fetchallmap()
                 tr.commit()
                 cur.close()
+                end = time.time()
+                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
 
-        long_bus_stops = [LongBusRouteStop(**x) for x in result]
+        result = [CoddBus(**x) for x in result]
+        end = time.time()
+        self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
+        return {x.NAME_: x.ID_ for x in result}
 
+    def convert_to_stations_dict(self, bus_routes, bus_stops_data):
+        bus_routes_ids = {v: k for k, v in bus_routes.items()}
+        long_bus_stops = [LongBusRouteStop(**x) for x in bus_stops_data]
         bus_stations = {}
 
         for stop in long_bus_stops:
@@ -128,6 +131,50 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             v.sort(key=lambda tup: tup.NUMBER_)
 
         return bus_stations
+
+    def load_bus_stations_routes(self) -> Dict:
+        try:
+            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                cur = tr.cursor()
+                cur.execute('''select bsr.NUM as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_, 
+                                bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_, bsr.BS_ID as ID
+                                from BS_ROUTE bsr
+                                join ROUTS r on bsr.ROUTE_ID = r.ID_
+                                join BS on bsr.BS_ID = bs.ID
+                                order by ROUT_, NUMBER_''')
+                bus_stops_data = cur.fetchallmap()
+                tr.commit()
+                cur.close()
+        except fdb.fbcore.DatabaseError as db_error:
+            self.logger.error(db_error)
+            self.try_reconnect()
+            return {}
+
+        result = self.convert_to_stations_dict(self.load_codd_route_names(), bus_stops_data)
+        return result
+
+    def load_new_bus_stations_routes(self) -> Dict:
+        try:
+            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                cur = tr.cursor()
+                cur.execute('''select bsr."Num" as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_,
+                                    bs.LON as LON_, bsr."RouteId" as ROUT_, 0 as CONTROL_, 
+                                    bsr."BusStationId" as ID
+                                    from "NewBusStationRoute" bsr
+                                    join ROUTS r on bsr."RouteId" = r.ID_
+                                    join BS on bsr."BusStationId" = bs.ID
+                                    order by ROUT_, NUMBER_''')
+                bus_stops_data = cur.fetchallmap()
+                tr.commit()
+                cur.close()
+        except fdb.fbcore.DatabaseError as db_error:
+            self.logger.error(db_error)
+            self.try_reconnect()
+            return {}
+
+        result = self.convert_to_stations_dict(self.load_new_codd_route_names(), bus_stops_data)
+        return result
+
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         def make_names_lower(x):

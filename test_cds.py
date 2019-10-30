@@ -8,6 +8,7 @@ from data_processors import WebDataProcessor
 from data_providers import CdsTestDataProvider, CdsDBDataProvider
 from data_types import CdsBusPosition, CdsRouteBus, BusStop
 from helpers import parse_routes
+from tracking import EventTracker
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s [%(filename)s:%(lineno)s %(funcName)20s] %(message)s',
                     level=logging.INFO,
@@ -176,9 +177,10 @@ class CdsBusArrivalTestCases(unittest.TestCase):
                             handlers=[logging.StreamHandler()])
 
         self.logger = logging.getLogger("vrnbus")
+        self.tracker = EventTracker(logger, [])
         self.mock_provider = CdsTestDataProvider(logger)
         self.cds = CdsRequest(logger, self.mock_provider)
-        self.processor = WebDataProcessor(self.cds, self.logger)
+        self.processor = WebDataProcessor(self.cds, self.logger, self.tracker)
 
     def test_arrival(self):
         result = self.processor.get_arrival("про 49 5а", 51.692727, 39.18297)
@@ -191,6 +193,10 @@ class CdsBusArrivalTestCases(unittest.TestCase):
             break
         self.logger.info(result)
         self.logger.info(counts)
+
+    def test_businfo(self):
+        result = self.processor.get_bus_info("про 49 5а", 51.692727, 39.18297, True)
+        self.logger.info(result)
 
     def test_arrival_distance(self):
         src = 'Центральный автовокзал (в центр)'

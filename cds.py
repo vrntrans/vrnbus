@@ -43,6 +43,9 @@ class CdsRequest:
         self.codd_routes = data_provider.load_codd_route_names()
         self.codd_buses = sort_routes(self.codd_routes.keys())
 
+        self.codd_new_routes = data_provider.load_new_codd_route_names()
+        self.codd_new_buses = sort_routes(self.codd_new_routes.keys())
+
         self.bs_index: index.Index = None
         self.bs_routes_index = {}
         self.all_bus_stops = data_provider.load_bus_stops()
@@ -51,6 +54,7 @@ class CdsRequest:
         self.bus_stops_dict = {bs.ID: bs for bs in self.bus_stops}
         self.bus_stops_dict_name = {bs.NAME_: bs for bs in self.bus_stops}
         self.bus_routes = data_provider.load_bus_stations_routes()
+        self.new_bus_routes = data_provider.load_new_bus_stations_routes()
         self.build_rtree_index(self.bus_stops)
         self.build_rtree_index_for_routes(self.bus_routes)
 

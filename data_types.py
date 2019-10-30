@@ -205,6 +205,12 @@ class CdsBaseDataProvider:
     def load_bus_stops(self) -> List[BusStop]:
         pass
 
+    def load_new_codd_route_names(self):
+        pass
+
+    def load_new_bus_stations_routes(self):
+        pass
+
 
 class AbuseRule(NamedTuple):
     event: Enum

@@ -105,7 +105,7 @@
             return update_bus_stops_routes(bus_route_stops)
         }
 
-        return fetch('/bus_stops_routes',
+        return fetch('/bus_stops_new_routes',
             {
                 method: 'GET',
                 headers: {
@@ -136,7 +136,7 @@
 
 
     function get_bus_list() {
-        return fetch('/buslist',
+        return fetch('/new_routes',
             {
                 method: 'GET',
                 headers: {

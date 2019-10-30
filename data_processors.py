@@ -182,6 +182,16 @@ class WebDataProcessor(BaseDataProcessor):
         bus_stats = self.cds.get_bus_statistics()
         return str(datetime.datetime.now()) + '\n\n' + user_stats + '\n\n' + bus_stats.text
 
+    @cachetools.func.ttl_cache(ttl=36000)
+    def get_new_routes(self):
+        response = {'result': self.cds.codd_new_buses}
+        return response
+
+    def get_bus_stops_for_new_routes(self):
+        response = {route_name: [x._asdict() for x in bus_stops] for (route_name, bus_stops) in
+                    self.cds.new_bus_routes.items()}
+        return response
+
 
 class TelegramDataProcessor(BaseDataProcessor):
     def __init__(self, cds: CdsRequest, logger: Logger):
