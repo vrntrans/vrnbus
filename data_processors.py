@@ -187,9 +187,10 @@ class WebDataProcessor(BaseDataProcessor):
         response = {'result': self.cds.codd_new_buses}
         return response
 
+    @cachetools.func.ttl_cache(ttl=60)
     def get_bus_stops_for_new_routes(self):
         response = {route_name: [x._asdict() for x in bus_stops] for (route_name, bus_stops) in
-                    self.cds.new_bus_routes.items()}
+                    self.cds.get_new_bus_routes().items()}
         return response
 
 

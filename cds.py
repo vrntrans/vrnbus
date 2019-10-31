@@ -76,6 +76,10 @@ class CdsRequest:
         self.scheduler.start()
         self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=15)
 
+    def get_new_bus_routes(self):
+        self.new_bus_routes = self.data_provider.load_new_bus_stations_routes()
+        return self.new_bus_routes
+
     def stats_checking(self):
         self.logger.info("Hello")
 
