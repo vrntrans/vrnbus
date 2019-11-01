@@ -320,6 +320,9 @@ class BusRouteEdgesHandler(BaseHandler):
         self.caching()
 
     def post(self):
+        if not self.full_access:
+            self.send_error(401, reason="Wrong the page URL")
+            return
         data = tornado.escape.json_decode(self.request.body)
         edge_key = json.dumps(data.get("edge_key"))
         points = json.dumps(data.get("points"))

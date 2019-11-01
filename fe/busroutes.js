@@ -357,11 +357,15 @@
                     body: JSON.stringify({
                         'edge_key': edge_key,
                         'points': points
-            }), // данные могут быть 'строкой' или {объектом}!
-                headers: {'Content-Type': 'application/json'},
-
-                credentials: 'include',
-            })
+                    }), // данные могут быть 'строкой' или {объектом}!
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                })
+                .then(res => res.ok ? res : Promise.reject(res))
+                .catch(error => {
+                    console.error(error)
+                    alert(`Ошибка при редактировании маршрута: ${error.status} ${error.statusText} `)
+                })
             });
         });
 
