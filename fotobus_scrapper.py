@@ -5,11 +5,15 @@ import requests
 from bs4 import BeautifulSoup
 
 fb_name_re = re.compile(r"(\D+)(\d+)(\D+)(\d+)")
+fb_name_re_2 = re.compile(r"(\D+)(\d+)(\d{2})")
 
 def get_name_with_spaces(bus_name):
     match = fb_name_re.match(bus_name)
     if not match:
-        return
+        match = fb_name_re_2.match(bus_name)
+        if not match:
+            return
+
     return " ".join(match.groups())
 
 def get_url(bus_name):
@@ -41,6 +45,10 @@ def fb_links(name):
 if __name__ == '__main__':
     start = time.time()
     content = get_bus_search_page("Е312УС36")
+    result = get_fb_links(content)
+    print(result)
+    print(time.time() - start)
+    content = get_bus_search_page("ВВ37336")
     result = get_fb_links(content)
     print(result)
     print(time.time() - start)
