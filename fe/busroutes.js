@@ -17,6 +17,7 @@
     var current_route = []
     var icon_urls = []
     var current_bus_stop_id = 0
+    var show_old_routes = false
 
 
     document.getElementById('route_stop').onclick = function(){
@@ -25,6 +26,10 @@
         timer_stop_id = 0
     }
 
+    document.getElementById('show_old_routes').onclick = function(cb){
+        show_old_routes = cb.currentTarget.checked
+        update_route_info(show_old_routes)
+    }
 
     function run_timer(func) {
         if (!timer_id) {
@@ -100,12 +105,12 @@
         )
     }
 
-    function get_bus_stops_routes() {
+    function get_bus_stops_routes(old_routes) {
         if (bus_route_stops.length > 0) {
             return update_bus_stops_routes(bus_route_stops)
         }
 
-        return fetch('/bus_stops_new_routes',
+        return fetch(old_routes ? '/bus_stops_routes' : '/bus_stops_new_routes',
             {
                 method: 'GET',
                 headers: {
@@ -126,7 +131,6 @@
                 return res.json()
             }).
             then(function (data) {
-                console.log('bus_route_edges', data)
                 data.forEach(function (item) {
                     edited_edges[item.edge_key] = item.points
                 })
@@ -135,8 +139,8 @@
 
 
 
-    function get_bus_list() {
-        return fetch('/new_routes',
+    function get_bus_list(old_routes) {
+        return fetch(old_routes ?  '/buslist' : '/new_routes',
             {
                 method: 'GET',
                 headers: {
@@ -151,6 +155,9 @@
                 var bus_list = data.result
 
                 var select = document.getElementById('bus_routes')
+                while (select.options.length > 0) {
+                        select.remove(0);
+                }
                 select.appendChild(new Option('Все маршруты', ''))
                 bus_list.forEach(function (bus_name) {
                     var opt = new Option(bus_name, bus_name)
@@ -293,6 +300,12 @@
         }
     }
 
+    function update_route_info(old_routes) {
+        drawn_items.clearLayers()
+        get_bus_list(old_routes)
+        get_bus_stops_routes(old_routes)
+    }
+
     function init() {
         map = L.map('mapid', {
             fullscreenControl: {
@@ -372,8 +385,7 @@
         marker_group = L.layerGroup().addTo(map);
         L.control.ruler().addTo(map);
 
-        get_bus_list()
-        get_bus_stops_routes()
+        update_route_info()
     }
 
     document.addEventListener("DOMContentLoaded", init);
