@@ -110,8 +110,9 @@ class BusBot:
                 self.stats_fail_start = now
             send_msg(f'```\nПроверьте данные после {self.stats_fail_start:%H:%M:%S} \n{response and response.text}\n```')
         elif self.stats_fail_start:
+            msg = f'```\nДанные снова актуальны после {self.stats_fail_start:%H:%M:%S} \n{response and response.text}\n```'
             self.stats_fail_start = None
-            send_msg(f'```\nДанные снова актуальны после {self.stats_fail_start:%H:%M:%S} \n{response.text}\n```')
+            send_msg(msg)
 
     @run_async
     def custom_command(self, bot, update):
