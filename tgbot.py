@@ -363,7 +363,7 @@ class BusBot:
         user = update.message.from_user
 
         self.track(TgEvent.STATS, update, full_info)
-        response = self.cds.get_bus_statistics(full_info) or StatsData(0, 0, 0, 0, "Нет данных")
+        response = self.cds.get_bus_statistics(full_info) or StatsData(0, 0, 0, 0, 0, "Нет данных")
         update.message.reply_text(f'/stats ```\n{response.text}\n```', parse_mode='Markdown')
 
     def stats(self, _, update):
