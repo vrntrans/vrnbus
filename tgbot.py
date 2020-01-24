@@ -39,6 +39,7 @@ class BusBot:
             self.logger.error("The Telegram bot token is empty. Use @BotFather to get your token")
             return
         self.stats_fail_start = None
+        self.stats_fail_start_last = None
         self.users_to_inform = [int(x.strip()) for x in USERS_TO_INFORM.split(",")] if USERS_TO_INFORM else []
         self.logger.info(f"User to inform in Tg: {self.users_to_inform}")
         self.updater = Updater(VRNBUSBOT_TOKEN, request_kwargs={'read_timeout': 10})
@@ -74,7 +75,7 @@ class BusBot:
 
         self.scheduler = BackgroundScheduler()
         self.scheduler.start()
-        self.scheduler.add_job(self.stats_checking, 'interval', minutes=10)
+        self.scheduler.add_job(self.stats_checking, 'interval', minutes=1)
         # Start the Bot
         self.updater.start_polling(timeout=30)
         self.stats_checking()
@@ -89,7 +90,12 @@ class BusBot:
         self.tracker.tg(event, user, *params)
 
     def stats_checking(self):
-        def send_msg(text):
+        def send_msg(text, force=False):
+            if self.stats_fail_start:
+                if self.stats_fail_start_last and (now - self.stats_fail_start_last) < datetime.timedelta(minutes=10):
+                    return
+                self.stats_fail_start_last = now
+
             for user_id in self.users_to_inform:
                 self.bot.send_message(chat_id=user_id,
                                       text=text,
@@ -99,17 +105,13 @@ class BusBot:
         if not (6 <= now.hour < 23):
             return
         response = self.cds.get_bus_statistics()
-        if not response:
+        if not response or response.min1 < 10 or response.min10 / response.min60 < 0.5:
             if not self.stats_fail_start:
                 self.stats_fail_start = now
-            send_msg(text=f'Проверка статистики. Нет данных')
-        elif response.min10 / response.min60 < 0.5:
-            if not self.stats_fail_start:
-                self.stats_fail_start = now
-            send_msg(f'```\nПроверьте данные после {self.stats_fail_start:%H:%M:%S} \n{response.text}\n```')
+            send_msg(f'```\nПроверьте данные после {self.stats_fail_start:%H:%M:%S} \n{response and response.text}\n```')
         elif self.stats_fail_start:
-            send_msg(f'```\nДанные снова актуальны после {self.stats_fail_start:%H:%M:%S} \n{response.text}\n```')
             self.stats_fail_start = None
+            send_msg(f'```\nДанные снова актуальны после {self.stats_fail_start:%H:%M:%S} \n{response.text}\n```')
 
     @run_async
     def custom_command(self, bot, update):

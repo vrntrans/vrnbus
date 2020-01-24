@@ -219,6 +219,7 @@ class AbuseRule(NamedTuple):
 
 
 class StatsData(NamedTuple):
+    min1: int
     min10: int
     min30: int
     min60: int

@@ -569,10 +569,11 @@ class CdsRequest:
 
         now = self.now()
         hour_1 = count_buses(cds_buses, timedelta(hours=1))
+        minutes_1 = count_buses(cds_buses, timedelta(minutes=1))
         minutes_10 = count_buses(cds_buses, timedelta(minutes=10))
         minutes_30 = count_buses(cds_buses, timedelta(minutes=30))
         total = count_buses(cds_buses, timedelta(days=7))
-        bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{hour_1:<5} {minutes_30:^5} {minutes_10:5}\nВсего: {total}"
+        bus_stats_text = f"1 ч. 30 мин. 10 мин.\n{hour_1:<5} {minutes_30:^5} {minutes_10:5}\nЗа минуту: {minutes_1}\nВсего: {total}"
         self.logger.info(f"{hour_1: <5} {minutes_30:5} {minutes_10:5}")
         if hour_1 > 0:
             buses_list = [f'Время: {self.now():%H:%M:%S}']
@@ -585,7 +586,7 @@ class CdsRequest:
             buses_list.append(bus_stats_text)
             text = '\n'.join(buses_list)
             text += f'\nНа линии: {self.bus_stats[-1][1]}'
-            return StatsData(minutes_10, minutes_30, hour_1, len(cds_buses), text)
+            return StatsData(minutes_1, minutes_10, minutes_30, hour_1, len(cds_buses), text)
 
     def get_dist_bus_stop(self, src: LongBusRouteStop, dst: LongBusRouteStop):
         key = (src.ID, dst.ID)
