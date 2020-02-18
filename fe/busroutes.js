@@ -174,6 +174,7 @@
                 document.getElementById('busnumber').onchange = select.onchange;
                 document.getElementById('busspeed').onchange = select.onchange;
                 document.getElementById('show_all_routes').onchange = select.onchange;
+                document.getElementById('show_old_routes').onchange = select.onchange;
                 document.getElementById('wait_time').onchange = select.onchange;
             })
     }
