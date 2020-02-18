@@ -158,12 +158,13 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         try:
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
-                cur.execute('''select bsr."Num" as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_,
-                                    bs.LON as LON_, bsr."RouteId" as ROUT_, 0 as CONTROL_,
+                cur.execute('''select bsr."Num" as NUMBER_, nbs."Name" as NAME_, nbs."Latitude" as LAT_,
+                                    nbs."Longitude" as LON_,
+                                    bsr."RouteId" as ROUT_, 0 as CONTROL_,
                                     bsr."BusStationId" as ID
                                     from "NewBusStationRoute" bsr
                                     join "NewRoute" r on bsr."RouteId" = r."Id"
-                                    join BS on bsr."BusStationId" = bs.ID
+                                    join "NewBusStation" nbs on bsr."BusStationId" = nbs."Id"
                                     order by ROUT_, NUMBER_''')
                 bus_stops_data = cur.fetchallmap()
                 tr.commit()
