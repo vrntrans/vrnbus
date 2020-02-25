@@ -52,6 +52,7 @@ class CoddNextBus(NamedTuple):
 class CoddBus(NamedTuple):
     NAME_: str
     ID_: int
+    ROUTE_ACTIVE_: bool = True
 
 
 class CdsBus(NamedTuple):

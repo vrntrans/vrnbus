@@ -82,6 +82,12 @@
         }
     }
 
+    function set_query_parameter(name, value) {
+        const params = new URLSearchParams(window.location.search);
+        params.set(name, value);
+        window.history.replaceState({}, "", decodeURIComponent(`${window.location.pathname}?${params}`));
+    }
+
     function run_timer(func) {
         if (cb_refresh.checked && !timer_id) {
             timer_id = setTimeout(function tick() {
@@ -271,7 +277,7 @@
 
     function get_bus_positions(query) {
         waiting(lastbus_loading, lastbus_map_update, true)
-
+        set_query_parameter('bus_query', query)
         var params = 'src=map&q=' + encodeURIComponent(query) + fraud_check()
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
@@ -681,8 +687,11 @@
 
         firebase.analytics().setUserId(load_from_ls('user_ip') || '');
 
+        const params = new URLSearchParams(window.location.search);
+        const bus_query = params.get('bus_query')
+
         if (lastbusquery)
-            lastbusquery.value = load_from_ls('bus_query') || ''
+            lastbusquery.value = load_from_ls('bus_query') || params.get('bus_query') || ''
 
         if (station_query)
             station_query.value = load_from_ls('station_query') || ''
@@ -694,6 +703,8 @@
             user_ip: load_from_ls('user_ip'),
             bus_query: load_from_ls('bus_query'),
         })
+
+
     }
 
     document.addEventListener("DOMContentLoaded", init);

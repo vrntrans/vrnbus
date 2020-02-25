@@ -67,6 +67,7 @@ def parse_routes(text) -> SearchResult:
         route_filter.append(i)
     if not route_filter:
         return SearchResult(bus_filter=bus_filter)
+    route_filter = [x.replace('_', ' ') for x in route_filter]
     full_info = route_filter[0].upper() in ['PRO', 'ПРО']
     if full_info:
         route_filter = route_filter[1:]
