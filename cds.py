@@ -40,8 +40,9 @@ class CdsRequest:
         self.fake_header = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.data_provider = data_provider
-        self.codd_routes = data_provider.load_codd_route_names()
-        self.codd_buses = sort_routes(self.codd_routes.keys())
+        self.all_codd_routes = data_provider.load_codd_route_names()
+        self.codd_routes = {k:v.ID_ for k,v in self.all_codd_routes.items()  if v.ROUTE_ACTIVE_}
+        self.codd_buses = sort_routes(self.codd_routes)
 
         self.codd_new_routes = data_provider.load_new_codd_route_names()
         self.codd_new_buses = sort_routes(self.codd_new_routes.keys())
@@ -152,7 +153,7 @@ class CdsRequest:
         def key_check(route: CdsRouteBus):
             return route.name_ and last_week < route.last_time_
 
-        keys = set([x for x in self.codd_routes.keys() for r in bus_routes if x.upper() == r.upper()])
+        keys = set([x for x in self.all_codd_routes.keys() for r in bus_routes if x.upper() == r.upper()])
 
         bus_on_routes = self.load_cds_buses_from_db(tuple(keys))
         self.logger.debug(f'Loaded {len(bus_on_routes)} buses from DB for {bus_routes} query')
@@ -297,7 +298,7 @@ class CdsRequest:
         if search_result.all_buses:
             keys = set(self.codd_routes.keys())
         else:
-            keys = set([x for x in self.codd_routes.keys()
+            keys = set([x for x in self.all_codd_routes.keys()
                         for r in search_result.bus_routes if x.upper() == r.upper()])
 
         if not keys and not search_result.bus_filter:

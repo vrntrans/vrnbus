@@ -73,8 +73,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         try:
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
-                cur.execute('''select ID_, NAME_ from ROUTS
-                                where ROUTE_ACTIVE_ = 1
+                cur.execute('''select ID_, NAME_, ROUTE_ACTIVE_ from ROUTS
                                 order by NAME_''')
                 self.logger.debug('Finish execution')
                 result = cur.fetchallmap()
@@ -90,7 +89,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         result = [CoddBus(**x) for x in result]
         end = time.time()
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
-        return {x.NAME_: x.ID_ for x in result}
+        return {x.NAME_: x for x in result}
 
     def load_new_codd_route_names(self):
         self.logger.debug('Execute fetch routes from DB')
