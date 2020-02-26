@@ -150,7 +150,8 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             self.try_reconnect()
             return {}
 
-        result = self.convert_to_stations_dict(self.load_codd_route_names(), bus_stops_data)
+        routes_dict = {k:v.ID_ for k, v in self.load_codd_route_names().items()}
+        result = self.convert_to_stations_dict(routes_dict, bus_stops_data)
         return result
 
     def load_new_bus_stations_routes(self) -> Dict:
