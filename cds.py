@@ -151,14 +151,14 @@ class CdsRequest:
     @cachetools.func.ttl_cache(ttl=ttl_sec)
     def bus_request_as_list(self, bus_routes):
         def key_check(route: CdsRouteBus):
-            return route.name_ and last_week < route.last_time_
+            return route.name_ and last_two_week < route.last_time_
 
         keys = set([x for x in self.all_codd_routes.keys() for r in bus_routes if x.upper() == r.upper()])
 
         bus_on_routes = self.load_cds_buses_from_db(tuple(keys))
         self.logger.debug(f'Loaded {len(bus_on_routes)} buses from DB for {bus_routes} query')
         if bus_on_routes:
-            last_week = self.now() - timedelta(days=7)
+            last_two_week = self.now() - timedelta(days=14)
             short_result = sorted([d for d in bus_on_routes if key_check(d)],
                                   key=lambda s: natural_sort_key(s.route_name_))
             return short_result
