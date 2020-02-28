@@ -621,7 +621,8 @@ class CdsRequest:
         return result
 
     @cachetools.func.ttl_cache(maxsize=4096)
-    def get_next_bus_stop(self, route_name, bus_stop_name):
+    def get_next_bus_stop(self, route_name, bus_stop: LongBusRouteStop):
+        bus_stop_name = bus_stop.NAME_
         route = self.bus_routes.get(route_name, [])
         if not route:
             self.logger.debug(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")

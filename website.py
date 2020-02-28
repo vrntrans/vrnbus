@@ -200,8 +200,6 @@ class ArrivalByIdHandler(BaseHandler):
 
 class BusListHandler(BaseHandler):
     def _response(self):
-        self.logger.info(f'Bus list query')
-
         response = self.processor.get_bus_list()
         self.write(json.dumps(response))
         if response:
@@ -213,8 +211,6 @@ class BusListHandler(BaseHandler):
 
 class NewRoutesHandler(BaseHandler):
     def _response(self):
-        self.logger.info(f'New bus list query')
-
         response = self.processor.get_new_routes()
         self.write(json.dumps(response))
         if response:
@@ -226,8 +222,6 @@ class NewRoutesHandler(BaseHandler):
 
 class BusStopsHandler(BaseHandler):
     def _response(self):
-        self.logger.info(f'Bus list query')
-
         response = self.processor.get_bus_stops()
         self.write(json.dumps(response, ensure_ascii=False))
         if response:
@@ -238,8 +232,6 @@ class BusStopsHandler(BaseHandler):
 
 class BusStopsRoutesForAppsHandler(BaseHandler):
     def _response(self):
-        self.logger.info(f'Bus list query')
-
         response = self.processor.get_bus_stops_for_routes_for_apps()
         self.write(json.dumps(response, ensure_ascii=False, indent=1, cls=helpers.CustomJsonEncoder))
         if response:
@@ -250,8 +242,6 @@ class BusStopsRoutesForAppsHandler(BaseHandler):
 
 class BusStopsRoutesHandler(BaseHandler):
     def _response(self):
-        self.logger.info(f'Bus list query')
-
         response = self.processor.get_bus_stops_for_routes()
         self.write(json.dumps(response, ensure_ascii=False))
         if response:
@@ -263,8 +253,6 @@ class BusStopsRoutesHandler(BaseHandler):
 
 class BusStopsNewRoutesHandler(BaseHandler):
     def _response(self):
-        self.logger.info(f'Bus list query')
-
         response = self.processor.get_bus_stops_for_new_routes()
         self.write(json.dumps(response, ensure_ascii=False))
         if response:
