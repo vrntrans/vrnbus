@@ -626,7 +626,7 @@ class CdsRequest:
         route = self.bus_routes.get(route_name, [])
         if not route:
             self.logger.debug(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
-            return bus_stop_name
+            return bus_stop
         size = len(route)
         for (i, v) in enumerate(route):
             if v.NAME_ == bus_stop_name:
