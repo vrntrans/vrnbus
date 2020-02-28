@@ -577,7 +577,7 @@
             zoom: map_zoom
         }, {
             searchControlProvider: 'yandex#search',
-            minZoom: 11,
+            minZoom: 10,
             maxZoom: 19
         })
 
