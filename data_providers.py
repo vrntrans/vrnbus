@@ -162,9 +162,9 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                     nbs."Longitude" as LON_,
                                     bsr."RouteId" as ROUT_, 0 as CONTROL_,
                                     bsr."BusStationId" as ID
-                                    from "NewBusStationRoute" bsr
-                                    join "NewRoute" r on bsr."RouteId" = r."Id"
-                                    join "NewBusStation" nbs on bsr."BusStationId" = nbs."Id"
+                                    from  "NewRoute" r
+                                    join "NewBusStationRoute" bsr on bsr."RouteId" = r."Id"
+                                    left join "NewBusStation" nbs on bsr."BusStationId" = nbs."Id"
                                     order by ROUT_, NUMBER_''')
                 bus_stops_data = cur.fetchallmap()
                 tr.commit()
