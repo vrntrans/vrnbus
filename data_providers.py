@@ -133,18 +133,20 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         return bus_stations
 
     def load_bus_stations_routes(self) -> Dict:
+        start = time.time()
         try:
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
                 cur.execute('''select bsr.NUM as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_, 
                                 bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_, bsr.BS_ID as ID
-                                from BS_ROUTE bsr
-                                join ROUTS r on bsr.ROUTE_ID = r.ID_
-                                join BS on bsr.BS_ID = bs.ID
-                                order by ROUT_, NUMBER_''')
+                                from ROUTS r
+                                join BS_ROUTE bsr on bsr.ROUTE_ID = r.ID_
+                                left join BS on bsr.BS_ID = bs.ID''')
                 bus_stops_data = cur.fetchallmap()
                 tr.commit()
                 cur.close()
+                end = time.time()
+                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
@@ -155,6 +157,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         return result
 
     def load_new_bus_stations_routes(self) -> Dict:
+        start = time.time()
         try:
             with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
                 cur = tr.cursor()
@@ -165,10 +168,12 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                     from  "NewRoute" r
                                     join "NewBusStationRoute" bsr on bsr."RouteId" = r."Id"
                                     left join "NewBusStation" nbs on bsr."BusStationId" = nbs."Id"
-                                    order by ROUT_, NUMBER_''')
+                                    ''')
                 bus_stops_data = cur.fetchallmap()
                 tr.commit()
                 cur.close()
+                end = time.time()
+                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
