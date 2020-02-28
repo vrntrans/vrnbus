@@ -352,7 +352,7 @@
                     var fb_link_info = " <a target='_blank' rel='noopener' href='/fotobus_info?name=" + bus_name + "'>" + route_name + " " +  bus.name_ + "</a>";
 
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
-                        // fb_link_info,
+                        bus.name_ ? fb_link_info : route_name,
                         bus.last_speed_.toFixed(1)
                         + " ~ " + bus.avg_speed.toFixed(1)
                         + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',

@@ -251,7 +251,7 @@ class CdsRequest:
         result = self.get_closest_bus_stop(bus_info)
         if not result or not result.NAME_:
             self.logger.debug(f"{result} {bus_info}")
-        return result and result.NAME_
+        return result
 
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
         bus_station = self.bus_station(d)
@@ -261,7 +261,7 @@ class CdsRequest:
         if self.now() - d.last_time_ > timedelta(days=1):
             day_info = f'{d.last_time_:%d.%m} '
         speed_info = f' {d.last_speed_:.1f} ~ {self.bus_speed_dict.get(d.name_, 18):.1f} км/ч'
-        result = f"{route_name}{day_info}{get_time(d.last_time_):%H:%M} {bus_station} {dist}"
+        result = f"{route_name}{day_info}{get_time(d.last_time_):%H:%M} {bus_station.NAME_} {dist}"
 
         if full_info:
             orig_bus_stop = ""
@@ -503,7 +503,7 @@ class CdsRequest:
             arrival_time = f"{time_left:>2.0f} мин" if time_left >= 1 else "ждём"
             info = f'{bus.route_name_:>5} {arrival_time}'
             if search_result.full_info:
-                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {self.bus_station(bus)}'
+                info += f' {distance:.2f} км {bus.last_time_:%H:%M} {bus.name_} {self.bus_station(bus).NAME_}'
             return info
 
         result = [f'Время: {self.now():%H:%M:%S}']
@@ -625,7 +625,7 @@ class CdsRequest:
         route = self.bus_routes.get(route_name, [])
         if not route:
             self.logger.debug(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
-            return
+            return bus_stop_name
         size = len(route)
         for (i, v) in enumerate(route):
             if v.NAME_ == bus_stop_name:
