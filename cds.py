@@ -219,7 +219,7 @@ class CdsRequest:
             return
         threshold = 0.5
         bus_stop = self.bus_stops_dict_name.get(bus_info.bus_station_)
-        if bus_stop and bus_info.distance_km(bus_stop):
+        if bus_stop and bus_info.distance_km(bus_stop) < threshold:
             return bus_stop
         elif self.now() - bus_info.last_time_ > timedelta(minutes=15):
             return self.get_nearest(bus_info.last_lat_, bus_info.last_lon_)
@@ -255,13 +255,13 @@ class CdsRequest:
 
     def station(self, d: CdsRouteBus, user_loc: UserLoc = None, full_info=False, show_route_name=True):
         bus_station = self.bus_station(d)
-        dist = f'{(d.distance_km(user_loc=user_loc)):.1f} км' if user_loc else ''
+        dist = f'{(d.distance_km(bus_stop=bus_station)):.1f} км'
         route_name = f"{d.route_name_} " if show_route_name else ""
         day_info = ""
         if self.now() - d.last_time_ > timedelta(days=1):
             day_info = f'{d.last_time_:%d.%m} '
         speed_info = f' {d.last_speed_:.1f} ~ {self.bus_speed_dict.get(d.name_, 18):.1f} км/ч'
-        result = f"{route_name}{day_info}{get_time(d.last_time_):%H:%M} {bus_station.NAME_} {dist}"
+        result = f"{route_name}{day_info}{get_time(d.last_time_):%H:%M} {bus_station and bus_station.NAME_} {dist}"
 
         if full_info:
             orig_bus_stop = ""
@@ -622,7 +622,7 @@ class CdsRequest:
 
     @cachetools.func.ttl_cache(maxsize=4096)
     def get_next_bus_stop(self, route_name, bus_stop: LongBusRouteStop):
-        bus_stop_name = bus_stop.NAME_
+        bus_stop_name = bus_stop and bus_stop.NAME_
         route = self.bus_routes.get(route_name, [])
         if not route:
             self.logger.debug(f"Wrong params {route_name}, {bus_stop_name}. Didn't find anything")
