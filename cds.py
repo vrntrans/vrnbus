@@ -332,7 +332,7 @@ class CdsRequest:
         return self.all_cds_buses
 
     def update_all_cds_buses_from_db(self):
-        def calc_speed(bus_positions: List[CdsBusPosition]):
+        def calc_speed(bus_positions: Iterable[CdsBusPosition]):
             curr_pos = bus_positions[0]
             dist = 0
             for pos in bus_positions:
@@ -363,9 +363,13 @@ class CdsRequest:
 
                 last_speed = calc_speed(bus_positions[-3:])
                 avg_speed = calc_speed(bus_positions)
-                if (avg_speed < 5 < last_speed) or (last_speed > avg_speed * 2):
+                if avg_speed < 5 < last_speed:
                     self.last_bus_data[k] = deque(bus_positions[-3:], maxlen=20)
                     avg_speed = last_speed
+                elif last_speed > avg_speed * 2:
+                    self.last_bus_data[k] = deque(bus_positions[-10:], maxlen=20)
+                    avg_speed = last_speed = calc_speed(self.last_bus_data[k])
+
                 self.bus_last_speed_dict[k] = last_speed
                 self.bus_speed_dict[k] = avg_speed
 
@@ -466,6 +470,7 @@ class CdsRequest:
 
         def time_to_arrive(km, last_time, avg_speed):
             speed = avg_speed if avg_speed > 0.1 else 0.1
+            speed = speed if speed > 100 else 18.0
             minutes = (km * 60 / speed)
             time_diff = now - last_time
             return minutes - time_diff.seconds / 60

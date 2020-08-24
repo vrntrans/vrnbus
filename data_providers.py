@@ -182,7 +182,6 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         result = self.convert_to_stations_dict(self.load_new_codd_route_names(), bus_stops_data)
         return result
 
-
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         def make_names_lower(x):
             return {k.lower(): v for (k, v) in x.iteritems()}
