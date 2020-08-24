@@ -598,6 +598,8 @@
         // add_bus_stops(bus_stop_list)
         if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
         }
+        update_bus_map()
+
     }
 
     function save_to_ls(key, value) {
@@ -690,8 +692,9 @@
         const params = new URLSearchParams(window.location.search);
         const bus_query = params.get('bus_query')
 
-        if (lastbusquery)
-            lastbusquery.value = load_from_ls('bus_query') || params.get('bus_query') || ''
+        if (lastbusquery) {
+            lastbusquery.value = params.get('bus_query') || load_from_ls('bus_query') || ''
+        }
 
         if (station_query)
             station_query.value = load_from_ls('station_query') || ''
