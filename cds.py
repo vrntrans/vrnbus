@@ -542,7 +542,7 @@ class CdsRequest:
             arrival_buses.sort(key=lambda x: x[2])
             bus_stop_value = '\n'.join((bus_info(*d) for d in arrival_buses))
             arrival_details.append(
-                ArrivalBusStopInfoFull(item.ID, item.NAME_, item.LAT_, item.LON_, bus_stop_value, list(arrival_routes),
+                ArrivalBusStopInfoFull(item.ID, item.NAME_, item.LAT_, item.LON_, item.AZMTH, bus_stop_value, list(arrival_routes),
                                        arrival_buses))
 
             result.append(bus_stop_value)
