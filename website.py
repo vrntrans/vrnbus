@@ -111,6 +111,7 @@ class BusSite(tornado.web.Application):
         handlers = [
             (r"/arrival", ArrivalHandler),
             (r"/arrival_by_id", ArrivalByIdHandler),
+            (r"/codd_arrival_by_id", ArrivalByIdHandler),
             (r"/busmap", BusInfoHandler),
             (r"/businfolist", BusInfoHandler),
             (r"/buslist", BusListHandler),

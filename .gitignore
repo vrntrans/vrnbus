@@ -4,4 +4,7 @@
 /test_data/*
 /.idea/*
 /.ssh/*
-/*.dll
+*.dll
+*.dll
+/venv/*
+/.env

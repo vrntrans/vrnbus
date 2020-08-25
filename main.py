@@ -6,6 +6,7 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 import tornado.web
+from dotenv import load_dotenv
 
 from abuse_checker import AbuseChecker
 from cds import CdsRequest
@@ -28,7 +29,8 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d - %(levelname)s [%(filename)
                     handlers=[logging.StreamHandler(), file_handler])
 
 logger = logging.getLogger("vrnbus")
-
+env_path = Path('.') / '.env'
+load_dotenv(dotenv_path=env_path)
 logger.info([{k: os.environ[k]} for (k) in os.environ if 'PATH' not in k])
 
 user_settings = {}
@@ -56,7 +58,7 @@ if __name__ == "__main__":
     data_provider = get_data_provider(logger)
     cds = CdsRequest(logger, data_provider)
     data_processor = WebDataProcessor(cds, logger, tracker)
-    bot = BusBot(cds, user_settings, logger, tracker)
+    # bot = BusBot(cds, user_settings, logger, tracker)
     application = BusSite(data_processor, logger, tracker, anti_abuser)
     application.listen(os.environ.get('PORT', 8088))
     tornado.ioloop.IOLoop.current().start()
