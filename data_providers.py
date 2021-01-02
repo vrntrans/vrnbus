@@ -44,6 +44,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                        password=CDS_PASS, charset='WIN1251')
         self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
         self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
+        self.load_obl_objects = True
 
     def try_reconnect(self):
         try:
@@ -210,29 +211,32 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             self.try_reconnect()
             return []
 
+        obl_result = []
         try:
-            with fdb.TransactionContext(self.cds_db_data.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
-                cur = tr.cursor()
-                cur.execute('''SELECT bs.NAME AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.block_number as OBJ_ID_,  
-                    CAST(o.block_number as VARCHAR(10)) as NAME_, o.LAST_TIME as LAST_TIME_,
-                    o.LON as LAST_LON_, o.LAT as LAST_LAT_, 0 as LAST_SPEED_, NULL as LAST_STATION_TIME_, NULL as PROJ_ID_,
-                     0 as low_floor,
-                        0 as bus_type,
-                      0 as obj_output,
-                      coalesce(o.azimuth, 0) as azimuth
-                    FROM OBL_OBJECTS O LEFT JOIN BS
-                    ON o.bs_id = bs.ID
-                    LEFT JOIN ROUTS rt ON o.route_id = rt.ID_''')
-                self.logger.debug('Finish execution')
-                obl_result = cur.fetchallmap()
-                tr.commit()
-                cur.close()
-                end = time.time()
-                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
+            if self.load_obl_objects:
+                with fdb.TransactionContext(self.cds_db_data.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                    cur = tr.cursor()
+                    cur.execute('''SELECT bs.NAME AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.block_number as OBJ_ID_,  
+                        CAST(o.block_number as VARCHAR(10)) as NAME_, o.LAST_TIME as LAST_TIME_,
+                        o.LON as LAST_LON_, o.LAT as LAST_LAT_, 0 as LAST_SPEED_, NULL as LAST_STATION_TIME_, NULL as PROJ_ID_,
+                         0 as low_floor,
+                            0 as bus_type,
+                          0 as obj_output,
+                          coalesce(o.azimuth, 0) as azimuth
+                        FROM OBL_OBJECTS O LEFT JOIN BS
+                        ON o.bs_id = bs.ID
+                        LEFT JOIN ROUTS rt ON o.route_id = rt.ID_''')
+                    self.logger.debug('Finish execution')
+                    obl_result = cur.fetchallmap()
+                    tr.commit()
+                    cur.close()
+                    end = time.time()
+                    self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
         except fdb.fbcore.DatabaseError as db_error:
-            self.logger.error(db_error)
-            self.try_reconnect()
-            return []
+            if self.load_obl_objects:
+                self.load_obl_objects = False
+                self.logger.error(db_error)
+                self.try_reconnect()
 
         result = [CdsRouteBus(**make_names_lower(x)) for x in result + obl_result]
         result.sort(key=lambda s: s.last_time_, reverse=True)
