@@ -44,7 +44,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                        password=CDS_PASS, charset='WIN1251')
         self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
         self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
-        self.load_obl_objects = True
+        self.load_obl_objects = False
 
     def try_reconnect(self):
         try:
