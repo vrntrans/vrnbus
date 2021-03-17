@@ -55,7 +55,8 @@ class CdsRequest:
         self.bus_stops_dict = {bs.ID: bs for bs in self.bus_stops}
         self.bus_stops_dict_name = {bs.NAME_: bs for bs in self.bus_stops}
         self.bus_routes = data_provider.load_bus_stations_routes()
-        self.new_bus_routes = data_provider.load_new_bus_stations_routes()
+        self.new_bus_routes = {}
+
         self.build_rtree_index(self.bus_stops)
         self.build_rtree_index_for_routes(self.bus_routes)
 
@@ -76,6 +77,10 @@ class CdsRequest:
         self.scheduler = BackgroundScheduler()
         self.scheduler.start()
         self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=15)
+        self.scheduler.add_job(self.load_new_routes_bg)
+
+    def load_new_routes_bg(self):
+        self.new_bus_routes = self.data_provider.load_new_bus_stations_routes()
 
     def get_new_bus_routes(self):
         self.new_bus_routes = self.data_provider.load_new_bus_stations_routes()
