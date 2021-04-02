@@ -13,7 +13,6 @@
     var my_map
     var BusIconContentLayout
     var timer_id = 0
-    var timer_stop_id = 0
 
     var info = document.getElementById('info')
     var businfo = document.getElementById('businfo')
