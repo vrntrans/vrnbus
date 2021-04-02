@@ -7,6 +7,8 @@ from pathlib import Path
 
 import tornado.web
 from dotenv import load_dotenv
+env_path = Path('.') / '.env'
+load_dotenv(dotenv_path=env_path)
 
 from abuse_checker import AbuseChecker
 from cds import CdsRequest
@@ -20,6 +22,8 @@ from website import BusSite
 if not Path('logs').is_dir():
     Path('logs').mkdir()
 
+
+
 # Enable logging
 file_handler = TimedRotatingFileHandler("logs/vrnbus.log", 'midnight', 1)
 file_handler.suffix = "%Y-%m-%d"
@@ -29,8 +33,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d - %(levelname)s [%(filename)
                     handlers=[logging.StreamHandler(), file_handler])
 
 logger = logging.getLogger("vrnbus")
-env_path = Path('.') / '.env'
-load_dotenv(dotenv_path=env_path)
+
 logger.info([{k: os.environ[k]} for (k) in os.environ if 'PATH' not in k])
 
 user_settings = {}
