@@ -96,14 +96,6 @@
                         timer_id = setTimeout(tick, 30 * 1000)
                 })
             }, 30 * 1000)
-            if (!timer_stop_id)
-                timer_stop_id = setTimeout(function () {
-                    cb_refresh.checked = false
-                    clearTimeout(timer_id)
-                    timer_id = 0
-                    timer_stop_id = 0
-
-                }, 20 * 60 * 1000)
         }
     }
 
