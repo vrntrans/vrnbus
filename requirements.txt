@@ -4,7 +4,6 @@ tornado==6.1
 pytz==2017.3
 fdb==2.0.1
 beautifulsoup4==4.8.0
-python-dateutil==2.7.0
 APScheduler==3.5.3
 Rtree==0.8.3
 requests==2.22.0
