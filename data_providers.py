@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import List, Dict
 
 import fdb
+from firebird.driver import connect, driver_config, transaction, Cursor
+
+import firebird.driver
 
 from data_types import CdsRouteBus, CdsBaseDataProvider, CoddBus, LongBusRouteStop, BusStop
 
@@ -33,14 +36,24 @@ except ImportError:
         LOAD_TEST_DATA = True
 
 
+
+driver_config.server_defaults.host.value = CDS_HOST
+
+
+def fetch_cursor_map(cur: Cursor):
+    cursor_mapping = [x[0] for x in cur.description]
+    all_rows = cur.fetchall()
+
+    return [ {k:v for k,v in   zip(cursor_mapping, row) } for row in all_rows ]
+
 class CdsDBDataProvider(CdsBaseDataProvider):
     CACHE_TIMEOUT = 30
 
     def __init__(self, logger):
         self.logger = logger
-        self.cds_db_project = fdb.connect(host=CDS_HOST, database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
+        self.cds_db_project = connect(database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
                                           password=CDS_PASS, charset='WIN1251')
-        self.cds_db_data = fdb.connect(host=CDS_HOST, database=CDS_DB_DATA_PATH, user=CDS_USER,
+        self.cds_db_data = connect(database=CDS_DB_DATA_PATH, user=CDS_USER,
                                        password=CDS_PASS, charset='WIN1251')
         self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
         self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
@@ -49,7 +62,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
     def try_reconnect(self):
         try:
             self.cds_db_project.close()
-            self.cds_db_project = fdb.connect(host=CDS_HOST, database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
+            self.cds_db_project = connect(database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
                                               password=CDS_PASS, charset='WIN1251')
             self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
             self.logger.info(f"Success connect to {CDS_HOST} {CDS_DB_PROJECTS_PATH}")
@@ -58,7 +71,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
         try:
             self.cds_db_data.close()
-            self.cds_db_data = fdb.connect(host=CDS_HOST, database=CDS_DB_DATA_PATH, user=CDS_USER,
+            self.cds_db_data = connect(database=CDS_DB_DATA_PATH, user=CDS_USER,
                                            password=CDS_PASS, charset='WIN1251')
             self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
             self.logger.info(f"Success connect to {CDS_HOST} {CDS_DB_DATA_PATH}")
@@ -72,17 +85,17 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.debug('Execute fetch routes from DB')
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
                 cur.execute('''select ID_, NAME_, ROUTE_ACTIVE_ from ROUTS
                                 order by NAME_''')
                 self.logger.debug('Finish execution')
-                result = cur.fetchallmap()
-                tr.commit()
-                cur.close()
+                result = fetch_cursor_map(cur)
+                # tr.commit()
+                # cur.close()
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
+        except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -96,18 +109,16 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.debug('Execute fetch routes from DB')
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
                 cur.execute('''select "Id" as ID_, "Name" as  NAME_ from "NewRoute"
                                 where "NewRouteStatusID" <> 3
                                 order by NAME_''')
                 self.logger.debug('Finish execution')
-                result = cur.fetchallmap()
-                tr.commit()
-                cur.close()
+                result = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
+        except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -136,19 +147,17 @@ class CdsDBDataProvider(CdsBaseDataProvider):
     def load_bus_stations_routes(self) -> Dict:
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
                 cur.execute('''select bsr.NUM as NUMBER_, bs.NAME as NAME_, bs.LAT as LAT_, 
                                 bs.LON as LON_, bsr.ROUTE_ID as ROUT_, 0 as CONTROL_, bsr.BS_ID as ID
                                 from ROUTS r
                                 join BS_ROUTE bsr on bsr.ROUTE_ID = r.ID_
                                 left join BS on bsr.BS_ID = bs.ID''')
-                bus_stops_data = cur.fetchallmap()
-                tr.commit()
-                cur.close()
+                bus_stops_data = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
+        except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -160,7 +169,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
     def load_new_bus_stations_routes(self) -> Dict:
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
                 cur.execute('''select bsr."Num" as NUMBER_, nbs."Name" as NAME_, nbs."Latitude" as LAT_,
                                     nbs."Longitude" as LON_,
@@ -170,12 +179,10 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                     join "NewBusStationRoute" bsr on bsr."RouteId" = r."Id"
                                     left join "NewBusStation" nbs on bsr."BusStationId" = nbs."Id"
                                     ''')
-                bus_stops_data = cur.fetchallmap()
-                tr.commit()
-                cur.close()
+                bus_stops_data = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
+        except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -185,12 +192,12 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
     def load_all_cds_buses(self) -> List[CdsRouteBus]:
         def make_names_lower(x):
-            return {k.lower(): v for (k, v) in x.iteritems()}
+            return {k.lower(): v for (k, v) in x.items()}
 
         self.logger.debug('Execute fetch all from DB')
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
                 cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
                     o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_,
@@ -201,12 +208,10 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                     ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
                     LEFT JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_''')
                 self.logger.debug('Finish execution')
-                result = cur.fetchallmap()
-                tr.commit()
-                cur.close()
+                result = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
+        except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return []
@@ -214,7 +219,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         obl_result = []
         try:
             if self.load_obl_objects:
-                with fdb.TransactionContext(self.cds_db_data.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+                with transaction(self.cds_db_data.transaction_manager())as tr:
                     cur = tr.cursor()
                     cur.execute('''SELECT bs.NAME AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.block_number as OBJ_ID_,  
                         CAST(o.block_number as VARCHAR(10)) as NAME_, o.LAST_TIME as LAST_TIME_,
@@ -227,12 +232,10 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                         ON o.bs_id = bs.ID
                         LEFT JOIN ROUTS rt ON o.route_id = rt.ID_''')
                     self.logger.debug('Finish execution')
-                    obl_result = cur.fetchallmap()
-                    tr.commit()
-                    cur.close()
+                    obl_result = fetch_cursor_map(cur)
                     end = time.time()
                     self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
+        except firebird.driver.DatabaseError as db_error:
             if self.load_obl_objects:
                 self.load_obl_objects = False
                 self.logger.error(db_error)
@@ -248,18 +251,16 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         self.logger.debug('Execute load_bus_stops from DB')
         start = time.time()
         try:
-            with fdb.TransactionContext(self.cds_db_project.trans(fdb.ISOLATION_LEVEL_READ_COMMITED_RO)) as tr:
+            with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
                 cur.execute('''select distinct  ID, NAME as NAME_, LAT as LAT_, LON as LON_, AZMTH
                             from bs
                             order by NAME_''')
                 self.logger.debug('Finish execution')
-                result = cur.fetchallmap()
-                tr.commit()
-                cur.close()
+                result = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except fdb.fbcore.DatabaseError as db_error:
+        except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return []
