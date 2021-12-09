@@ -11,4 +11,4 @@ psycopg2==2.8.6
 psycopg2-binary==2.8.6
 sqlalchemy==1.3.23
 python-dotenv==0.15.0
-firebird-driver==1.3.4
+firebird-driver~=1.3.4
