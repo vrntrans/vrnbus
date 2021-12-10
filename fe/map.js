@@ -339,12 +339,13 @@
                     var bus_output = bus.obj_output === 1 ? ' <b>!</b> ' : ''
 
                     bus.delta_time = diff_time(bus.last_time_, server_time);
-                    var bus_name = bus.name_ ? bus.name_ : bus.hidden_name;
+                    var show_bus_name = bus.name_ && bus.name_ != bus.bort_name
+                    var bus_name = show_bus_name ? bus.name_ : bus.hidden_name;
                     var route_name = bus.route_name_.trim();
                     var fb_link_info = " <a target='_blank' rel='noopener' href='/fotobus_info?name=" + bus_name + "'>" + route_name + " " +  bus.name_ + "</a>";
 
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
-                        (bus.name_ ? fb_link_info : route_name) + " " + bus.bort_name,
+                        (show_bus_name ? fb_link_info : route_name) + " " + bus.bort_name,
                         bus.last_speed_.toFixed(1)
                         + " ~ " + bus.avg_speed.toFixed(1)
                         + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',
@@ -499,7 +500,9 @@
         var lat = bus.lat2 || bus.last_lat_
         var lon = bus.lon2 || bus.last_lon_
         var bus_output = bus.obj_output === 1 ? ' <b>!</b>' : ''
-        var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (bus.name_ ? "&nbsp;" + bus.name_ : "")
+        var show_bus_name = bus.name_ && bus.name_ != bus.bort_name
+
+        var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (show_bus_name ? "&nbsp;" + bus.name_ : "")
         var rotation = bus.db_azimuth
         var wait = bus.delta_time < 60 ? '' : '_wait';
         if (bus.delta_time > 180){
