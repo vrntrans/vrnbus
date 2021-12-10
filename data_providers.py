@@ -203,7 +203,8 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                     o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_,
                      coalesce(o.lowfloor, 0) as low_floor, coalesce(o.VEHICLE_TYPE_, 0) as bus_type,
                       coalesce(obj_output_, 0) as obj_output,
-                      coalesce(azmth_, 0) as azimuth
+                      coalesce(azmth_, 0) as azimuth,
+                      coalesce(o."BortName", '') as bort_name
                     FROM OBJECTS O LEFT JOIN BUS_STATIONS bs
                     ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
                     LEFT JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_''')
@@ -227,7 +228,8 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                          0 as low_floor,
                             0 as bus_type,
                           0 as obj_output,
-                          coalesce(o.azimuth, 0) as azimuth
+                          coalesce(o.azimuth, 0) as azimuth,
+                          coalesce(o."BortName", '') as bort_name
                         FROM OBL_OBJECTS O LEFT JOIN BS
                         ON o.bs_id = bs.ID
                         LEFT JOIN ROUTS rt ON o.route_id = rt.ID_''')

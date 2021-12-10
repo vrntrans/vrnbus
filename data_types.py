@@ -125,17 +125,18 @@ class CdsRouteBus(NamedTuple):
     avg_speed: float = 0
     avg_last_speed: float = 0
     azimuth: int = 0
+    bort_name: str = ''
 
     @staticmethod
     def make(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
-             type_proj, last_station_time_, bus_station_, low_floor=False, bus_type=0, avg_speed=18, azimuth=0):
+             type_proj, last_station_time_, bus_station_, low_floor=False, bus_type=0, avg_speed=18, azimuth=0, bort_name=""):
         try:
             last_time_ = get_iso_time(last_time_)
             last_station_time_ = get_iso_time(last_station_time_) if last_station_time_ else None
         except Exception as e:
             print(e)
         return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_,
-                           route_name_, type_proj, last_station_time_, bus_station_, low_floor, bus_type, avg_speed, azimuth)
+                           route_name_, type_proj, last_station_time_, bus_station_, low_floor, bus_type, avg_speed, azimuth, bort_name)
 
     def get_bus_position(self) -> CdsBusPosition:
         return CdsBusPosition(self.last_lat_, self.last_lon_, self.last_time_)
@@ -143,7 +144,8 @@ class CdsRouteBus(NamedTuple):
     def filter_by_name(self, filter_query: str) -> bool:
         bus_filter = filter_query.lower().split(' ')
         name = self.name_.lower()
-        return not filter_query or any((q in name for q in bus_filter if q))
+        bort_name = self.bort_name.lower()
+        return not filter_query or any((q in name for q in bus_filter if q)) or any((q in bort_name for q in bus_filter if q))
 
     def short(self):
         return f'{self.bus_station_}; {self.last_lat_} {self.last_lon_} '

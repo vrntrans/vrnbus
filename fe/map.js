@@ -343,7 +343,7 @@
                     var fb_link_info = " <a target='_blank' rel='noopener' href='/fotobus_info?name=" + bus_name + "'>" + route_name + " " +  bus.name_ + "</a>";
 
                     bus.desc = [bus_output + time + " " + next_bus_stop.NAME_,
-                        bus.name_ ? fb_link_info : route_name,
+                        (bus.name_ ? fb_link_info : route_name) + " " + bus.bort_name,
                         bus.last_speed_.toFixed(1)
                         + " ~ " + bus.avg_speed.toFixed(1)
                         + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',
@@ -678,8 +678,6 @@
         }
         get_bus_list()
 
-        firebase.analytics().setUserId(load_from_ls('user_ip') || '');
-
         const params = new URLSearchParams(window.location.search);
         const bus_query = params.get('bus_query')
 
@@ -692,13 +690,6 @@
 
         if (station_name)
             station_name.value = load_from_ls('station') || ''
-
-        firebase.analytics().logEvent("open_map", {
-            user_ip: load_from_ls('user_ip'),
-            bus_query: load_from_ls('bus_query'),
-        })
-
-
     }
 
     document.addEventListener("DOMContentLoaded", init);
