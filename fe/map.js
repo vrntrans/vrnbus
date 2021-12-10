@@ -307,8 +307,9 @@
 
                     var delta_with_current = (new Date() - new Date(max_time))/1000
                     var delta_with_max = (server_time - new Date(max_time))/1000
-                    console.log("current_time - max_time", delta_with_current.toFixed(1))
-                    console.log("server_time - max_time", delta_with_max.toFixed(1))
+                    //
+                    // console.log("current_time - max_time", delta_with_current.toFixed(1))
+                    // console.log("server_time - max_time", delta_with_max.toFixed(1))
                 }
 
                 var bus_with_azimuth = data.buses.map(function (data) {
