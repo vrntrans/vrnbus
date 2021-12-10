@@ -2,7 +2,7 @@ import datetime
 import logging
 import unittest
 
-# from freezegun import freeze_time
+from freezegun import freeze_time
 
 from abuse_checker import AbuseChecker
 from data_types import AbuseRule
@@ -82,15 +82,15 @@ class AbuseCheckerTest(unittest.TestCase):
         checker = AbuseChecker(logger, [])
         checker.add_user_event(WebEvent.BUSMAP, '127.0.0.1')
 
-    # @freeze_time("12:00", tick=True)
+    @freeze_time("12:00", tick=True)
     def test_with_rules_day(self):
         self.run_rules_check(False)
 
-    # @freeze_time("20:00", tick=True)
+    @freeze_time("20:00", tick=True)
     def test_with_rules_evening(self):
         self.run_rules_check(True)
 
-    # @freeze_time("7:59", tick=True)
+    @freeze_time("7:59", tick=True)
     def test_with_rules_morning(self):
         self.run_rules_check(True)
 
