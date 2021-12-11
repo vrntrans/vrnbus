@@ -107,13 +107,13 @@ class WebDataProcessor(BaseDataProcessor):
         bus:CdsRouteBus = buses[0][0]
         self.logger.info(f"{bus=}")
 
-        subject = f'Жалоба на автобус маршрута {bus.route_name_} бортовой номер {bus.bort_name} {datetime.date.today()} '
+        subject = f'Обращение с сайта vrnbus:{datetime.date.today()}, маршрут {bus.route_name_}, номер {bus.bort_name}'
 
         br = '%0D%0A'
-        body = f"""Жалоба на автобус маршрута {bus.route_name_} бортовой номер {bus.bort_name}, госномер {bus.name_}
+        body = f"""Обращение с сайта vrnbus: {datetime.date.today()}, маршрут {bus.route_name_}, номер {bus.bort_name}
 Дата и время обращения: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
 Примерное время и место (уточните, если значительно отличается): {bus.last_station_time_:%Y-%m-%d %H:%M}, {bus.bus_station_}
-Жалоба: опишите свою жалобу/пожелание/благодарность, при необходимости прикрепите фото/видео, ссылки и т.д.
+Обращение: опишите свою жалобу/пожелание/благодарность, при необходимости прикрепите фото/видео, ссылки и т.д.
         """.replace("\n", br)
 
         email_complains = f'mailto:{COMPLAINS_EMAIL}?subject={subject}&body={body}'

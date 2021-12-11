@@ -351,7 +351,7 @@
                         + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',
                         "Азимуты: к остановке " + bus.azimuth + ';  ' + bus.db_azimuth,
                         (bus.low_floor ? "Низкопол" : "") + " " + bus_type,
-                        '<a href="/complains?bort_number=' + bus.bort_name + '" target="_blank" rel="noopener noreferrer" >Отправить жалобу</a>',
+                        '<a href="/complains?bort_number=' + bus.bort_name + '" target="_blank" rel="noopener noreferrer" >Отправить обращение</a>',
 
                     ].join('<br/>')
 
