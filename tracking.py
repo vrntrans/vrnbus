@@ -36,6 +36,7 @@ class WebEvent(Enum):
     ANDROID = auto()
     WEB_SITE = auto()
     USER_STATS = auto()
+    COMPLAIN = auto()
 
     @staticmethod
     def from_str(label):

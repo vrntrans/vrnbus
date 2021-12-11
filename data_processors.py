@@ -8,7 +8,7 @@ from typing import List
 import cachetools
 
 from cds import CdsRequest
-from data_types import UserLoc, ArrivalInfo
+from data_types import UserLoc, ArrivalInfo, CdsRouteBus
 from db import session_scope
 from fotobus_scrapper import fb_links
 from helpers import parse_routes
@@ -25,6 +25,8 @@ except ImportError:
     LOAD_TEST_DATA = os.environ.get('LOAD_TEST_DATA', False)
 
 ttl_sec = 10 if not LOAD_TEST_DATA else 0.0001
+
+COMPLAINS_EMAIL = os.environ.get('COMPLAINS_EMAIL', 'МБУ ЦОДД <cds-vrn@mail.ru>')
 
 
 def isnamedtupleinstance(x):
@@ -92,6 +94,31 @@ class WebDataProcessor(BaseDataProcessor):
                 'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud),
                            x[1]._asdict() if x[1] and not is_fraud else {}) for x
                           in result[1]]}
+
+    @cachetools.func.ttl_cache(ttl=ttl_sec, maxsize=4096)
+    def get_email_complain(self, query):
+        routes_info = parse_routes(" pro \ " + query, )
+        result = self.cds.bus_request(routes_info)
+        buses = result[1]
+        self.logger.info(f"{query} {result=}")
+        if not buses:
+            return None
+
+        bus:CdsRouteBus = buses[0][0]
+        self.logger.info(f"{bus=}")
+
+        subject = f'Жалоба на автобус маршрута {bus.route_name_} бортовой номер {bus.bort_name} {datetime.date.today()} '
+
+        br = '%0D%0A'
+        body = f"""Жалоба на автобус маршрута {bus.route_name_} бортовой номер {bus.bort_name}, госномер {bus.name_}
+Дата и время обращения: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
+Примерное время и место (уточните, если значительно отличается): {bus.last_station_time_:%Y-%m-%d %H:%M}, {bus.bus_station_}
+Жалоба: опишите свою жалобу/пожелание/благодарность, при необходимости прикрепите фото/видео, ссылки и т.д.
+        """.replace("\n", br)
+
+        email_complains = f'mailto:{COMPLAINS_EMAIL}?subject={subject}&body={body}'
+
+        return email_complains
 
     def get_arrival(self, query, lat, lon):
         matches = self.cds.matches_bus_stops(lat, lon)

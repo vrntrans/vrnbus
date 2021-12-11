@@ -122,6 +122,7 @@ class BusSite(tornado.web.Application):
             (r"/bus_stations.json", BusStopsRoutesForAppsHandler),
             (r"/bus_stops", BusStopsHandler),
             (r"/fotobus_info", FotoBusHandler),
+            (r"/complains", EmailFromBusHandler),
             (r"/bus_route_edges", BusRouteEdgesHandler),
             (r"/ping", PingHandler),
             (r"/(.*.json)", static_handler, {"path": Path("./")}),
@@ -321,3 +322,23 @@ class BusRouteEdgesHandler(BaseHandler):
         result = self.processor.get_route_edges()
         self.write(json.dumps(result))
         self.caching()
+
+
+class EmailFromBusHandler(BaseHandler):
+    def _response(self):
+        bort_number = self.get_argument('bort_number')
+        test = self.get_argument('test', None)
+        self.track(WebEvent.COMPLAIN, bort_number)
+        complain = self.processor.get_email_complain(bort_number)
+        if not complain:
+            self.write(f'Автобус с бортовым номером {bort_number} на линии не найден')
+            return
+
+        if test:
+            txt_complain = complain.replace('%0D%0A', '<br/>\n').replace('&', '&<br/>\n')
+            self.write(f'{txt_complain}')
+        else:
+            self.redirect(complain)
+
+    def get(self):
+        self._response()
