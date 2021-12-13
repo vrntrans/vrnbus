@@ -104,7 +104,11 @@ class WebDataProcessor(BaseDataProcessor):
         if not buses:
             return None
 
-        bus:CdsRouteBus = buses[0][0]
+        buses_with_bort_name = [x[0] for x in buses if x[0].bort_name == query]
+        if not buses_with_bort_name:
+            return None
+
+        bus:CdsRouteBus = buses_with_bort_name[0]
         self.logger.info(f"{bus=}")
 
         subject = f'Обращение с сайта vrnbus:{datetime.date.today()}, маршрут {bus.route_name_}, номер {bus.bort_name}'
