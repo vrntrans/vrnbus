@@ -339,7 +339,7 @@
                     var bus_output = bus.obj_output === 1 ? ' <b>!</b> ' : ''
 
                     bus.delta_time = diff_time(bus.last_time_, server_time);
-                    var show_bus_name = bus.name_ && (bus.name_ != bus.bort_name || bus.name_.length === 3)
+                    var show_bus_name = bus.name_ && !bus.hidden_name
                     var bus_name = show_bus_name ? bus.name_ : bus.hidden_name;
                     var route_name = bus.route_name_.trim();
                     var fb_link_info = " <a target='_blank' rel='noopener' href='/fotobus_info?name=" + bus_name + "'>" + route_name + " " +  bus.name_ + "</a>";
@@ -504,7 +504,7 @@
         var lat = bus.lat2 || bus.last_lat_
         var lon = bus.lon2 || bus.last_lon_
         var bus_output = bus.obj_output === 1 ? ' <b>!</b>' : ''
-        var show_bus_name = bus.name_ && (bus.name_ != bus.bort_name || bus.name_.length === 3)
+        var show_bus_name = bus.name_ && !bus.hidden_name
 
         var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (show_bus_name ? "&nbsp;" + bus.name_ : "")
         var rotation = bus.db_azimuth
