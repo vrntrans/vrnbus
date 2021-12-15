@@ -1,5 +1,8 @@
 import json
+import logging
 import os
+import pathlib
+import random
 import time
 from datetime import datetime
 from pathlib import Path
@@ -13,6 +16,11 @@ import firebird.driver
 from data_types import CdsRouteBus, CdsBaseDataProvider, CoddBus, LongBusRouteStop, BusStop
 
 LOAD_TEST_DATA = False
+
+logger = logging.getLogger(__name__)
+
+if not Path('dumps').exists():
+    Path('dumps').mkdir(parents=True)
 
 try:
     import settings
@@ -44,7 +52,29 @@ def fetch_cursor_map(cur: Cursor):
     cursor_mapping = [x[0] for x in cur.description]
     all_rows = cur.fetchall()
 
-    return [ {k:v for k,v in   zip(cursor_mapping, row) } for row in all_rows ]
+    return [{k: v for k, v in zip(cursor_mapping, row)} for row in all_rows]
+
+
+def dump_data(data, resource):
+    fname = pathlib.Path(f'dumps/{resource}.json')
+    dump_info = json.dumps(data, default=str)
+    file_content = dump_info.encode('utf-8')
+    with open(fname, 'wb+') as f:
+        f.write(file_content)
+    logger.info(f'new_dump_file {fname}')
+
+
+def load_data(resource):
+    fname = pathlib.Path(f'dumps/{resource}.json')
+    if not fname.exists():
+        return None
+    mtime = datetime.fromtimestamp(fname.stat().st_mtime)
+    mdelta = (datetime.now()-mtime).seconds
+    if mdelta > 600:
+        return None
+    with open(fname, 'rb') as f:
+        return json.load(f)
+
 
 class CdsDBDataProvider(CdsBaseDataProvider):
     CACHE_TIMEOUT = 30
@@ -82,8 +112,18 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         return datetime.now()
 
     def load_codd_route_names(self) -> Dict:
+        def unpack_data(r):
+            r = [CoddBus(**x) for x in r]
+            return {x.NAME_: x for x in r}
+
         self.logger.debug('Execute fetch routes from DB')
         start = time.time()
+
+        cached_result = load_data('codd_route')
+        if cached_result:
+            self.logger.info(f"Finish proccess. Elapsed: {time.time() - start:.2f}")
+            return unpack_data(cached_result)
+
         try:
             with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
@@ -93,21 +133,26 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 result = fetch_cursor_map(cur)
                 # tr.commit()
                 # cur.close()
-                end = time.time()
-                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
+                self.logger.info(f"Finish fetch data. Elapsed: {time.time() - start:.2f}")
         except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
 
-        result = [CoddBus(**x) for x in result]
-        end = time.time()
-        self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
-        return {x.NAME_: x for x in result}
+        dump_data(result, 'codd_route')
+        self.logger.info(f"Finish proccess. Elapsed: {time.time() - start:.2f}")
+        return unpack_data(result)
 
     def load_new_codd_route_names(self):
+        def unpack_data(r):
+            r = [CoddBus(**x) for x in r]
+            return {x.NAME_: x.ID_ for x in r}
         self.logger.debug('Execute fetch routes from DB')
         start = time.time()
+        cached_result = load_data('new_codd_route')
+        if cached_result:
+            self.logger.info(f"Finish proccess. Elapsed: {time.time() - start:.2f}")
+            return unpack_data(cached_result)
         try:
             with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
@@ -116,17 +161,15 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                 order by NAME_''')
                 self.logger.debug('Finish execution')
                 result = fetch_cursor_map(cur)
-                end = time.time()
-                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
+                self.logger.info(f"Finish fetch data. Elapsed: {time.time() - start:.2f}")
         except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
 
-        result = [CoddBus(**x) for x in result]
-        end = time.time()
-        self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")
-        return {x.NAME_: x.ID_ for x in result}
+        dump_data(result, 'new_codd_route')
+        self.logger.info(f"Finish proccess. Elapsed: {time.time() - start:.2f}")
+        return unpack_data(result)
 
     def convert_to_stations_dict(self, bus_routes, bus_stops_data):
         bus_routes_ids = {v: k for k, v in bus_routes.items()}
@@ -145,7 +188,15 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         return bus_stations
 
     def load_bus_stations_routes(self) -> Dict:
+        def unpack_data(r):
+            routes_dict = {k: v.ID_ for k, v in self.load_codd_route_names().items()}
+            return self.convert_to_stations_dict(routes_dict, r)
         start = time.time()
+
+        cached_result = load_data('bus_stations_routes')
+        if cached_result:
+            self.logger.info(f"Finish proccess. Elapsed: {time.time() - start:.2f}")
+            return unpack_data(cached_result)
         try:
             with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
@@ -155,16 +206,15 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                 join BS_ROUTE bsr on bsr.ROUTE_ID = r.ID_
                                 left join BS on bsr.BS_ID = bs.ID''')
                 bus_stops_data = fetch_cursor_map(cur)
-                end = time.time()
-                self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
+                self.logger.info(f"Finish fetch data. Elapsed: {time.time() - start:.2f}")
         except firebird.driver.DatabaseError as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
 
-        routes_dict = {k:v.ID_ for k, v in self.load_codd_route_names().items()}
-        result = self.convert_to_stations_dict(routes_dict, bus_stops_data)
-        return result
+        dump_data(bus_stops_data, 'bus_stations_routes')
+        self.logger.info(f"Finish proccess. Elapsed: {time.time() - start:.2f}")
+        return unpack_data(bus_stops_data)
 
     def load_new_bus_stations_routes(self) -> Dict:
         start = time.time()
@@ -196,6 +246,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
         self.logger.debug('Execute fetch all from DB')
         start = time.time()
+
         try:
             with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()

@@ -62,6 +62,7 @@ if __name__ == "__main__":
     cds = CdsRequest(logger, data_provider)
     data_processor = WebDataProcessor(cds, logger, tracker)
     bot = BusBot(cds, user_settings, logger, tracker)
+    cds.wd_call_back = bot.broadcast_message
     application = BusSite(data_processor, logger, tracker, anti_abuser)
     application.listen(os.environ.get('PORT', 8088))
     tornado.ioloop.IOLoop.current().start()

@@ -1,3 +1,4 @@
+import datetime
 import os
 import threading
 import time
@@ -63,6 +64,7 @@ class CdsRequest:
         self.all_cds_buses = []
         self.avg_speed = 18.0
         self.fetching_in_progress = False
+        self.fetching_timestamp = datetime.datetime.now()
         self.last_bus_data = defaultdict(lambda: deque(maxlen=20))
         self.route_distances = {}
         self.bus_speed_dict = {}
@@ -70,14 +72,31 @@ class CdsRequest:
         self.bus_onroute_dict = {}
         self.speed_dict = {}
         self.speed_deque = deque(maxlen=10)
+        self.wd_call_back = None
 
         self.bus_stats = []
 
-        self.update_all_cds_buses_from_db()
+        # self.update_all_cds_buses_from_db()
         self.scheduler = BackgroundScheduler()
+        self.run_scheduled_task()
+
+    def run_scheduled_task(self):
+        self.scheduler.remove_all_jobs()
         self.scheduler.start()
-        self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=15)
+        self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=15, max_instances=1)
+        self.scheduler.add_job(self.update_watch_dog, 'interval', seconds=10)
         self.scheduler.add_job(self.load_new_routes_bg)
+
+    def update_watch_dog(self):
+        fetching_duration = (self.now() - self.fetching_timestamp).total_seconds()
+        self.logger.info(f'{fetching_duration=:.2f}')
+        if self.fetching_in_progress and fetching_duration > 60:
+            self.scheduler.shutdown(wait=False)
+            self.scheduler = BackgroundScheduler()
+            self.logger.error(f"SOMETHING GOES WRONG {fetching_duration=:.2f}")
+            if self.wd_call_back:
+                self.wd_call_back(f'Слишком долгое ожидание ответа от базы данных {fetching_duration:.0f}, переподключение')
+            self.run_scheduled_task()
 
     def load_new_routes_bg(self):
         self.new_bus_routes = self.data_provider.load_new_bus_stations_routes()
@@ -392,6 +411,7 @@ class CdsRequest:
             time.sleep(5)
         try:
             self.fetching_in_progress = True
+            self.fetching_timestamp = datetime.datetime.now()
             all_buses = self.data_provider.load_all_cds_buses()
             result = update_last_bus_data(all_buses)
             self.bus_stats.append((self.now(), sum((self.bus_active(bus, False) == True for bus in result ))))

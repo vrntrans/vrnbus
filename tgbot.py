@@ -89,6 +89,21 @@ class BusBot:
         user = update.message.from_user
         self.tracker.tg(event, user, *params)
 
+
+    def broadcast_message(self, text):
+        if not VRNBUSBOT_TOKEN:
+            return
+        now = datetime.datetime.now()
+        if not (6 <= now.hour < 23):
+            return
+        for user_id in self.users_to_inform:
+            try:
+                self.bot.send_message(chat_id=user_id,
+                                      text=text,
+                                      parse_mode='Markdown')
+            except Exception as e:
+                self.logger.error(f'Error while sending message to {user_id=}')
+
     def stats_checking(self):
         def send_msg(text, force=False):
             if self.stats_fail_start:
