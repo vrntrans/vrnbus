@@ -32,6 +32,8 @@ ttl_sec = 10 if not LOAD_TEST_DATA else 0.0001
 
 tz = pytz.timezone('Europe/Moscow')
 
+WATCHDOG_INTERVAL = 60
+
 
 class CdsRequest:
     rtree_lock = threading.Lock()
@@ -84,18 +86,20 @@ class CdsRequest:
         self.scheduler.remove_all_jobs()
         self.scheduler.start()
         self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=15, max_instances=1)
-        self.scheduler.add_job(self.update_watch_dog, 'interval', seconds=10)
+        self.scheduler.add_job(self.update_watch_dog, 'interval', seconds=WATCHDOG_INTERVAL)
         self.scheduler.add_job(self.load_new_routes_bg)
 
     def update_watch_dog(self):
         fetching_duration = (self.now() - self.fetching_timestamp).total_seconds()
-        self.logger.info(f'{fetching_duration=:.2f}')
-        if self.fetching_in_progress and fetching_duration > 60:
-            self.scheduler.shutdown(wait=False)
-            self.scheduler = BackgroundScheduler()
+        self.logger.debug(f'{fetching_duration=:.2f}')
+        if self.fetching_in_progress and fetching_duration > WATCHDOG_INTERVAL:
             self.logger.error(f"SOMETHING GOES WRONG {fetching_duration=:.2f}")
             if self.wd_call_back:
-                self.wd_call_back(f'Слишком долгое ожидание ответа от базы данных {fetching_duration:.0f}, переподключение')
+                self.wd_call_back(f'Слишком долгое ожидание ответа от базы данных {fetching_duration:.0f} с, переподключение')
+
+            self.scheduler.shutdown(wait=False)
+            self.scheduler = BackgroundScheduler()
+
             self.run_scheduled_task()
 
     def load_new_routes_bg(self):
@@ -416,6 +420,7 @@ class CdsRequest:
             result = update_last_bus_data(all_buses)
             self.bus_stats.append((self.now(), sum((self.bus_active(bus, False) == True for bus in result ))))
             result.sort(key=lambda s: s.last_time_, reverse=True)
+
         finally:
             self.fetching_in_progress = False
         self.all_cds_buses = result
