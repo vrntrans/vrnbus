@@ -263,7 +263,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 result = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except firebird.driver.DatabaseError as db_error:
+        except (AssertionError, firebird.driver.types.DatabaseError, firebird.driver.DatabaseError) as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return []

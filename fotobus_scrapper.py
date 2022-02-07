@@ -1,5 +1,6 @@
 import re
 import time
+from typing import List
 
 import requests
 from bs4 import BeautifulSoup
@@ -27,19 +28,26 @@ def get_bus_search_page(bus_name):
     if not url:
         return
 
-    result = requests.get(url)
+    result = requests.get(url, allow_redirects=True)
+    print(result.url)
     return result.content
 
 def get_fb_links(content):
     soup = BeautifulSoup(content, features="html.parser")
     anchors = soup.find_all("a")
     hrefs = {a.get('href').split('#')[0] for a in anchors}
-    return [f"http://fotobus.msk.ru{h}" for h in hrefs]
+    print(hrefs)
+    return [f"http://fotobus.msk.ru{h}" for h in hrefs if not h.startswith('http')]
 
 
-def fb_links(name):
-    content = get_bus_search_page(name)
-    return get_fb_links(content)
+def fb_links(bus_name):
+    url = get_url(bus_name)
+    if not url:
+        return []
+    content = get_bus_search_page(bus_name)
+    links = get_fb_links(content)
+    return links or [url, ]
+
 
 
 if __name__ == '__main__':
@@ -52,3 +60,4 @@ if __name__ == '__main__':
     result = get_fb_links(content)
     print(result)
     print(time.time() - start)
+    print(fb_links("ВВ37336"))
