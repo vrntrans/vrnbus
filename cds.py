@@ -1,5 +1,6 @@
 import datetime
 import os
+import random
 import threading
 import time
 from collections import Counter, deque
@@ -89,8 +90,11 @@ class CdsRequest:
         self.scheduler.add_job(self.update_watch_dog, 'interval', seconds=WATCHDOG_INTERVAL)
         self.scheduler.add_job(self.load_new_routes_bg)
 
+    def get_fetching_duration(self):
+        return (self.now() - self.fetching_timestamp).total_seconds()
+
     def update_watch_dog(self):
-        fetching_duration = (self.now() - self.fetching_timestamp).total_seconds()
+        fetching_duration = self.get_fetching_duration()
         self.logger.debug(f'{fetching_duration=:.2f}')
         if self.fetching_in_progress and fetching_duration > WATCHDOG_INTERVAL:
             self.logger.error(f"SOMETHING GOES WRONG {fetching_duration=:.2f}")
@@ -98,8 +102,8 @@ class CdsRequest:
                 self.wd_call_back(f'Слишком долгое ожидание ответа от базы данных {fetching_duration:.0f} с, переподключение')
 
             self.scheduler.shutdown(wait=False)
+            self.fetching_in_progress = False
             self.scheduler = BackgroundScheduler()
-
             self.run_scheduled_task()
 
     def load_new_routes_bg(self):
@@ -410,9 +414,13 @@ class CdsRequest:
             return [x._replace(avg_speed=self.bus_speed_dict.get(x.name_, 18),
                                avg_last_speed=self.bus_last_speed_dict.get(x.name_, 18)) for x in buses]
 
-        while self.fetching_in_progress:
-            self.logger.info("Waiting for previous DB query")
+        query_id = random.randint(0, 1000)
+        i = 0
+        while self.fetching_in_progress and i < 10:
+            self.logger.info(f"Waiting for previous DB query {query_id=}, {i=}")
             time.sleep(5)
+            return
+
         try:
             self.fetching_in_progress = True
             self.fetching_timestamp = datetime.datetime.now()

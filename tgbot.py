@@ -102,7 +102,7 @@ class BusBot:
                                       text=text,
                                       parse_mode='Markdown')
             except Exception as e:
-                self.logger.error(f'Error while sending message to {user_id=}')
+                self.logger.error(f'Error while sending message to {user_id=}, {e}')
 
     def stats_checking(self):
         def send_msg(text, force=False):
