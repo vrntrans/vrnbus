@@ -258,7 +258,7 @@
         }
 
         var date = new Date(last_time)
-        var time = last_time.substring(last_time.length - 8)
+        var time = last_time.substring(last_time.length - 14,last_time.length - 6)
         if (Date.now() - date > (3600 * 1000 * 24)) {
             time = date.getFullYear() + '-' + pad_zero(date.getMonth() + 1) + '-' + pad_zero(date.getDate()) + ' ' + time
         }
