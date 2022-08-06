@@ -6,6 +6,7 @@ from logging import Logger
 from typing import List
 
 import cachetools
+import pytz
 
 from cds import CdsRequest
 from data_types import UserLoc, ArrivalInfo, CdsRouteBus
@@ -67,6 +68,7 @@ def eliminate_numbers(d: dict, full_info, is_fraud) -> dict:
 
     return d
 
+tz_msk = pytz.timezone('Europe/Moscow')
 
 class BaseDataProcessor:
     def __init__(self, cds: CdsRequest, logger: Logger, tracker: EventTracker):
@@ -74,6 +76,9 @@ class BaseDataProcessor:
         self.logger = logger
         self.tracker = tracker
 
+    @staticmethod
+    def now():
+        return datetime.datetime.now(tz=tz_msk)
 
 class WebDataProcessor(BaseDataProcessor):
     def __init__(self, cds: CdsRequest, logger: Logger, tracker: EventTracker):
@@ -89,7 +94,7 @@ class WebDataProcessor(BaseDataProcessor):
 
         result = self.cds.bus_request(routes_info, user_loc=user_loc, short_format=True)
         return {'q': query,
-                'server_time': datetime.datetime.now(),
+                'server_time': self.now(),
                 'text': '' if hide_text else result[0],
                 'buses': [(eliminate_numbers(x[0]._asdict(), full_info, is_fraud),
                            x[1]._asdict() if x[1] and not is_fraud else {}) for x
@@ -115,7 +120,7 @@ class WebDataProcessor(BaseDataProcessor):
 
         br = '%0D%0A'
         body = f"""Обращение с сайта vrnbus: {datetime.date.today()}, маршрут {bus.route_name_}, номер {bus.bort_name}
-Дата и время обращения: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}
+Дата и время обращения: {self.now().strftime('%Y-%m-%d %H:%M')}
 Примерное время и место (уточните, если значительно отличается): {bus.last_station_time_:%Y-%m-%d %H:%M}, {bus.bus_station_}
 Обращение: опишите свою жалобу/пожелание/благодарность, при необходимости прикрепите фото/видео, ссылки и т.д.
         """.replace("\n", br)
@@ -130,7 +135,7 @@ class WebDataProcessor(BaseDataProcessor):
         result_tuple = self.cds.next_bus_for_matches(tuple(matches), parse_routes(query))
         response = {'lat': lat, 'lon': lon,
                     'text': result_tuple[0], 'header': result_tuple[1],
-                    'server_time': datetime.datetime.now(),
+                    'server_time': self.now(),
                     'bus_stops': {v.bus_stop_name: v.text for v in result_tuple.arrival_details}}
         return response
 
@@ -139,12 +144,12 @@ class WebDataProcessor(BaseDataProcessor):
         result_tuple = self.cds.next_bus(station_query, parse_routes(query))
         if result_tuple.found:
             response = {'text': result_tuple[0], 'header': result_tuple[1],
-                        'server_time': datetime.datetime.now(),
+                        'server_time': self.now(),
                         'bus_stops': {v.bus_stop_name: v.text for v in
                                       result_tuple.arrival_details}}
         else:
             response = {'text': result_tuple[0], 'header': result_tuple[1],
-                        'server_time': datetime.datetime.now(),
+                        'server_time': self.now(),
                         'bus_stops': {k: '' for k in
                                       result_tuple.bus_stops}}
         return response
@@ -162,7 +167,7 @@ class WebDataProcessor(BaseDataProcessor):
             search_params = parse_routes(query)
             arrival_info = self.cds.next_bus_for_matches((bus_stop,), search_params)
             result_text = self.get_text_from_arrival_info(arrival_info)
-            response = {'result': result_text, 'server_time': datetime.datetime.now(),
+            response = {'result': result_text, 'server_time': self.now(),
                         'arrival_info': unpack_namedtuples(arrival_info)}
             return response
 
@@ -211,7 +216,7 @@ class WebDataProcessor(BaseDataProcessor):
     def get_stats(self):
         user_stats = self.tracker.stats()
         bus_stats = self.cds.get_bus_statistics()
-        return str(datetime.datetime.now()) + '\n\n' + user_stats + '\n\n' + bus_stats.text
+        return str(self.now()) + '\n\n' + user_stats + '\n\n' + bus_stats.text
 
     @cachetools.func.ttl_cache(ttl=36000)
     def get_new_routes(self):

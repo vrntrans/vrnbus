@@ -513,7 +513,7 @@
             wait = '_long_wait'
         }
         var file_name = bus.low_floor === 1 ? 'bus_round_lf' : 'bus_round';
-
+        var flake_class = bus.has_ac === 1 ? 'snow-flake' : 'empty'
         return {
             "type": "Feature",
             "id": id,
@@ -523,6 +523,7 @@
                 "hintContent": hint_content,
                 "iconContent": icon_content,
                 "rotation": rotation,
+                'flakeClass': flake_class,
                 "clusterCaption": icon_content + ' ' + hint_content,
                 'iconImageHref': file_name + wait +'.png',
             },
@@ -590,7 +591,8 @@
 
         BusIconContentLayout = ymaps.templateLayoutFactory.createClass(
             '<img class="bus-icon" style="z-index: -1;transform: rotate({{properties.rotation}}deg);" src="arrow.png"/>' +
-            '<ymaps class="bus-title" style="opacity:${{properties.iconOpacity}};z-index: -3;"> $[properties.iconContent] </ymaps>'
+            '<ymaps class="bus-title" style="opacity:${{properties.iconOpacity}};z-index: -3;"> $[properties.iconContent] </ymaps>' +
+            '<ymaps class="{{properties.flakeClass}}" style="z-index: 10;">&#160;&#10052;&#160;</ymaps>'
         )
 
         // TODO: Check with buses

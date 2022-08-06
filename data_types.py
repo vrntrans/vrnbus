@@ -64,7 +64,6 @@ class CdsBus(NamedTuple):
     name_: str
     last_time_: str
     route_name_: str
-    type_proj: int
     phone_: str
 
 
@@ -126,17 +125,20 @@ class CdsRouteBus(NamedTuple):
     avg_last_speed: float = 0
     azimuth: int = 0
     bort_name: str = ''
+    has_ac: int = 0
 
     @staticmethod
     def make(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_, route_name_,
-             type_proj, last_station_time_, bus_station_, low_floor=False, bus_type=0, avg_speed=18, azimuth=0, bort_name=""):
+             type_proj, last_station_time_, bus_station_, low_floor=False, bus_type=0, obj_output=0, avg_speed=18, avg_last_speed=0, azimuth=0, bort_name="",
+             has_ac=0):
         try:
             last_time_ = get_iso_time(last_time_)
             last_station_time_ = get_iso_time(last_station_time_) if last_station_time_ else None
         except Exception as e:
             print(e)
         return CdsRouteBus(last_lat_, last_lon_, last_speed_, last_time_, name_, obj_id_, proj_id_,
-                           route_name_, type_proj, last_station_time_, bus_station_, low_floor, bus_type, avg_speed, azimuth, bort_name)
+                           route_name_, type_proj, last_station_time_, bus_station_, low_floor, bus_type, obj_output, avg_speed, avg_last_speed,
+                           azimuth, bort_name, has_ac)
 
     def get_bus_position(self) -> CdsBusPosition:
         return CdsBusPosition(self.last_lat_, self.last_lon_, self.last_time_)

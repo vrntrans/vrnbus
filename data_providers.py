@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List, Dict
 
 import fdb
+import pytz
 from firebird.driver import connect, driver_config, transaction, Cursor
 
 import firebird.driver
@@ -44,7 +45,7 @@ except ImportError:
         LOAD_TEST_DATA = True
 
 
-
+tz_msk = pytz.timezone('Europe/Moscow')
 driver_config.server_defaults.host.value = CDS_HOST
 
 
@@ -109,7 +110,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             self.logger.error(general_error)
 
     def now(self) -> datetime:
-        return datetime.now()
+        return datetime.now(tz=tz_msk)
 
     def load_codd_route_names(self) -> Dict:
         def unpack_data(r):
@@ -255,7 +256,9 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                      coalesce(o.lowfloor, 0) as low_floor, coalesce(o.VEHICLE_TYPE_, 0) as bus_type,
                       coalesce(obj_output_, 0) as obj_output,
                       coalesce(azmth_, 0) as azimuth,
-                      coalesce(o."BortName", '') as bort_name
+                      coalesce(o."BortName", '') as bort_name,
+                      coalesce(o."HasConditioning", 0) as has_ac,
+                      0 as type_proj
                     FROM OBJECTS O LEFT JOIN BUS_STATIONS bs
                     ON o.LAST_ROUT_ = bs.ROUT_ AND o.LAST_STATION_ = bs.NUMBER_
                     LEFT JOIN ROUTS rt ON o.LAST_ROUT_ = rt.ID_''')
@@ -294,7 +297,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 self.logger.error(db_error)
                 self.try_reconnect()
 
-        result = [CdsRouteBus(**make_names_lower(x)) for x in result + obl_result]
+        result = [CdsRouteBus.make(**make_names_lower(x)) for x in result + obl_result]
         result.sort(key=lambda s: s.last_time_, reverse=True)
         end = time.time()
         self.logger.info(f"Finish proccess. Elapsed: {end - start:.2f}")

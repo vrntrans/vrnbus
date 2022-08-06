@@ -31,7 +31,6 @@ except ImportError:
 
 ttl_sec = 10 if not LOAD_TEST_DATA else 0.0001
 
-tz = pytz.timezone('Europe/Moscow')
 
 WATCHDOG_INTERVAL = 60
 
@@ -67,7 +66,7 @@ class CdsRequest:
         self.all_cds_buses = []
         self.avg_speed = 18.0
         self.fetching_in_progress = False
-        self.fetching_timestamp = datetime.datetime.now()
+        self.fetching_timestamp = self.data_provider.now()
         self.last_bus_data = defaultdict(lambda: deque(maxlen=20))
         self.route_distances = {}
         self.bus_speed_dict = {}
@@ -423,7 +422,7 @@ class CdsRequest:
 
         try:
             self.fetching_in_progress = True
-            self.fetching_timestamp = datetime.datetime.now()
+            self.fetching_timestamp = self.now()
             all_buses = self.data_provider.load_all_cds_buses()
             result = update_last_bus_data(all_buses)
             self.bus_stats.append((self.now(), sum((self.bus_active(bus, False) == True for bus in result ))))

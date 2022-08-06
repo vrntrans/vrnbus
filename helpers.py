@@ -12,6 +12,8 @@ import pytz
 
 QUICK_FIX_DIST = 10000
 
+tz_msk = pytz.timezone('Europe/Moscow')
+
 class CustomJsonEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, datetime.datetime):
@@ -28,7 +30,6 @@ class SearchResult(NamedTuple):
     all_buses: bool = False
 
 
-tz = pytz.timezone('Europe/Moscow')
 logger = logging.getLogger("vrnbus")
 
 
@@ -138,18 +139,22 @@ def distance_km(glat1, glon1, glat2, glon2):
 
 def get_iso_time(s) -> datetime.datetime:
     if isinstance(s, datetime.datetime):
-        return s
+        if s.tzinfo:
+            return s
+        return s.replace(tzinfo=tz_msk)
 
     try:
-        return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S.%f')
+        return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S.%f').replace(tzinfo=tz_msk)
     except ValueError:
-        return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S')
+        return datetime.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=tz_msk)
 
 
 def get_time(s):
     if isinstance(s, datetime.datetime):
-        return tz.localize(s)
-    return tz.localize(datetime.datetime.strptime(s, '%b %d, %Y %I:%M:%S %p'))
+        if s.tzinfo:
+            return s
+        return tz_msk.localize(s)
+    return tz_msk.localize(datetime.datetime.strptime(s, '%b %d, %Y %I:%M:%S %p'))
 
 
 def grouper(n, iterable, fill_value=None):
