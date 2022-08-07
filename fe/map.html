@@ -25,16 +25,19 @@
 <div>
 
     <div>
-        <label><input id='cb_refresh' type='checkbox' checked>Обновлять через 30 сек.</label>
+        <label><input id='cb_show_lowfloor' type='checkbox'>Только низкопольные</label>
+        <label><input id='cb_show_with_ac' type='checkbox'>Только с кондиционером</label>
     </div>
-    <div>
-        <label><input id='cb_show_info' type='checkbox'>Отображать список автобусов</label></div>
+
     <div>
         <button id="lastbus_map_update">Поиск</button>
         <span id="lastbus_loading"></span>
     </div>
 </div>
 <div id="map" class="map"></div>
+<div>
+        <label><input id='cb_show_info' type='checkbox'>Списком</label>
+</div>
 <div>
     <div id="businfo" style="white-space:pre-wrap;" class="hide_info"></div>
 </div>

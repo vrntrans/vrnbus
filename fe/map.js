@@ -7,6 +7,7 @@
 
     var coords = {latitude: 51.6754966, longitude: 39.2088823}
 
+    var UPDATE_TIMEOUT = 30 * 1000;
     var lastbusquery = document.getElementById('lastbusquery')
     var station_query = document.getElementById('station_query')
     var station_name = document.getElementById('station_name')
@@ -19,8 +20,9 @@
     var lastbus_map_update = document.getElementById('lastbus_map_update')
     var nextbus_loading = document.getElementById('nextbus_loading')
     var lastbus_loading = document.getElementById('lastbus_loading')
-    var cb_refresh = document.getElementById('cb_refresh')
     var cb_show_info = document.getElementById('cb_show_info')
+    var cb_show_lowfloor = document.getElementById('cb_show_lowfloor')
+    var cb_show_with_ac = document.getElementById('cb_show_with_ac')
     var btn_station_search = document.getElementById('btn_station_search')
 
     var bus_stop_list = []
@@ -32,15 +34,17 @@
             update_bus_map()
         }
 
-    if (cb_refresh)
-        cb_refresh.onclick = function () {
-            if (!cb_refresh.checked) {
-                clearTimeout(timer_id)
-                clearTimeout(timer_stop_id)
-                timer_id = 0
-                timer_stop_id = 0
-            }
+    if (cb_show_lowfloor)
+        cb_show_lowfloor.onclick = function (){
+            update_bus_map()
         }
+
+
+    if (cb_show_with_ac)
+        cb_show_with_ac.onclick = function (){
+            update_bus_map()
+        }
+
 
     if (cb_show_info) {
         cb_show_info.onclick = function () {
@@ -88,13 +92,12 @@
     }
 
     function run_timer(func) {
-        if (cb_refresh.checked && !timer_id) {
+        if (!timer_id) {
             timer_id = setTimeout(function tick() {
                 func().then(function () {
-                    if (cb_refresh.checked)
-                        timer_id = setTimeout(tick, 30 * 1000)
+                    timer_id = setTimeout(tick, UPDATE_TIMEOUT)
                 })
-            }, 30 * 1000)
+            }, UPDATE_TIMEOUT)
         }
     }
 
@@ -312,12 +315,22 @@
                     // console.log("server_time - max_time", delta_with_max.toFixed(1))
                 }
 
-                var bus_with_azimuth = data.buses.map(function (data) {
+                var show_only_lowfloor = cb_show_lowfloor && cb_show_lowfloor.checked
+                var show_only_with_ac = cb_show_with_ac && cb_show_with_ac.checked
+
+                var bus_with_azimuth = data.buses.reduce(function (filtered, data) {
                     var bus = data[0]
                     var next_bus_stop = data[1]
                     if (!next_bus_stop.LON_ || !next_bus_stop.LAT_) {
-                        return bus
+                        filtered.push(bus)
+                        return filtered
                     }
+
+                    if (show_only_lowfloor && !bus.low_floor)
+                        return filtered
+
+                    if (show_only_with_ac && !bus.has_ac)
+                        return filtered
 
                     bus.hint = next_bus_stop.NAME_
 
@@ -350,14 +363,15 @@
                         + " ~ " + bus.avg_speed.toFixed(1)
                         + " ~ " + bus.avg_last_speed.toFixed(1) + ' км/ч',
                         "Азимуты: к остановке " + bus.azimuth + ';  ' + bus.db_azimuth,
-                        (bus.low_floor ? "Низкопол" : "") + " " + bus_type,
+                        (bus.has_ac ? "&#10052; " : "")  + (bus.low_floor ? "Низкопол" : "") + " " + bus_type,
                         '<a href="/complains?bort_number=' + bus.bort_name + '" target="_blank" rel="noopener noreferrer" >Отправить обращение</a>',
 
                     ].join('<br/>')
 
 
-                    return bus
-                })
+                    filtered.push(bus)
+                    return filtered
+                }, [])
                 update_map(bus_with_azimuth, true)
             }).catch(function (error) {
                 waiting(lastbus_loading, lastbus_map_update, false)
