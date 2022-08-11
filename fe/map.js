@@ -1,7 +1,7 @@
 (function () {
     "use strict";
 
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== "127.0.0.1") {
         location.href = 'https:' + window.location.href.substring(window.location.protocol.length);
     }
 
@@ -113,7 +113,18 @@
 
         var bus_query = lastbusquery.value
         save_to_ls('bus_query', bus_query)
+        set_query_parameter('bus_query', bus_query)
+        if (cb_show_lowfloor){
+            save_to_ls('low_floor', cb_show_lowfloor.checked)
+            set_query_parameter('low_floor', cb_show_lowfloor.checked)
+        }
+        if (cb_show_with_ac){
+            save_to_ls('has_ac', cb_show_with_ac.checked)
+            set_query_parameter('has_ac', cb_show_with_ac.checked)
+        }
+
         update_user_position()
+
         return get_bus_positions(bus_query)
     }
 
@@ -271,7 +282,6 @@
 
     function get_bus_positions(query) {
         waiting(lastbus_loading, lastbus_map_update, true)
-        set_query_parameter('bus_query', query)
         var params = 'src=map&q=' + encodeURIComponent(query) + fraud_check()
         if (coords) {
             params += '&lat=' + encodeURIComponent(coords.latitude)
@@ -704,9 +714,11 @@
 
         const params = new URLSearchParams(window.location.search);
         const bus_query = params.get('bus_query')
+        const low_floor = params.get('low_floor')
+        const has_ac = params.get('has_ac')
 
         if (lastbusquery) {
-            lastbusquery.value = params.get('bus_query') || load_from_ls('bus_query') || ''
+            lastbusquery.value = bus_query || load_from_ls('bus_query') || ''
         }
 
         if (station_query)
@@ -714,6 +726,14 @@
 
         if (station_name)
             station_name.value = load_from_ls('station') || ''
+
+        if ((low_floor && low_floor.toLowerCase() == 'true') || load_from_ls('low_floor') === 'true') {
+            cb_show_lowfloor.checked = true
+        }
+
+        if ((has_ac && has_ac.toLowerCase() == 'true') || load_from_ls('has_ac') === 'true') {
+            cb_show_with_ac.checked = true
+        }
     }
 
     document.addEventListener("DOMContentLoaded", init);
