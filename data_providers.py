@@ -110,7 +110,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             self.logger.error(general_error)
 
     def now(self) -> datetime:
-        return datetime.now(tz=tz_msk)
+        return datetime.now().replace(tzinfo=tz_msk)
 
     def load_codd_route_names(self) -> Dict:
         def unpack_data(r):
