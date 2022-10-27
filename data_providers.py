@@ -58,7 +58,7 @@ def fetch_cursor_map(cur: Cursor):
 
 def dump_data(data, resource):
     fname = pathlib.Path(f'dumps/{resource}.json')
-    dump_info = json.dumps(data, default=str)
+    dump_info = json.dumps(data, default=str, indent=2)
     file_content = dump_info.encode('utf-8')
     with open(fname, 'wb+') as f:
         f.write(file_content)
@@ -128,7 +128,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         try:
             with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
-                cur.execute('''select ID_, NAME_, ROUTE_ACTIVE_ from ROUTS
+                cur.execute('''select ID_, coalesce("ExternalName", NAME_) as NAME_, ROUTE_ACTIVE_ from ROUTS
                                 order by NAME_''')
                 self.logger.debug('Finish execution')
                 result = fetch_cursor_map(cur)

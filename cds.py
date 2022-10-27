@@ -44,7 +44,7 @@ class CdsRequest:
                                           '(KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
         self.data_provider = data_provider
         self.all_codd_routes = data_provider.load_codd_route_names()
-        self.codd_routes = {k:v.ID_ for k,v in self.all_codd_routes.items()  if v.ROUTE_ACTIVE_}
+        self.codd_routes = {k:v.ID_ for k, v in self.all_codd_routes.items() if v.ROUTE_ACTIVE_}
         self.codd_buses = sort_routes(self.codd_routes)
 
         self.codd_new_routes = data_provider.load_new_codd_route_names()
