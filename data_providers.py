@@ -251,7 +251,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
         try:
             with transaction(self.cds_db_project.transaction_manager()) as tr:
                 cur = tr.cursor()
-                cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
+                cur.execute('''SELECT bs.NAME_ AS BUS_STATION_, coalesce(rt."ExternalName", rt.NAME_) AS ROUTE_NAME_,  o.NAME_, o.OBJ_ID_, o.LAST_TIME_,
                     o.LAST_LON_, o.LAST_LAT_, o.LAST_SPEED_, o.LAST_STATION_TIME_, o.PROJ_ID_,
                      coalesce(o.lowfloor, 0) as low_floor, coalesce(o.VEHICLE_TYPE_, 0) as bus_type,
                       coalesce(obj_output_, 0) as obj_output,
@@ -276,7 +276,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
             if self.load_obl_objects:
                 with transaction(self.cds_db_data.transaction_manager())as tr:
                     cur = tr.cursor()
-                    cur.execute('''SELECT bs.NAME AS BUS_STATION_, rt.NAME_ AS ROUTE_NAME_,  o.block_number as OBJ_ID_,  
+                    cur.execute('''SELECT bs.NAME AS BUS_STATION_, coalesce(rt."ExternalName", rt.NAME_) AS ROUTE_NAME_,  o.block_number as OBJ_ID_,  
                         CAST(o.block_number as VARCHAR(10)) as NAME_, o.LAST_TIME as LAST_TIME_,
                         o.LON as LAST_LON_, o.LAT as LAST_LAT_, 0 as LAST_SPEED_, NULL as LAST_STATION_TIME_, NULL as PROJ_ID_,
                          0 as low_floor,
