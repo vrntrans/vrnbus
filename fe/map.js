@@ -530,7 +530,7 @@
         var bus_output = bus.obj_output === 1 ? ' <b>!</b>' : ''
         var show_bus_name = bus.name_ && !bus.hidden_name
 
-        var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (show_bus_name ? "&nbsp;" + bus.name_ : "")
+        var icon_content = bus_output + "&nbsp;" + bus.route_name_.trim() + (show_bus_name ? "&nbsp;" + bus.bort_name : "")
         var rotation = bus.db_azimuth
         var wait = bus.delta_time < 60 ? '' : '_wait';
         if (bus.delta_time > 180){
