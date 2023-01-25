@@ -112,9 +112,12 @@ class BusBot:
                 self.stats_fail_start_last = now
 
             for user_id in self.users_to_inform:
-                self.bot.send_message(chat_id=user_id,
-                                      text=text,
-                                      parse_mode='Markdown')
+                try:
+                    self.bot.send_message(chat_id=user_id,
+                                          text=text,
+                                          parse_mode='Markdown')
+                except Exception as e:
+                    self.logger.error(f'Error while sending message to {user_id=}, {e}')
 
         now = datetime.datetime.now()
         if not (6 <= now.hour < 23):
