@@ -1,6 +1,6 @@
 python-telegram-bot==11.1.0
 cachetools==2.0.1
-tornado==6.1
+tornado==6.3.3
 pytz==2017.3
 fdb==2.0.1
 beautifulsoup4==4.8.0
