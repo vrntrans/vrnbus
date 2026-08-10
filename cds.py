@@ -79,7 +79,7 @@ class CdsRequest:
         self.bus_stats = []
 
         # self.update_all_cds_buses_from_db()
-        self.scheduler = BackgroundScheduler()
+        self.scheduler = BackgroundScheduler(timezone=pytz.timezone(os.environ.get('TZ', 'Europe/Moscow')))
         self.run_scheduled_task()
 
     def run_scheduled_task(self):
@@ -102,7 +102,7 @@ class CdsRequest:
 
             self.scheduler.shutdown(wait=False)
             self.fetching_in_progress = False
-            self.scheduler = BackgroundScheduler()
+            self.scheduler = BackgroundScheduler(timezone=pytz.timezone(os.environ.get('TZ', 'Europe/Moscow')))
             self.run_scheduled_task()
 
     def load_new_routes_bg(self):

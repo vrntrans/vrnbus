@@ -4,6 +4,7 @@ import os
 import re
 import textwrap
 
+import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from telegram import ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup, \
     KeyboardButton, ReplyKeyboardMarkup
@@ -73,7 +74,7 @@ class BusBot:
         # # log all errors
         self.dp.add_error_handler(self.error)
 
-        self.scheduler = BackgroundScheduler()
+        self.scheduler = BackgroundScheduler(timezone=pytz.timezone(os.environ.get('TZ', 'Europe/Moscow')))
         self.scheduler.start()
         self.scheduler.add_job(self.stats_checking, 'interval', minutes=1)
         # Start the Bot
