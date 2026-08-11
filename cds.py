@@ -12,6 +12,7 @@ from typing import Iterable, Container, List, Optional, Deque, Union, Collection
 
 import cachetools.func
 import pytz
+from apscheduler.events import EVENT_JOB_ERROR
 from apscheduler.schedulers.background import BackgroundScheduler
 from rtree import index
 
@@ -82,8 +83,12 @@ class CdsRequest:
         self.scheduler = BackgroundScheduler(timezone=pytz.timezone(os.environ.get('TZ', 'Europe/Moscow')))
         self.run_scheduled_task()
 
+    def _log_job_error(self, event):
+        self.logger.error(f"Job {event.job_id} raised an exception", exc_info=(type(event.exception), event.exception, event.traceback))
+
     def run_scheduled_task(self):
         self.scheduler.remove_all_jobs()
+        self.scheduler.add_listener(self._log_job_error, EVENT_JOB_ERROR)
         self.scheduler.start()
         self.scheduler.add_job(self.update_all_cds_buses_from_db, 'interval', seconds=15, max_instances=1)
         self.scheduler.add_job(self.update_watch_dog, 'interval', seconds=WATCHDOG_INTERVAL)
