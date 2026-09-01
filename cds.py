@@ -84,7 +84,7 @@ class CdsRequest:
         self.run_scheduled_task()
 
     def _log_job_error(self, event):
-        self.logger.error(f"Job {event.job_id} raised an exception", exc_info=(type(event.exception), event.exception, event.traceback))
+        self.logger.error(f"Job {event.job_id} raised an exception: {event.exception!r}\n{event.traceback}")
 
     def run_scheduled_task(self):
         self.scheduler.remove_all_jobs()
