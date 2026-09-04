@@ -93,6 +93,9 @@ class CdsDBDataProvider(CdsBaseDataProvider):
     def try_reconnect(self):
         try:
             self.cds_db_project.close()
+        except Exception as close_error:
+            self.logger.error(close_error)
+        try:
             self.cds_db_project = connect(database=CDS_DB_PROJECTS_PATH, user=CDS_USER,
                                               password=CDS_PASS, charset='WIN1251')
             self.cds_db_project.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
@@ -102,6 +105,9 @@ class CdsDBDataProvider(CdsBaseDataProvider):
 
         try:
             self.cds_db_data.close()
+        except Exception as close_error:
+            self.logger.error(close_error)
+        try:
             self.cds_db_data = connect(database=CDS_DB_DATA_PATH, user=CDS_USER,
                                            password=CDS_PASS, charset='WIN1251')
             self.cds_db_data.default_tpb = fdb.ISOLATION_LEVEL_READ_COMMITED_RO
@@ -135,7 +141,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 # tr.commit()
                 # cur.close()
                 self.logger.info(f"Finish fetch data. Elapsed: {time.time() - start:.2f}")
-        except firebird.driver.DatabaseError as db_error:
+        except (AttributeError, firebird.driver.DatabaseError) as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -163,7 +169,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 self.logger.debug('Finish execution')
                 result = fetch_cursor_map(cur)
                 self.logger.info(f"Finish fetch data. Elapsed: {time.time() - start:.2f}")
-        except firebird.driver.DatabaseError as db_error:
+        except (AttributeError, firebird.driver.DatabaseError) as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -208,7 +214,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                                 left join BS on bsr.BS_ID = bs.ID''')
                 bus_stops_data = fetch_cursor_map(cur)
                 self.logger.info(f"Finish fetch data. Elapsed: {time.time() - start:.2f}")
-        except firebird.driver.DatabaseError as db_error:
+        except (AttributeError, firebird.driver.DatabaseError) as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -233,7 +239,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 bus_stops_data = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except firebird.driver.DatabaseError as db_error:
+        except (AttributeError, firebird.driver.DatabaseError) as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return {}
@@ -266,7 +272,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 result = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except (AssertionError, firebird.driver.types.DatabaseError, firebird.driver.DatabaseError) as db_error:
+        except (AssertionError, AttributeError, firebird.driver.types.DatabaseError, firebird.driver.DatabaseError) as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return []
@@ -291,7 +297,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                     obl_result = fetch_cursor_map(cur)
                     end = time.time()
                     self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except firebird.driver.DatabaseError as db_error:
+        except (AttributeError, firebird.driver.DatabaseError) as db_error:
             if self.load_obl_objects:
                 self.load_obl_objects = False
                 self.logger.error(db_error)
@@ -316,7 +322,7 @@ class CdsDBDataProvider(CdsBaseDataProvider):
                 result = fetch_cursor_map(cur)
                 end = time.time()
                 self.logger.info(f"Finish fetch data. Elapsed: {end - start:.2f}")
-        except firebird.driver.DatabaseError as db_error:
+        except (AttributeError, firebird.driver.DatabaseError) as db_error:
             self.logger.error(db_error)
             self.try_reconnect()
             return []
